@@ -122,6 +122,14 @@ class AppSettings(context: Context) {
         get() = prefs.getInt("waitingDurationMs", DEFAULT_WAITING_ANIMATION_MS)
         set(value) = prefs.edit().putInt("waitingDurationMs", value).apply()
 
+    var launchGreeting: String
+        get() = prefs.getString("launchGreeting", "") ?: ""
+        set(value) = prefs.edit().putString("launchGreeting", value).apply()
+
+    var launchChecklistEnabled: Boolean
+        get() = prefs.getBoolean("launchChecklistEnabled", true)
+        set(value) = prefs.edit().putBoolean("launchChecklistEnabled", value).apply()
+
     companion object {
         const val DEFAULT_IPC_PORT = 18420
         const val DEFAULT_REMOTE_PORT = 18421

@@ -69,6 +69,8 @@ import com.openpets.android.companion.SystemResourcesFormatter
 import com.openpets.android.companion.CalendarController
 import com.openpets.android.companion.DeviceEvent
 import com.openpets.android.companion.CalendarFormat
+import com.openpets.android.companion.ChecklistController
+import com.openpets.android.companion.ChecklistItem
 import com.openpets.android.FeatureHud
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
@@ -143,6 +145,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private var calendarDialog: AlertDialog? = null
     private var calendarDialogListener: ((List<DeviceEvent>) -> Unit)? = null
     private var calendarDialogRender: ((List<DeviceEvent>) -> Unit)? = null
+    private var checklistController: ChecklistController? = null
+    private var checklistDialog: AlertDialog? = null
+    private var checklistDialogListener: ((List<ChecklistItem>) -> Unit)? = null
+    private var checklistDialogRender: ((List<ChecklistItem>) -> Unit)? = null
     private val timerHandler = Handler(Looper.getMainLooper())
     private var timerDialog: AlertDialog? = null
     private var timerRemainingView: TextView? = null
@@ -234,6 +240,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         breathingController = BreathingController(this)
         resourcesController = SystemResourcesController(this)
         calendarController = CalendarController(this)
+        checklistController = ChecklistController(this)
         reloadPet()
         applyAnimationConfig()
 
@@ -266,6 +273,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         resourcesDialogListener?.let { resourcesController?.addListener(it) }
         resourcesController?.refresh()
         calendarDialogListener?.let { calendarController?.addListener(it) }
+        checklistDialogListener?.let { checklistController?.addListener(it) }
+        checklistController?.refresh()
         calendarController?.refresh()
         startFocusTickIfRunning()
         startBreathingTickIfActive()
@@ -279,6 +288,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         if (breathingDialog?.isShowing == true) breathingController?.snapshot()?.let { breathingDialogRender?.invoke(it) }
         if (resourcesDialog?.isShowing == true) resourcesController?.snapshot()?.let { resourcesDialogRender?.invoke(it) }
         if (calendarDialog?.isShowing == true) calendarDialogRender?.invoke(calendarController?.upcoming().orEmpty())
+        if (checklistDialog?.isShowing == true) checklistDialogRender?.invoke(checklistController?.items().orEmpty())
         if (::stage.isInitialized) applyAnimationConfig()
     }
 
@@ -297,6 +307,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         breathingDialogListener?.let { breathingController?.removeListener(it) }
         resourcesDialogListener?.let { resourcesController?.removeListener(it) }
         calendarDialogListener?.let { calendarController?.removeListener(it) }
+        checklistDialogListener?.let { checklistController?.removeListener(it) }
         PetBus.unregister(this)
         AppState.foreground = false
         super.onStop()
@@ -619,6 +630,39 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         dialog.setOnDismissListener { controller.removeListener(render) }; dialog.show(); controller.refresh(); render(controller.upcoming())
     }
 
+    private fun showChecklistDialog() {
+        val controller = checklistController ?: return
+        val itemField = EditText(this).apply { hint = getString(R.string.checklist_item) }
+        val greetingField = EditText(this).apply { hint = "Leave blank for the time-of-day greeting"; setText(settings.launchGreeting) }
+        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(8), dp(20), dp(8)) }
+        root.addView(sectionLabel(getString(R.string.checklist_item))); root.addView(itemField)
+        root.addView(actionButton(getString(R.string.checklist_add)) { runCatching { controller.add(itemField.text.toString()); itemField.text.clear() }.onFailure { Toast.makeText(this, it.message, Toast.LENGTH_SHORT).show() } })
+        root.addView(sectionLabel(getString(R.string.checklist_title))); root.addView(list)
+        root.addView(actionButton(getString(R.string.checklist_clear)) { controller.clearCompleted() })
+        root.addView(actionButton(getString(R.string.checklist_launch)) { settings.launchGreeting = greetingField.text.toString(); controller.launch() })
+        root.addView(labelWithField(getString(R.string.checklist_greeting), greetingField))
+        val render: (List<ChecklistItem>) -> Unit = { entries -> runOnUiThread {
+            list.removeAllViews()
+            if (entries.isEmpty()) list.addView(sectionLabel(getString(R.string.checklist_empty)))
+            entries.forEach { item ->
+                val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+                row.addView(sectionLabel(item.label))
+                row.addView(actionButton(getString(if (item.done) R.string.checklist_undo else R.string.checklist_done)) { controller.toggle(item.id) })
+                row.addView(actionButton(getString(R.string.checklist_remove)) { controller.remove(item.id) })
+                list.addView(row)
+            }
+        } }
+        checklistDialogRender = render
+        checklistDialogListener = render
+        controller.addListener(render)
+        checklistDialog = AlertDialog.Builder(this).setTitle(R.string.checklist_title).setView(root).setNegativeButton(R.string.dialog_close, null).create()
+        checklistDialog?.setOnDismissListener { controller.removeListener(render); settings.launchGreeting = greetingField.text.toString(); checklistDialog = null; checklistDialogListener = null; checklistDialogRender = null }
+        checklistDialog?.show()
+        controller.refresh()
+        render(controller.items())
+    }
+
     private fun showSettings() {
         val ipcEnabled = CheckBox(this).apply { text = getString(R.string.settings_ipc); isChecked = settings.ipcEnabled }
         val remoteEnabled = CheckBox(this).apply { text = getString(R.string.settings_remote); isChecked = settings.remoteEnabled }
@@ -663,6 +707,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton(getString(R.string.breathe_open)) { showBreathingDialog() })
             addView(actionButton(getString(R.string.resources_open)) { showResourcesDialog() })
             addView(actionButton(getString(R.string.calendar_open)) { showCalendarDialog() })
+            addView(actionButton(getString(R.string.checklist_open)) { showChecklistDialog() })
             addView(actionButton(getString(R.string.settings_voice)) { showVoiceDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)

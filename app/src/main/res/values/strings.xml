@@ -165,6 +165,17 @@
     <string name="calendar_show">Show next on pet</string>
     <string name="calendar_remind">Remind before events</string>
     <string name="calendar_empty">No upcoming events</string>
+    <string name="checklist_open">Checklist…</string>
+    <string name="checklist_title">Launch checklist</string>
+    <string name="checklist_add">Add</string>
+    <string name="checklist_item">Item</string>
+    <string name="checklist_done">Done</string>
+    <string name="checklist_undo">Undo</string>
+    <string name="checklist_remove">Remove</string>
+    <string name="checklist_clear">Clear completed</string>
+    <string name="checklist_launch">Launch</string>
+    <string name="checklist_greeting">Greeting</string>
+    <string name="checklist_empty">Nothing on the checklist</string>
     <string name="settings_voice">Voice input…</string>
     <string name="voice_title">Voice input</string>
     <string name="voice_speak">Speak</string>
