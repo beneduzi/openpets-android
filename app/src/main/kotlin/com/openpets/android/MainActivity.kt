@@ -84,6 +84,8 @@ import com.openpets.android.protocol.SELECTABLE_ANIMATIONS
 import com.openpets.android.protocol.SayRequest
 import com.openpets.android.protocol.resolveReactionSpriteState
 import com.openpets.android.settings.AppSettings
+import com.openpets.android.vocab.VocabularyClient
+import com.openpets.android.vocab.VocabDefinition
 import com.openpets.android.view.PetStageView
 import java.io.File
 import java.util.Locale
@@ -102,6 +104,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private lateinit var settings: AppSettings
     private lateinit var repository: PetRepository
     private val catalogClient = CatalogClient()
+    private val vocabularyClient = VocabularyClient()
     private var tts: TextToSpeech? = null
     private var ttsReady = false
     private var timerController: TimerController? = null
@@ -243,10 +246,23 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         checklistController = ChecklistController(this)
         reloadPet()
         applyAnimationConfig()
+        sharedText()?.let { stage.post { showVocabDialog(it) } }
 
         OpenPetsService.start(this)
         requestNotificationPermission()
     }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.action == android.content.Intent.ACTION_SEND) {
+            intent.getCharSequenceExtra(android.content.Intent.EXTRA_TEXT)?.toString()?.takeIf { it.isNotBlank() }?.let(::showVocabDialog)
+        }
+    }
+
+    private fun sharedText(): String? = if (intent?.action == android.content.Intent.ACTION_SEND) {
+        intent.getCharSequenceExtra(android.content.Intent.EXTRA_TEXT)?.toString()?.takeIf { it.isNotBlank() }
+    } else null
 
     override fun onStart() {
         super.onStart()
@@ -703,6 +719,52 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         dialog.show()
     }
 
+    private fun showVocabSettingsDialog() {
+        val language = EditText(this).apply { setText(settings.vocabTargetLang) }
+        val host = EditText(this).apply { hint = "host or host:port"; setText(settings.ankiHost) }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+            addView(labelWithField(getString(R.string.vocab_target_lang), language))
+            addView(labelWithField(getString(R.string.vocab_anki_host), host))
+        }
+        AlertDialog.Builder(this).setTitle(R.string.vocab_title).setView(content)
+            .setPositiveButton(R.string.settings_save) { _, _ -> settings.vocabTargetLang = language.text.toString(); settings.ankiHost = host.text.toString() }
+            .setNegativeButton(R.string.dialog_close, null).show()
+    }
+
+    private fun showVocabDialog(text: String) {
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(12), dp(20), dp(12)) }
+        val word = text.trim()
+        val definitions = TextView(this)
+        val translation = TextView(this)
+        val defineButton = actionButton(getString(R.string.vocab_define)) {
+            definitions.text = "…"
+            vocabularyClient.define(word, { values ->
+                definitions.text = values.take(4).joinToString("\n") { "${it.partOfSpeech?.let { pos -> "$pos — " } ?: ""}${it.definition}" }.ifEmpty { getString(R.string.vocab_error) }
+            }, { definitions.text = "${getString(R.string.vocab_error)}: $it" })
+        }
+        val translateButton = actionButton(getString(R.string.vocab_translate)) {
+            translation.text = "…"
+            vocabularyClient.translate(word, "auto", settings.vocabTargetLang, { translation.text = it }, { translation.text = "${getString(R.string.vocab_error)}: $it" })
+        }
+        val ankiButton = actionButton(getString(R.string.vocab_anki)) {
+            val back = definitions.text.toString().ifBlank { translation.text.toString() }
+            vocabularyClient.addToAnki(settings.ankiHost, word, back) { ok -> Toast.makeText(this, if (ok) getString(R.string.vocab_sent) else getString(R.string.vocab_error), Toast.LENGTH_SHORT).show() }
+        }.apply { isEnabled = settings.ankiHost.isNotBlank() }
+        content.addView(sectionLabel(word))
+        content.addView(defineButton); content.addView(definitions)
+        content.addView(translateButton); content.addView(translation)
+        content.addView(actionButton(getString(R.string.vocab_show)) {
+            val message = definitions.text.toString().takeIf { it.isNotBlank() && it != "…" } ?: translation.text.toString().takeIf { it.isNotBlank() && it != "…" } ?: word
+            PetBus.sink.onSay(SayRequest(message = message, reaction = null, source = "vocab", bubbleId = "vocab", pinned = false))
+            Toast.makeText(this, getString(R.string.vocab_sent), Toast.LENGTH_SHORT).show()
+        })
+        content.addView(ankiButton)
+        AlertDialog.Builder(this).setTitle(R.string.vocab_title).setView(ScrollView(this).apply { addView(content) })
+            .setNegativeButton(R.string.dialog_close, null).show()
+    }
+
     private fun showSettings() {
         val ipcEnabled = CheckBox(this).apply { text = getString(R.string.settings_ipc); isChecked = settings.ipcEnabled }
         val remoteEnabled = CheckBox(this).apply { text = getString(R.string.settings_remote); isChecked = settings.remoteEnabled }
@@ -749,6 +811,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton(getString(R.string.calendar_open)) { showCalendarDialog() })
             addView(actionButton(getString(R.string.checklist_open)) { showChecklistDialog() })
             addView(actionButton(getString(R.string.walkabout_open)) { showWalkaboutDialog() })
+            addView(actionButton(getString(R.string.vocab_open)) { showVocabSettingsDialog() })
             addView(actionButton(getString(R.string.settings_voice)) { showVoiceDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)

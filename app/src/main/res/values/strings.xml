@@ -182,6 +182,16 @@
     <string name="walkabout_roam">Roam</string>
     <string name="walkabout_patrol">Patrol</string>
     <string name="walkabout_speed">Speed</string>
+    <string name="vocab_open">Vocabulary…</string>
+    <string name="vocab_title">Vocabulary</string>
+    <string name="vocab_define">Define</string>
+    <string name="vocab_translate">Translate</string>
+    <string name="vocab_show">Show on pet</string>
+    <string name="vocab_anki">Add to Anki</string>
+    <string name="vocab_target_lang">Target language</string>
+    <string name="vocab_anki_host">Anki host</string>
+    <string name="vocab_error">Lookup failed</string>
+    <string name="vocab_sent">Sent</string>
     <string name="settings_voice">Voice input…</string>
     <string name="voice_title">Voice input</string>
     <string name="voice_speak">Speak</string>

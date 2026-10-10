@@ -138,6 +138,14 @@ class AppSettings(context: Context) {
         get() = prefs.getFloat("walkaboutSpeed", 1.0f).coerceIn(0.5f, 3.0f)
         set(value) = prefs.edit().putFloat("walkaboutSpeed", value.coerceIn(0.5f, 3.0f)).apply()
 
+    var vocabTargetLang: String
+        get() = prefs.getString("vocabTargetLang", "en") ?: "en"
+        set(value) = prefs.edit().putString("vocabTargetLang", value.trim()).apply()
+
+    var ankiHost: String
+        get() = prefs.getString("ankiHost", "") ?: ""
+        set(value) = prefs.edit().putString("ankiHost", value.trim()).apply()
+
     companion object {
         const val DEFAULT_IPC_PORT = 18420
         const val DEFAULT_REMOTE_PORT = 18421

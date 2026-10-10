@@ -2,6 +2,8 @@
 
 # OpenPets Android
 
+Vocabulary: share text to OpenPets to look up a definition or translation and show it on the pet.
+
 **Turn an old phone or tablet into an always-on OpenPets companion.**
 
 A community Android companion for [OpenPets](https://github.com/OpenPetsHQ/openpets) that shows your pet on screen and reacts — in real time — to what your coding agents are doing.
