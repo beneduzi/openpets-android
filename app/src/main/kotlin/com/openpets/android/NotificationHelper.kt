@@ -180,6 +180,16 @@ class NotificationHelper(private val context: Context) {
         manager.notify(EVENT_NOTIFICATION_ID, notification)
     }
 
+    fun notifyCalendar(title: String, text: String) {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && manager.getNotificationChannel(CALENDAR_CHANNEL_ID) == null) {
+            manager.createNotificationChannel(NotificationChannel(CALENDAR_CHANNEL_ID, "Calendar", NotificationManager.IMPORTANCE_DEFAULT))
+        }
+        manager.notify(CALENDAR_NOTIFICATION_ID, NotificationCompat.Builder(context, CALENDAR_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_notify_sync).setContentTitle(title).setContentText(text)
+            .setAutoCancel(true).setOnlyAlertOnce(true).setPriority(NotificationCompat.PRIORITY_DEFAULT).build())
+    }
+
     companion object {
         const val EVENT_CHANNEL_ID = "openpets_events"
         const val EVENT_NOTIFICATION_ID = 1011
@@ -192,6 +202,8 @@ class NotificationHelper(private val context: Context) {
         const val WATER_NOTIFICATION_ID = 1014
         const val ROUTINE_CHANNEL_ID = "openpets_routine"
         const val ROUTINE_NOTIFICATION_ID = 1015
+        const val CALENDAR_CHANNEL_ID = "openpets_calendar"
+        const val CALENDAR_NOTIFICATION_ID = 1016
         private const val REMINDER_NOTIFICATION_BASE = 20_000
     }
 }

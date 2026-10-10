@@ -21,4 +21,5 @@ object CompanionRuntime {
     val routine: RoutineController by lazy { RoutineController.createRuntime(ctx()) }
     val breathing: BreathingController by lazy { BreathingController.createRuntime(ctx()) }
     val resources: SystemResourcesController by lazy { SystemResourcesController.createRuntime(ctx()) }
+    val calendar: CalendarController by lazy { CalendarController.createRuntime(ctx()) }
 }

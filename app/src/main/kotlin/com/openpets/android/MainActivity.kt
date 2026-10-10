@@ -60,6 +60,9 @@ import com.openpets.android.companion.BreathingPattern
 import com.openpets.android.companion.SystemResourcesController
 import com.openpets.android.companion.DeviceResources
 import com.openpets.android.companion.SystemResourcesFormatter
+import com.openpets.android.companion.CalendarController
+import com.openpets.android.companion.DeviceEvent
+import com.openpets.android.companion.CalendarFormat
 import com.openpets.android.FeatureHud
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
@@ -129,6 +132,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private var resourcesDialog: AlertDialog? = null
     private var resourcesDialogListener: ((DeviceResources) -> Unit)? = null
     private var resourcesDialogRender: ((DeviceResources) -> Unit)? = null
+    private var calendarController: CalendarController? = null
+    private var calendarDialog: AlertDialog? = null
+    private var calendarDialogListener: ((List<DeviceEvent>) -> Unit)? = null
+    private var calendarDialogRender: ((List<DeviceEvent>) -> Unit)? = null
     private val timerHandler = Handler(Looper.getMainLooper())
     private var timerDialog: AlertDialog? = null
     private var timerRemainingView: TextView? = null
@@ -219,6 +226,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         routineController = RoutineController(this)
         breathingController = BreathingController(this)
         resourcesController = SystemResourcesController(this)
+        calendarController = CalendarController(this)
         reloadPet()
         applyAnimationConfig()
 
@@ -250,6 +258,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         breathingController?.refresh()
         resourcesDialogListener?.let { resourcesController?.addListener(it) }
         resourcesController?.refresh()
+        calendarDialogListener?.let { calendarController?.addListener(it) }
+        calendarController?.refresh()
         startFocusTickIfRunning()
         startBreathingTickIfActive()
         if (timerDialog?.isShowing == true) timerController?.snapshot()?.let { timerDialogRender?.invoke(it) }
@@ -261,6 +271,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         if (routineDialog?.isShowing == true) routineController?.settings()?.let { routineDialogRender?.invoke(it) }
         if (breathingDialog?.isShowing == true) breathingController?.snapshot()?.let { breathingDialogRender?.invoke(it) }
         if (resourcesDialog?.isShowing == true) resourcesController?.snapshot()?.let { resourcesDialogRender?.invoke(it) }
+        if (calendarDialog?.isShowing == true) calendarDialogRender?.invoke(calendarController?.upcoming().orEmpty())
         if (::stage.isInitialized) applyAnimationConfig()
     }
 
@@ -278,6 +289,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         routineDialogListener?.let { routineController?.removeListener(it) }
         breathingDialogListener?.let { breathingController?.removeListener(it) }
         resourcesDialogListener?.let { resourcesController?.removeListener(it) }
+        calendarDialogListener?.let { calendarController?.removeListener(it) }
         PetBus.unregister(this)
         AppState.foreground = false
         super.onStop()
@@ -617,6 +629,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton(getString(R.string.routine_open)) { showRoutineDialog() })
             addView(actionButton(getString(R.string.breathe_open)) { showBreathingDialog() })
             addView(actionButton(getString(R.string.resources_open)) { showResourcesDialog() })
+            addView(actionButton(getString(R.string.calendar_open)) { showCalendarDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)
             addView(remoteEnabled)
@@ -665,6 +678,38 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             }
             .setNegativeButton(R.string.settings_cancel, null)
             .show()
+    }
+
+    private fun showCalendarDialog() {
+        val controller = calendarController ?: return
+        if (!controller.hasPermission()) {
+            AlertDialog.Builder(this).setTitle(R.string.calendar_title).setMessage(R.string.calendar_permission_rationale)
+                .setPositiveButton(R.string.calendar_grant) { _, _ -> ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CALENDAR), 1002) }
+                .setNegativeButton(R.string.dialog_close, null).show()
+            return
+        }
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(12), dp(20), dp(12)) }
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.calendar_title).setView(ScrollView(this).apply { addView(content) })
+            .setNegativeButton(R.string.dialog_close, null).create()
+        calendarDialog = dialog
+        fun render(events: List<DeviceEvent>) {
+            content.removeAllViews()
+            if (events.isEmpty()) content.addView(sectionLabel(getString(R.string.calendar_empty)))
+            events.forEach { content.addView(sectionLabel("${it.title} · ${CalendarFormat.relativeTime(it.beginMs, System.currentTimeMillis())}")) }
+            content.addView(actionButton(getString(R.string.calendar_refresh)) { controller.refresh() })
+            content.addView(actionButton(getString(R.string.calendar_show)) { controller.showOnPet() })
+            content.addView(CheckBox(this).apply { text = getString(R.string.calendar_remind); isChecked = controller.enabled(); setOnCheckedChangeListener { _, checked -> controller.setEnabled(checked) } })
+        }
+        val listener: (List<DeviceEvent>) -> Unit = { render(it) }
+        calendarDialogListener?.let { controller.removeListener(it) }
+        calendarDialogListener = listener; calendarDialogRender = { render(it) }; controller.addListener(listener)
+        dialog.setOnDismissListener { calendarDialogListener?.let { controller.removeListener(it) }; calendarDialogListener = null; calendarDialogRender = null; calendarDialog = null }
+        render(controller.upcoming()); dialog.show()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1002 && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) showCalendarDialog()
     }
 
     private fun startTimerTickIfRunning() {

@@ -110,6 +110,7 @@ class OpenPetsService : Service() {
         focusController = CompanionRuntime.focus.also { it.refresh() }
         waterController = CompanionRuntime.water.also { it.refresh() }
         routineController = CompanionRuntime.routine.also { it.refresh() }
+        CompanionRuntime.calendar.refresh()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

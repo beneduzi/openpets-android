@@ -144,4 +144,12 @@
     <string name="resources_storage">Storage</string>
     <string name="resources_network">Network</string>
     <string name="resources_unavailable">unavailable</string>
+    <string name="calendar_open">Calendar…</string>
+    <string name="calendar_title">Calendar</string>
+    <string name="calendar_grant">Grant calendar access</string>
+    <string name="calendar_permission_rationale">Allow reading local calendars to show upcoming events.</string>
+    <string name="calendar_refresh">Refresh</string>
+    <string name="calendar_show">Show next on pet</string>
+    <string name="calendar_remind">Remind before events</string>
+    <string name="calendar_empty">No upcoming events</string>
 </resources>
