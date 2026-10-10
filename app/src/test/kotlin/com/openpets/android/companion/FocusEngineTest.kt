@@ -73,4 +73,18 @@ class FocusEngineTest {
         assertEquals(true, gate.shouldAnnounce(snapshot))
         assertEquals(false, gate.shouldAnnounce(snapshot))
     }
+
+    @Test fun phaseInstanceGateAnnouncesAfterSkippingAFullCycle() {
+        val gate = FocusPhaseAnnouncementGate()
+        var snapshot = engine.start(1_000L, 1_000L)
+        assertEquals(true, gate.shouldAnnounce(snapshot))
+        // Advance a full FOCUS+BREAK cycle without ever observing the BREAK phase:
+        // the same phase (FOCUS) returns with a higher cycle count and must announce once.
+        now += 2_000L
+        snapshot = engine.snapshot()
+        assertEquals(FocusState.FOCUS, snapshot.state)
+        assertEquals(1, snapshot.cyclesCompleted)
+        assertEquals(true, gate.shouldAnnounce(snapshot))
+        assertEquals(false, gate.shouldAnnounce(snapshot))
+    }
 }
