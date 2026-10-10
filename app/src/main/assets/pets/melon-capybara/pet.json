@@ -1,0 +1,7 @@
+{
+  "id": "melon-capybara",
+  "displayName": "Melon Capybara",
+  "description": "A round tan pet capybara with glossy black eyes and a watermelon slice balanced on its head.",
+  "spritesheetPath": "spritesheet.webp",
+  "kind": "animal"
+}

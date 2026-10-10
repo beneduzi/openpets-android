@@ -1,0 +1,7 @@
+{
+  "id": "lazy-raccoon",
+  "displayName": "Lazy Raccoon",
+  "description": "A sleepy pixel-art raccoon pet with lazy, low-energy animations.",
+  "spritesheetPath": "spritesheet.webp",
+  "kind": "animal"
+}

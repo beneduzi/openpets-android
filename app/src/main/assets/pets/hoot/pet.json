@@ -1,0 +1,9 @@
+{
+  "id": "hoot",
+  "displayName": "Professor Hoot",
+  "description": "The built-in OpenPets owl.",
+  "spritesheetPath": "spritesheet.webp",
+  "author": "OpenPets",
+  "tags": ["builtin"],
+  "source": "builtin"
+}

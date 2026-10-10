@@ -1,0 +1,9 @@
+{
+  "protocol": "openpets-ipc",
+  "protocolVersion": 1,
+  "endpoint": "tcp://192.168.0.14:18420",
+  "token": "REPLACE_WITH_IPC_TOKEN_FROM_APP_SETTINGS",
+  "appVersion": "0.1.0",
+  "pid": 12345,
+  "platform": "linux"
+}
