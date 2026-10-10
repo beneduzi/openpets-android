@@ -14,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.openpets.android.AppState
 import com.openpets.android.HapticsNotifier
+import com.openpets.android.companion.CompanionRuntime
 import com.openpets.android.companion.TimerController
 import com.openpets.android.companion.ReminderController
 import com.openpets.android.companion.FocusController
@@ -88,6 +89,7 @@ class OpenPetsService : Service() {
     override fun onCreate() {
         super.onCreate()
         settings = AppSettings(this)
+        CompanionRuntime.init(this)
         sound = SoundNotifier(this)
         sound.warmUp()
         haptics = HapticsNotifier(this)
@@ -96,9 +98,9 @@ class OpenPetsService : Service() {
         PetBus.register(eventListener)
         // Reconcile a persisted running timer after reboot or process death: constructing the
         // controller reschedules the exact alarm. The HUD is re-shown when the activity opens.
-        timerController = TimerController(this)
-        reminderController = ReminderController(this).also { it.refresh() }
-        focusController = FocusController(this).also { it.refresh() }
+        timerController = CompanionRuntime.timer.also { it.refresh() }
+        reminderController = CompanionRuntime.reminders.also { it.refresh() }
+        focusController = CompanionRuntime.focus.also { it.refresh() }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

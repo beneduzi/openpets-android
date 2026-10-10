@@ -20,7 +20,7 @@ class ReminderEngine(private val clock: () -> Long = System::currentTimeMillis) 
 
     fun snooze(id: String, minutes: Int): Boolean {
         require(minutes > 0) { "Snooze duration must be positive." }
-        return update(id) { it.copy(dueAtMs = it.dueAtMs + minutes * 60_000L, notified = false) }
+        return update(id) { it.copy(dueAtMs = maxOf(clock(), it.dueAtMs) + minutes * 60_000L, notified = false) }
     }
 
     fun pending(): List<Reminder> = reminders.filterNot { it.completed }.sortedBy { it.dueAtMs }
@@ -29,8 +29,8 @@ class ReminderEngine(private val clock: () -> Long = System::currentTimeMillis) 
 
     fun nextTrigger(now: Long): Long? {
         val active = reminders.filterNot { it.completed }
-        return active.filter { it.dueAtMs > now }.minOfOrNull { it.dueAtMs }
-            ?: active.filter { !it.notified }.minOfOrNull { it.dueAtMs }
+        return active.filter { !it.notified && it.dueAtMs <= now }.minOfOrNull { it.dueAtMs }?.let { now }
+            ?: active.filter { it.dueAtMs > now }.minOfOrNull { it.dueAtMs }
     }
 
     fun markNotified(id: String): Boolean = update(id) { it.copy(notified = true) }

@@ -40,9 +40,9 @@ class ReminderEngineTest {
 
     @Test fun nextTriggerPicksEarliestOverdueThenFuture() {
         val overdue = engine.add("overdue", now - 10)
-        assertEquals(overdue.dueAtMs, engine.nextTrigger(now))
+        assertEquals(now, engine.nextTrigger(now))
         engine.add("future later", now + 20)
-        assertEquals(now + 20, engine.nextTrigger(now))
+        assertEquals(now, engine.nextTrigger(now))
         engine.markNotified(overdue.id)
         assertEquals(now + 20, engine.nextTrigger(now))
     }

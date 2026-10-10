@@ -1,9 +1,13 @@
 package com.openpets.android.companion
 
 import android.content.Context
-import java.util.concurrent.TimeUnit
-
-data class StoredTimer(val snapshot: TimerSnapshot, val updatedAtMs: Long, val finishAtMs: Long, val alarmTriggerMs: Long)
+data class StoredTimer(
+    val snapshot: TimerSnapshot,
+    val updatedAtMs: Long,
+    val finishAtMs: Long,
+    val alarmTriggerMs: Long,
+    val finishedAnnounced: Boolean,
+)
 
 class TimerStore(context: Context) {
     private val preferences = context.getSharedPreferences("openpets_timer", Context.MODE_PRIVATE)
@@ -22,10 +26,11 @@ class TimerStore(context: Context) {
             preferences.getLong(KEY_UPDATED, 0L),
             finishAt,
             preferences.getLong(KEY_ALARM, finishAt),
+            preferences.getBoolean(KEY_FINISHED_ANNOUNCED, false),
         )
     }
 
-    fun save(snapshot: TimerSnapshot, updatedAtMs: Long, finishAtMs: Long, alarmTriggerMs: Long = finishAtMs) {
+    fun save(snapshot: TimerSnapshot, updatedAtMs: Long, finishAtMs: Long, alarmTriggerMs: Long = finishAtMs, finishedAnnounced: Boolean = false) {
         preferences.edit()
             .putString(KEY_STATE, snapshot.state.name)
             .putLong(KEY_TOTAL, snapshot.totalMs)
@@ -34,6 +39,7 @@ class TimerStore(context: Context) {
             .putLong(KEY_UPDATED, updatedAtMs)
             .putLong(KEY_FINISH_AT, finishAtMs)
             .putLong(KEY_ALARM, alarmTriggerMs)
+            .putBoolean(KEY_FINISHED_ANNOUNCED, finishedAnnounced)
             .apply()
     }
 
@@ -45,5 +51,6 @@ class TimerStore(context: Context) {
         private const val KEY_UPDATED = "updatedAtMs"
         private const val KEY_FINISH_AT = "finishAtMs"
         private const val KEY_ALARM = "alarmTriggerMs"
+        private const val KEY_FINISHED_ANNOUNCED = "finishedAnnounced"
     }
 }

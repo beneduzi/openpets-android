@@ -61,4 +61,16 @@ class TimerEngineTest {
         assertEquals("9:05", TimerEngine.formatRemaining(545_000L))
         assertEquals("1:01:01", TimerEngine.formatRemaining(3_661_000L))
     }
+
+    @Test fun finishedAnnouncementIsClaimedOnlyOnceAcrossRefreshes() {
+        val gate = TimerFinishAnnouncementGate()
+        engine.start(1_000L)
+        now += 1_000L
+        val finished = engine.snapshot()
+        var announcements = 0
+        repeat(5) {
+            if (gate.shouldAnnounce(finished.state)) announcements++
+        }
+        assertEquals(1, announcements)
+    }
 }

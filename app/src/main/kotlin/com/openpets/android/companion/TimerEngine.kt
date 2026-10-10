@@ -109,3 +109,18 @@ class TimerEngine(private val clock: () -> Long = System::currentTimeMillis) {
         }
     }
 }
+
+/** Pure deduplication gate used to keep timer completion announcements one-shot. */
+class TimerFinishAnnouncementGate(initiallyAnnounced: Boolean = false) {
+    private var announced = initiallyAnnounced
+
+    fun shouldAnnounce(state: TimerRunState): Boolean {
+        if (state != TimerRunState.FINISHED || announced) return false
+        announced = true
+        return true
+    }
+
+    fun reset() { announced = false }
+
+    fun hasAnnounced(): Boolean = announced
+}
