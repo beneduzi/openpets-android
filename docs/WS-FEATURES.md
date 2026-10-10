@@ -4,8 +4,8 @@ The experimental `openpets-ws` endpoint (opt-in, disabled by default, private
 peers + IPC token) is bidirectional, which unlocks features that were previously
 out of scope for a phone-only app. This document plans three of them.
 
-> Status: **planning**. None of these are built yet. WS is experimental, so the
-> message schema below is a proposal and may change.
+> Status: **A and C implemented; B skipped.** WS is experimental, so the message
+> schema below is a proposal and may change.
 
 ## Transport recap
 
