@@ -42,6 +42,9 @@ import com.openpets.android.companion.FocusState
 import com.openpets.android.companion.PetMood
 import com.openpets.android.companion.PetStats
 import com.openpets.android.companion.VirtualPetController
+import com.openpets.android.companion.WaterController
+import com.openpets.android.companion.WaterEngine
+import com.openpets.android.companion.WaterSettings
 import com.openpets.android.FeatureHud
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
@@ -88,6 +91,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private var virtualPetDialog: AlertDialog? = null
     private var virtualPetDialogListener: ((PetStats) -> Unit)? = null
     private var virtualPetDialogRender: ((PetStats) -> Unit)? = null
+    private var waterController: WaterController? = null
+    private var waterDialog: AlertDialog? = null
+    private var waterDialogListener: ((WaterSettings) -> Unit)? = null
+    private var waterDialogRender: ((WaterSettings) -> Unit)? = null
     private val timerHandler = Handler(Looper.getMainLooper())
     private var timerDialog: AlertDialog? = null
     private var timerRemainingView: TextView? = null
@@ -161,6 +168,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         focusController = FocusController(this)
         reminderController = ReminderController(this)
         virtualPetController = VirtualPetController(this)
+        waterController = WaterController(this)
         reloadPet()
         applyAnimationConfig()
 
@@ -182,11 +190,14 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         focusController?.refresh()
         virtualPetDialogListener?.let { virtualPetController?.addListener(it) }
         virtualPetController?.refresh()
+        waterDialogListener?.let { waterController?.addListener(it) }
+        waterController?.refresh()
         startFocusTickIfRunning()
         if (timerDialog?.isShowing == true) timerController?.snapshot()?.let { timerDialogRender?.invoke(it) }
         if (focusDialog?.isShowing == true) focusController?.snapshot()?.let { focusDialogRender?.invoke(it) }
         if (reminderDialog?.isShowing == true) reminderDialogRender?.invoke(reminderController?.snapshot().orEmpty())
         if (virtualPetDialog?.isShowing == true) virtualPetController?.snapshot()?.let { virtualPetDialogRender?.invoke(it) }
+        if (waterDialog?.isShowing == true) waterController?.settings()?.let { waterDialogRender?.invoke(it) }
         if (::stage.isInitialized) applyAnimationConfig()
     }
 
@@ -198,6 +209,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         reminderDialogListener?.let { reminderController?.removeListener(it) }
         focusDialogListener?.let { focusController?.removeListener(it) }
         virtualPetDialogListener?.let { virtualPetController?.removeListener(it) }
+        waterDialogListener?.let { waterController?.removeListener(it) }
         PetBus.unregister(this)
         AppState.foreground = false
         super.onStop()
@@ -531,6 +543,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton(getString(R.string.reminders_open)) { showRemindersDialog() })
             addView(actionButton(getString(R.string.focus_open)) { showFocusDialog() })
             addView(actionButton(getString(R.string.virtualpet_open)) { showVirtualPetDialog() })
+            addView(actionButton(getString(R.string.water_open)) { showWaterDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)
             addView(remoteEnabled)
@@ -919,6 +932,87 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         dialog.show()
         controller.refresh()
         controller.showOnPet()
+    }
+
+    private fun showWaterDialog() {
+        val controller = waterController ?: return
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.water_title)
+            .setView(ScrollView(this).apply { addView(content) })
+            .setNegativeButton(R.string.dialog_close, null)
+            .create()
+        waterDialog = dialog
+
+        fun fullButton(text: String, onClick: () -> Unit) = actionButton(text, onClick).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+        fun render(settings: WaterSettings) {
+            content.removeAllViews()
+            val enabled = CheckBox(this).apply {
+                text = getString(R.string.water_enabled)
+                isChecked = settings.enabled
+            }
+            val interval = EditText(this).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                setText(settings.intervalMinutes.toString())
+                setTextColor(Color.WHITE)
+            }
+            val from = EditText(this).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                setText(settings.fromHour.toString())
+                setTextColor(Color.WHITE)
+            }
+            val to = EditText(this).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                setText(settings.toHour.toString())
+                setTextColor(Color.WHITE)
+            }
+            content.addView(enabled)
+            content.addView(labelWithField(getString(R.string.water_interval), interval))
+            content.addView(labelWithField(getString(R.string.water_from), from))
+            content.addView(labelWithField(getString(R.string.water_to), to))
+            val next = WaterEngine().nextFire(System.currentTimeMillis(), settings)
+            content.addView(sectionLabel(
+                getString(
+                    R.string.water_next,
+                    next?.let { android.text.format.DateFormat.format("MMM d, HH:mm", it).toString() } ?: "—",
+                ),
+            ))
+            val gap = View(this).apply { layoutParams = LinearLayout.LayoutParams(1, dp(8)) }
+            content.addView(gap)
+            content.addView(fullButton(getString(R.string.water_save)) {
+                val intervalValue = interval.text.toString().toIntOrNull()
+                val fromValue = from.text.toString().toIntOrNull()
+                val toValue = to.text.toString().toIntOrNull()
+                if (intervalValue == null || intervalValue !in WaterEngine.MIN_INTERVAL_MINUTES..WaterEngine.MAX_INTERVAL_MINUTES ||
+                    fromValue == null || fromValue !in 0..23 || toValue == null || toValue !in 0..23 || fromValue == toValue
+                ) {
+                    Toast.makeText(this, getString(R.string.water_invalid), Toast.LENGTH_SHORT).show()
+                } else {
+                    controller.update(enabled.isChecked, intervalValue, fromValue, toValue)
+                    Toast.makeText(this, getString(R.string.water_saved), Toast.LENGTH_SHORT).show()
+                }
+            })
+        }
+
+        val listener: (WaterSettings) -> Unit = { render(it) }
+        waterDialogListener?.let { controller.removeListener(it) }
+        waterDialogListener = listener
+        waterDialogRender = { render(it) }
+        controller.addListener(listener)
+        dialog.setOnDismissListener {
+            waterDialogListener?.let { controller.removeListener(it) }
+            waterDialogListener = null
+            waterDialogRender = null
+            waterDialog = null
+        }
+        render(controller.settings())
+        dialog.show()
+        controller.refresh()
     }
 
     private fun showRemindersDialog() {

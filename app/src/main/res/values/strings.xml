@@ -78,4 +78,14 @@
     <string name="virtualpet_mood_tired">Tired</string>
     <string name="virtualpet_mood_hungry">Hungry</string>
     <string name="virtualpet_mood_excited">Excited</string>
+    <string name="water_open">Water Reminder…</string>
+    <string name="water_title">Water Reminder</string>
+    <string name="water_enabled">Enabled</string>
+    <string name="water_interval">Interval (minutes)</string>
+    <string name="water_from">From hour</string>
+    <string name="water_to">To hour</string>
+    <string name="water_save">Save</string>
+    <string name="water_saved">Saved</string>
+    <string name="water_next">Next: %1$s</string>
+    <string name="water_invalid">Check interval and active hours</string>
 </resources>
