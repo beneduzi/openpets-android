@@ -16,6 +16,7 @@ import com.openpets.android.AppState
 import com.openpets.android.HapticsNotifier
 import com.openpets.android.companion.TimerController
 import com.openpets.android.companion.ReminderController
+import com.openpets.android.companion.FocusController
 import com.openpets.android.NotificationHelper
 import com.openpets.android.PetBus
 import com.openpets.android.R
@@ -46,6 +47,7 @@ class OpenPetsService : Service() {
     private lateinit var notifier: NotificationHelper
     private var timerController: TimerController? = null
     private var reminderController: ReminderController? = null
+    private var focusController: FocusController? = null
 
     private val eventListener = object : PetBus.Listener {
         override fun onReact(reaction: String, source: String?) {
@@ -91,6 +93,7 @@ class OpenPetsService : Service() {
         // controller reschedules the exact alarm. The HUD is re-shown when the activity opens.
         timerController = TimerController(this)
         reminderController = ReminderController(this).also { it.refresh() }
+        focusController = FocusController(this).also { it.refresh() }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

@@ -47,6 +47,11 @@
             android:exported="false" />
 
         <receiver
+            android:name=".companion.FocusAlarmReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <receiver
             android:name=".net.BootReceiver"
             android:enabled="true"
             android:exported="true">

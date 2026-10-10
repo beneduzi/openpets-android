@@ -81,6 +81,34 @@ class NotificationHelper(private val context: Context) {
         }
     }
 
+    fun notifyFocusFinished(title: String, text: String) {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        ensureFocusChannel()
+        val notification = NotificationCompat.Builder(context, FOCUS_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        manager.notify(FOCUS_NOTIFICATION_ID, notification)
+    }
+
+    private fun ensureFocusChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (manager.getNotificationChannel(FOCUS_CHANNEL_ID) == null) {
+            manager.createNotificationChannel(
+                NotificationChannel(FOCUS_CHANNEL_ID, "Focus Buddy", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = "Focus session and break notifications"
+                    setShowBadge(true)
+                },
+            )
+        }
+    }
+
     fun notifyEvent(title: String?, text: String) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         ensureChannel()
@@ -102,6 +130,8 @@ class NotificationHelper(private val context: Context) {
         const val TIMER_CHANNEL_ID = "openpets_timer"
         const val TIMER_NOTIFICATION_ID = 1012
         const val REMINDERS_CHANNEL_ID = "openpets_reminders"
+        const val FOCUS_CHANNEL_ID = "openpets_focus"
+        const val FOCUS_NOTIFICATION_ID = 1013
         private const val REMINDER_NOTIFICATION_BASE = 20_000
     }
 }
