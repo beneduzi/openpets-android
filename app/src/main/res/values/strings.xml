@@ -88,4 +88,15 @@
     <string name="water_saved">Saved</string>
     <string name="water_next">Next: %1$s</string>
     <string name="water_invalid">Check interval and active hours</string>
+    <string name="fun_open">Fun…</string>
+    <string name="fun_title">Fun</string>
+    <string name="fun_greet">Greet</string>
+    <string name="fun_fortune">Fortune</string>
+    <string name="fun_eightball">Ask the 8-ball</string>
+    <string name="greeting_morning">Good morning!</string>
+    <string name="greeting_afternoon">Good afternoon!</string>
+    <string name="greeting_evening">Good evening!</string>
+    <string name="greeting_night">Good night!</string>
+    <string name="eightball_question_hint">Ask a yes/no question</string>
+    <string name="eightball_answer_title">The 8-ball says…</string>
 </resources>

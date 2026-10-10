@@ -25,6 +25,7 @@ import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.LinearLayout.LayoutParams
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -61,6 +62,7 @@ import com.openpets.android.settings.AppSettings
 import com.openpets.android.view.PetStageView
 import java.io.File
 import java.util.Locale
+import java.util.Calendar
 
 /**
  * Always-on companion surface. Shows the pet full-screen, keeps the screen on,
@@ -544,6 +546,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton(getString(R.string.focus_open)) { showFocusDialog() })
             addView(actionButton(getString(R.string.virtualpet_open)) { showVirtualPetDialog() })
             addView(actionButton(getString(R.string.water_open)) { showWaterDialog() })
+            addView(actionButton(getString(R.string.fun_open)) { showFunDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)
             addView(remoteEnabled)
@@ -1013,6 +1016,76 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         render(controller.settings())
         dialog.show()
         controller.refresh()
+    }
+
+    private fun showFunDialog() {
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        fun fullButton(label: Int, action: () -> Unit) = actionButton(getString(label), action).apply {
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.fun_title)
+            .setView(content)
+            .setNegativeButton(R.string.dialog_close, null)
+            .create()
+        content.addView(sectionLabel(getString(R.string.fun_title)))
+        content.addView(fullButton(R.string.fun_greet) {
+            sayFunMessage(greetingForNow(), "greeting", "waving")
+            dialog.dismiss()
+        })
+        content.addView(fullButton(R.string.fun_fortune) {
+            val fortune = resources.getStringArray(R.array.fortunes).random()
+            sayFunMessage(fortune, "fortune", "thinking")
+            dialog.dismiss()
+        })
+        content.addView(fullButton(R.string.fun_eightball) {
+            dialog.dismiss()
+            showEightBallQuestion()
+        })
+        dialog.show()
+    }
+
+    private fun greetingForNow(): String {
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val greeting = when (hour) {
+            in 5..11 -> R.string.greeting_morning
+            in 12..16 -> R.string.greeting_afternoon
+            in 17..20 -> R.string.greeting_evening
+            else -> R.string.greeting_night
+        }
+        return getString(greeting)
+    }
+
+    private fun showEightBallQuestion() {
+        val question = EditText(this).apply {
+            hint = getString(R.string.eightball_question_hint)
+            setTextColor(Color.WHITE)
+            setHintTextColor(0xFF9E9E9E.toInt())
+            setPadding(dp(20), dp(8), dp(20), dp(8))
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.fun_eightball)
+            .setView(question)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val answer = resources.getStringArray(R.array.eightball_answers).random()
+                sayFunMessage("${getString(R.string.eightball_answer_title)} $answer", "eightball", "thinking")
+            }
+            .setNegativeButton(R.string.dialog_close, null)
+            .show()
+    }
+
+    private fun sayFunMessage(message: String, source: String, reaction: String) {
+        PetBus.sink.onSay(
+            SayRequest(
+                message = message,
+                reaction = reaction,
+                source = source,
+                pinned = false,
+            ),
+        )
     }
 
     private fun showRemindersDialog() {

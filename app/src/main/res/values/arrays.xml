@@ -1,0 +1,26 @@
+<resources>
+    <string-array name="fortunes">
+        <item>Small steps can lead somewhere bright.</item>
+        <item>Patience will make room for good things.</item>
+        <item>A kind word may return to you.</item>
+        <item>Trust the work you have already done.</item>
+        <item>Today is a good day to begin again.</item>
+        <item>An unexpected idea may be useful.</item>
+        <item>Give yourself time to grow.</item>
+        <item>Your steady effort is adding up.</item>
+        <item>Look for joy in a simple moment.</item>
+        <item>Something good can start with a question.</item>
+    </string-array>
+    <string-array name="eightball_answers">
+        <item>It is certain.</item>
+        <item>Ask again later.</item>
+        <item>Signs point to yes.</item>
+        <item>Do not count on it.</item>
+        <item>Yes, in good time.</item>
+        <item>The outlook is promising.</item>
+        <item>Reply is hazy.</item>
+        <item>Very likely.</item>
+        <item>Better not say just yet.</item>
+        <item>Your patience may be rewarded.</item>
+    </string-array>
+</resources>
