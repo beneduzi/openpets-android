@@ -23,8 +23,9 @@ class IpcServer(
     installer: PetInstaller? = null,
     enforceLease: Boolean = false,
     clock: () -> Long = System::currentTimeMillis,
+    dispatcher: IpcDispatcher? = null,
 ) {
-    private val dispatcher = IpcDispatcher(sink, appVersion, petCatalog, installer, enforceLease, clock)
+    val dispatcher: IpcDispatcher = dispatcher ?: IpcDispatcher(sink, appVersion, petCatalog, installer, enforceLease, clock)
     private val server = LineServer(
         port = port,
         bindAddress = bindAddress,

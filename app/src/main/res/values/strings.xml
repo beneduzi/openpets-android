@@ -8,6 +8,9 @@
     <string name="settings_title">OpenPets settings</string>
     <string name="settings_open">Settings</string>
     <string name="settings_ipc">IPC server</string>
+    <string name="settings_ws">WebSocket</string>
+    <string name="settings_ws_port">WebSocket port</string>
+    <string name="settings_ws_hint">ws:// LAN endpoint (uses the IPC token)</string>
     <string name="settings_remote">Remote server</string>
     <string name="settings_bind">Bind address</string>
     <string name="settings_ipc_port">IPC port</string>

@@ -49,6 +49,7 @@ android {
 
 dependencies {
     implementation(project(":protocol"))
+    implementation("com.google.code.gson:gson:2.11.0")
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")

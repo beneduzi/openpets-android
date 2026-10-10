@@ -593,6 +593,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private fun showSettings() {
         val ipcEnabled = CheckBox(this).apply { text = getString(R.string.settings_ipc); isChecked = settings.ipcEnabled }
         val remoteEnabled = CheckBox(this).apply { text = getString(R.string.settings_remote); isChecked = settings.remoteEnabled }
+        val wsEnabled = CheckBox(this).apply { text = getString(R.string.settings_ws); isChecked = settings.wsEnabled }
         val autoStart = CheckBox(this).apply { text = getString(R.string.settings_autostart); isChecked = settings.autoStartOnBoot }
         val soundToggle = CheckBox(this).apply { text = "Som de notificação"; isChecked = settings.soundEnabled }
         val hapticsToggle = CheckBox(this).apply { text = "Vibrar junto"; isChecked = settings.hapticsEnabled }
@@ -608,6 +609,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             inputType = InputType.TYPE_CLASS_NUMBER
             setText(settings.remotePort.toString())
         }
+        val wsPort = EditText(this).apply { inputType = InputType.TYPE_CLASS_NUMBER; setText(settings.wsPort.toString()) }
         val ipcToken = EditText(this).apply { setText(settings.ipcToken) }
         val remoteToken = EditText(this).apply { setText(settings.remoteToken) }
 
@@ -633,6 +635,9 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)
             addView(remoteEnabled)
+            addView(wsEnabled)
+            addView(labelWithField(getString(R.string.settings_ws_port), wsPort))
+            addView(sectionLabel(getString(R.string.settings_ws_hint)))
             addView(autoStart)
             addView(soundToggle)
             addView(actionButton("Testar som") { SoundNotifier(this@MainActivity).playTest() })
@@ -662,6 +667,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             .setPositiveButton(R.string.settings_save) { _, _ ->
                 settings.ipcEnabled = ipcEnabled.isChecked
                 settings.remoteEnabled = remoteEnabled.isChecked
+                settings.wsEnabled = wsEnabled.isChecked
                 settings.autoStartOnBoot = autoStart.isChecked
                 settings.soundEnabled = soundToggle.isChecked
                 settings.hapticsEnabled = hapticsToggle.isChecked
@@ -671,6 +677,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
                 settings.bindAddress = bind.text.toString().trim().ifEmpty { "0.0.0.0" }
                 ipcPort.text.toString().toIntOrNull()?.let { settings.ipcPort = it }
                 remotePort.text.toString().toIntOrNull()?.let { settings.remotePort = it }
+                wsPort.text.toString().toIntOrNull()?.let { settings.wsPort = it }
                 settings.ipcToken = ipcToken.text.toString().trim()
                 settings.remoteToken = remoteToken.text.toString().trim()
                 OpenPetsService.reload(this)

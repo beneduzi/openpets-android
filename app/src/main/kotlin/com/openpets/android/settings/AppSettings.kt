@@ -23,6 +23,14 @@ class AppSettings(context: Context) {
         get() = prefs.getBoolean("remoteEnabled", true)
         set(value) = prefs.edit().putBoolean("remoteEnabled", value).apply()
 
+    var wsEnabled: Boolean
+        get() = prefs.getBoolean("wsEnabled", false)
+        set(value) = prefs.edit().putBoolean("wsEnabled", value).apply()
+
+    var wsPort: Int
+        get() = prefs.getInt("wsPort", 18423)
+        set(value) = prefs.edit().putInt("wsPort", value).apply()
+
     var bindAddress: String
         get() = prefs.getString("bindAddress", "0.0.0.0") ?: "0.0.0.0"
         set(value) = prefs.edit().putString("bindAddress", value).apply()

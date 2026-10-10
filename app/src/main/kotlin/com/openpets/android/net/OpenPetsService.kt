@@ -29,6 +29,7 @@ import com.openpets.android.SoundNotifier
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.PetRepository
 import com.openpets.android.protocol.IpcServer
+import com.openpets.android.protocol.IpcDispatcher
 import com.openpets.android.protocol.MediaRequest
 import com.openpets.android.protocol.PetCatalogProvider
 import com.openpets.android.protocol.PetDescriptor
@@ -47,6 +48,7 @@ class OpenPetsService : Service() {
     private lateinit var settings: AppSettings
     private var ipcServer: IpcServer? = null
     private var remoteServer: RemoteServer? = null
+    private var wsBridge: WebSocketBridge? = null
     private lateinit var sound: SoundNotifier
     private lateinit var haptics: HapticsNotifier
     private lateinit var notifier: NotificationHelper
@@ -161,6 +163,7 @@ class OpenPetsService : Service() {
                 return PetInstallResult(descriptor.id, descriptor.displayName)
             }
         }
+        val dispatcher = IpcDispatcher(PetBus.sink, "0.1.0", catalog, installer, settings.requireLease)
         if (settings.ipcEnabled) {
             ipcServer = try {
                 IpcServer(
@@ -171,9 +174,15 @@ class OpenPetsService : Service() {
                     petCatalog = catalog,
                     installer = installer,
                     enforceLease = settings.requireLease,
+                    dispatcher = dispatcher,
                 ).also { it.start() }
             } catch (_: Exception) {
                 null
+            }
+        }
+        if (settings.wsEnabled) {
+            wsBridge = WebSocketBridge(this, { settings.ipcToken }, dispatcher, "0.1.0").also {
+                it.start(settings.wsPort, settings.bindAddress)
             }
         }
         if (settings.remoteEnabled) {
@@ -198,8 +207,10 @@ class OpenPetsService : Service() {
     private fun stopServers() {
         ipcServer?.stop()
         remoteServer?.stop()
+        wsBridge?.stop()
         ipcServer = null
         remoteServer = null
+        wsBridge = null
     }
 
     private fun startInForeground() {
