@@ -28,7 +28,7 @@ Construído do zero com base no protocolo do [OpenPets](https://github.com/OpenP
 - **Cores + rótulo por projeto** (o plugin do OpenCode manda `source`).
 - **Som** (bip ou **som personalizado** via seletor), **haptics**, **voz (TTS)** e **notificação de sistema** (toggles).
 - **Arrastar/seguir o dedo**, toque = wave, toque longo = Configurações.
-- **Pets embutidos** (Professor Hoot, Tux, Melon Capybara, Lazy Raccoon, Mellow Duck, American Eagle),
+- **Pets embutidos** (Professor Hoot, Tux, Melon Capybara, Lazy Raccoon, Mellow Duck),
   **importar .zip/pasta**, **catálogo online** (codex-pets.net), **`pets.install`/`install-local`**.
 - **Lease** opcional (`status.leases`, "Exigir lease") e **mapeamento reação→animação** + duração do `waiting`.
 - Always-on: foreground service, tela ligada, modo imersivo, auto-start no boot, ícone oficial OpenPets.
