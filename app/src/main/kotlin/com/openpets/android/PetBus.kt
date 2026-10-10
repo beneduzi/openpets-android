@@ -5,12 +5,22 @@ import android.os.Looper
 import com.openpets.android.protocol.MediaRequest
 import com.openpets.android.protocol.PetEventSink
 import com.openpets.android.protocol.SayRequest
+import com.openpets.android.protocol.HudItem
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * In-process bridge between the network servers (background threads) and the
  * UI. Delivery is always marshalled onto the main thread.
  */
+data class FeatureHud(
+    val bubbleId: String,
+    val source: String,
+    val message: String,
+    val subtext: String? = null,
+    val hud: List<HudItem>,
+    val claim: Boolean,
+)
+
 object PetBus {
 
     interface Listener {
@@ -18,6 +28,7 @@ object PetBus {
         fun onSay(request: SayRequest)
         fun onMedia(request: MediaRequest)
         fun onDismissBubble(id: String?)
+        fun onHud(hud: FeatureHud)
     }
 
     private val listeners = CopyOnWriteArrayList<Listener>()
@@ -45,6 +56,10 @@ object PetBus {
 
     fun dismissBubble(id: String?) {
         main.post { listeners.forEach { it.onDismissBubble(id) } }
+    }
+
+    fun hud(hud: FeatureHud) {
+        main.post { listeners.forEach { it.onHud(hud) } }
     }
 
     /** Sink handed to the IPC/remote servers. */

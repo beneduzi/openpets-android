@@ -18,6 +18,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import com.openpets.android.pet.MediaLoader
 import com.openpets.android.pet.PetPackage
+import com.openpets.android.FeatureHud
 import com.openpets.android.protocol.BUSY_REACTIONS
 import com.openpets.android.protocol.BubbleInput
 import com.openpets.android.protocol.DEFAULT_WAITING_ANIMATION_MS
@@ -66,6 +67,8 @@ class PetStageView @JvmOverloads constructor(
     private var busyReset: Runnable? = null
     private var mediaHide: Runnable? = null
     private var mediaActive = false
+    private var agentBubbleActive = false
+    private var featureHudSource: String? = null
     private var overrides: Map<String, String> = emptyMap()
     private var waitingDurationMs: Int = DEFAULT_WAITING_ANIMATION_MS
 
@@ -110,6 +113,10 @@ class PetStageView @JvmOverloads constructor(
         addView(petView)
         addView(bubbleView)
         bubbleView.visibility = GONE
+        bubbleView.onDismissed = {
+            agentBubbleActive = false
+            featureHudSource = null
+        }
         petView.onAnimationComplete = {
             machine.onAnimationComplete()
             applyReactionState()
@@ -139,6 +146,8 @@ class PetStageView @JvmOverloads constructor(
 
     /** Show a speech bubble, optionally applying a reaction first. */
     fun say(request: SayRequest) {
+        agentBubbleActive = true
+        featureHudSource = null
         val reaction = request.reaction
         if (reaction != null) react(reaction, request.source)
         val accent = colorStore.accentFor(request.source) ?: lastAccent
@@ -161,6 +170,16 @@ class PetStageView @JvmOverloads constructor(
         if (id == null || current == null || current == id) {
             bubbleView.dismiss()
             hideForm()
+            agentBubbleActive = false
+            featureHudSource = null
+        }
+    }
+
+    fun onHud(hud: FeatureHud) {
+        if (agentBubbleActive) return
+        if (hud.claim || featureHudSource == hud.source || featureHudSource == null) {
+            bubbleView.showFeatureHud(hud.message, hud.subtext, hud.hud, hud.bubbleId)
+            featureHudSource = hud.source
         }
     }
 
@@ -266,6 +285,8 @@ class PetStageView @JvmOverloads constructor(
         movePetTo(maxHorizontalOffset(), 300L)
         val accent = colorStore.accentFor(null) ?: lastAccent
         request.message?.let { caption ->
+            agentBubbleActive = true
+            featureHudSource = null
             bubbleView.show(
                 text = caption,
                 accent = accent,

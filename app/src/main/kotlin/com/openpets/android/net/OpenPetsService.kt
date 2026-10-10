@@ -19,6 +19,7 @@ import com.openpets.android.companion.ReminderController
 import com.openpets.android.companion.FocusController
 import com.openpets.android.NotificationHelper
 import com.openpets.android.PetBus
+import com.openpets.android.FeatureHud
 import com.openpets.android.R
 import com.openpets.android.SoundNotifier
 import com.openpets.android.pet.CatalogClient
@@ -69,6 +70,10 @@ class OpenPetsService : Service() {
 
         override fun onDismissBubble(id: String?) {
             // No service-side action needed.
+        }
+
+        override fun onHud(hud: FeatureHud) {
+            // Feature HUD updates are intentionally silent.
         }
 
         override fun onMedia(request: MediaRequest) {

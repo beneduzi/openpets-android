@@ -38,6 +38,7 @@ import com.openpets.android.companion.ReminderController
 import com.openpets.android.companion.FocusController
 import com.openpets.android.companion.FocusSnapshot
 import com.openpets.android.companion.FocusState
+import com.openpets.android.FeatureHud
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
 import com.openpets.android.pet.PetPackageLoader
@@ -197,6 +198,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
 
     override fun onDismissBubble(id: String?) {
         stage.dismissBubble(id)
+    }
+
+    override fun onHud(hud: FeatureHud) {
+        if (::stage.isInitialized) stage.onHud(hud)
     }
 
     private fun speak(text: String) {

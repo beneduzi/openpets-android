@@ -100,6 +100,8 @@ class SpeechBubbleView @JvmOverloads constructor(
     private var buttonWidth = 0f
     private val buttonRects = ArrayList<Pair<RectF, PetAction>>()
 
+    var onDismissed: (() -> Unit)? = null
+
     private val handler = Handler(Looper.getMainLooper())
     private val dismissRunnable = Runnable { dismiss() }
 
@@ -149,6 +151,18 @@ class SpeechBubbleView @JvmOverloads constructor(
         visibility = GONE
         requestLayout()
         invalidate()
+        onDismissed?.invoke()
+    }
+
+    fun showFeatureHud(message: String, subtext: String?, hud: List<HudItem>, bubbleId: String) {
+        show(
+            text = message,
+            label = subtext,
+            durationMs = 0L,
+            hud = hud,
+            bubbleId = bubbleId,
+            pinned = true,
+        )
     }
 
     override fun onDetachedFromWindow() {
