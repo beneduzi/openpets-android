@@ -74,11 +74,22 @@ class IpcDispatcher(
         "pets.list" -> okResponse(request.id, petsListResult())
         "lease.acquire" -> leaseAcquire(request)
         "lease.heartbeat" -> {
-            validateOptionalLeaseId(request.params.str("leaseId"))
-            okResponse(request.id, okOnly())
+            val leaseId = validateOptionalLeaseId(request.params.str("leaseId"))
+            if (leaseId == null) {
+                okResponse(request.id, okOnly())
+            } else {
+                val expiry = leases[leaseId]
+                if (expiry == null || expiry <= System.currentTimeMillis()) {
+                    leases.remove(leaseId)
+                    throw IpcProtocolError("invalid_lease", "Unknown or expired lease id.")
+                }
+                leases[leaseId] = System.currentTimeMillis() + leaseTtlMs
+                okResponse(request.id, okOnly())
+            }
         }
         "lease.release" -> {
-            validateOptionalLeaseId(request.params.str("leaseId"))
+            val leaseId = validateOptionalLeaseId(request.params.str("leaseId"))
+            if (leaseId != null) leases.remove(leaseId)
             okResponse(request.id, okOnly())
         }
         "pet.react" -> {
@@ -113,6 +124,7 @@ class IpcDispatcher(
             okResponse(request.id, okOnly())
         }
         "pet.showMedia" -> {
+            requireLeaseIfNeeded(request.params)
             sink.onMedia(parseMediaRequest(request.params))
             okResponse(request.id, okOnly())
         }

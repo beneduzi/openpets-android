@@ -16,6 +16,7 @@ private class FakeSink : PetEventSink {
     val reactions = CopyOnWriteArrayList<String>()
     val says = CopyOnWriteArrayList<SayRequest>()
     val media = CopyOnWriteArrayList<MediaRequest>()
+    val dismissals = CopyOnWriteArrayList<String?>()
     override fun onReact(reaction: String, source: String?) {
         reactions.add(reaction)
     }
@@ -29,6 +30,7 @@ private class FakeSink : PetEventSink {
     }
 
     override fun onDismissBubble(id: String?) {
+        dismissals.add(id)
     }
 }
 
@@ -83,6 +85,62 @@ class IpcServerTest {
             val result = resp.getAsJsonObject("result")
             assertTrue(result.get("leaseId").asString.isNotEmpty())
             assertTrue(result.get("expiresAt").asLong > System.currentTimeMillis())
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test fun bubbleDismissReachesSink() {
+        val sink = FakeSink()
+        val server = IpcServer(sink, IPC_TOKEN, "127.0.0.1", 0)
+        val port = server.start()
+        try {
+            val resp = json(port, ipc("40", "pet.bubbleDismiss", """{"id":"b1"}"""))
+            assertTrue(resp.get("ok").asBoolean)
+            assertEquals("b1", sink.dismissals.first())
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test fun leaseHeartbeatRenewsAndReleaseRemoves() {
+        val server = IpcServer(FakeSink(), IPC_TOKEN, "127.0.0.1", 0)
+        val port = server.start()
+        try {
+            val acquired = json(port, ipc("41", "lease.acquire", """{}"""))
+            val leaseId = acquired.getAsJsonObject("result").get("leaseId").asString
+            assertTrue(json(port, ipc("42", "lease.heartbeat", """{"leaseId":"$leaseId"}""")).get("ok").asBoolean)
+            assertEquals(1, json(port, ipc("43", "status", "{}")).getAsJsonObject("result").get("leases").asInt)
+            assertTrue(json(port, ipc("44", "lease.release", """{"leaseId":"$leaseId"}""")).get("ok").asBoolean)
+            assertEquals(0, json(port, ipc("45", "status", "{}")).getAsJsonObject("result").get("leases").asInt)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test fun leaseHeartbeatUnknownLeaseRejected() {
+        val server = IpcServer(FakeSink(), IPC_TOKEN, "127.0.0.1", 0)
+        val port = server.start()
+        try {
+            val resp = json(port, ipc("46", "lease.heartbeat", """{"leaseId":"does-not-exist"}"""))
+            assertEquals(false, resp.get("ok").asBoolean)
+            assertEquals("invalid_lease", resp.getAsJsonObject("error").get("code").asString)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test fun showMediaRequiresLeaseWhenEnforced() {
+        val server = IpcServer(FakeSink(), IPC_TOKEN, "127.0.0.1", 0, enforceLease = true)
+        val port = server.start()
+        try {
+            val rejected = json(port, ipc("47", "pet.showMedia", """{"url":"https://example.com/a.png"}"""))
+            assertEquals(false, rejected.get("ok").asBoolean)
+            assertEquals("invalid_lease", rejected.getAsJsonObject("error").get("code").asString)
+            val acquired = json(port, ipc("48", "lease.acquire", "{}"))
+            val leaseId = acquired.getAsJsonObject("result").get("leaseId").asString
+            val accepted = json(port, ipc("49", "pet.showMedia", """{"url":"https://example.com/a.png","leaseId":"$leaseId"}"""))
+            assertTrue(accepted.get("ok").asBoolean)
         } finally {
             server.stop()
         }

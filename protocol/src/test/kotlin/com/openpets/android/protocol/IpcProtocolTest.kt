@@ -20,6 +20,11 @@ class IpcProtocolTest {
         assertEquals("r1", r.id)
     }
 
+    @Test fun bubbleDismissIsWhitelisted() {
+        val r = parseIpcRequest(req(method = "pet.bubbleDismiss", params = """{"id":"b1"}"""), token)
+        assertEquals("pet.bubbleDismiss", r.method)
+    }
+
     @Test fun rejectsWrongToken() {
         assertCode("invalid_token") { parseIpcRequest(req(tok = "wrongtoken1234567890"), token) }
     }

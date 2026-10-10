@@ -127,8 +127,8 @@ node tools/send-media.mjs    192.168.0.14 18420 <IPC_TOKEN> ./print.png "screens
 
 Requests use `{ id, version:1, token, method, params }`. Success responses use `{ id, ok:true, result }`; errors use `{ id, ok:false, error:{code,message} }`.
 
-**Accepted methods:** `hello`, `status`, `pets.list`, `pets.install`, `pets.install-local`, `lease.acquire`, `lease.heartbeat`, `lease.release`, `pet.react`, `pet.say`, `pet.showMedia`.
+**Accepted methods:** `hello`, `status`, `pets.list`, `pets.install`, `pets.install-local`, `lease.acquire`, `lease.heartbeat`, `lease.release`, `pet.react`, `pet.say`, `pet.showMedia`, `pet.bubbleDismiss`.
 
-The lease TTL is 15 s.
+The lease TTL is 15 s; `lease.heartbeat` renews the TTL and `lease.release` deletes the lease.
 
-**Known limitation:** The dispatcher also handles `pet.bubbleDismiss`, but it is not yet in the accepted request whitelist, so it currently returns `unknown_method` over IPC.
+**Known limitation:** `pet.bubbleDismiss` is an accepted Android extension and is not present in upstream desktop IPC.

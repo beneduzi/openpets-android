@@ -29,7 +29,7 @@ val REACTIONS: List<String> = listOf(
 val IPC_METHODS: List<String> = listOf(
     "hello", "status", "pets.list", "pets.install", "pets.install-local",
     "lease.acquire", "lease.heartbeat", "lease.release",
-    "pet.react", "pet.say", "pet.showMedia",
+    "pet.react", "pet.say", "pet.showMedia", "pet.bubbleDismiss",
 )
 
 /** Protocol violation carrying the machine-readable error code used on the wire. */
