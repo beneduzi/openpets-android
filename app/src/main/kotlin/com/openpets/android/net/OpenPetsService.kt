@@ -91,6 +91,8 @@ class OpenPetsService : Service() {
             // No service-side action needed.
         }
 
+        override fun onInputText(text: String) { /* No service-side action needed. */ }
+
         override fun onMedia(request: MediaRequest) {
             if (settings.soundEnabled) sound.play()
             if (settings.hapticsEnabled) haptics.vibrate()

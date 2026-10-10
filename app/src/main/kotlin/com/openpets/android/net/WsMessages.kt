@@ -32,6 +32,9 @@ object WsMessages {
         actionEvent.bubbleId?.let { addProperty("bubbleId", it) }
         addProperty("actionId", actionEvent.actionId)
     }.toString()
+    fun eventFromInputText(text: String): String = JsonObject().apply {
+        addProperty("type", "event"); addProperty("event", "input.text"); addProperty("text", text)
+    }.toString()
 
     fun parseCommand(text: String): WsCommand {
         val obj = JsonParser.parseString(text).asJsonObject

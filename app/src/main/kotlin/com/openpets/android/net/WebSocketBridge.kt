@@ -33,6 +33,7 @@ class WebSocketBridge(
         override fun onDismissBubble(id: String?) = broadcast(WsMessages.eventFromDismiss(JsonParser.parseString(gson.toJson(mapOf("id" to id)))))
         override fun onHud(hud: FeatureHud) = broadcast(WsMessages.eventFromHud(JsonParser.parseString(gson.toJson(hud))))
         override fun onAction(event: PetActionEvent) = broadcast(WsMessages.eventFromAction(event))
+        override fun onInputText(text: String) = broadcast(WsMessages.eventFromInputText(text))
     }
     @Volatile private var server: WebSocketServer? = null
     val isRunning: Boolean get() = server?.isRunning == true

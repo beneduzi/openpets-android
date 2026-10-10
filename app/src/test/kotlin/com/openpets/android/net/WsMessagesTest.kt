@@ -8,6 +8,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WsMessagesTest {
+    @Test fun buildsInputTextEvent() {
+        val event = JsonParser.parseString(WsMessages.eventFromInputText("hello agent")).asJsonObject
+        assertEquals("event", event.get("type").asString)
+        assertEquals("input.text", event.get("event").asString)
+        assertEquals("hello agent", event.get("text").asString)
+    }
     @Test fun buildsActionEvent() {
         val event = JsonParser.parseString(WsMessages.eventFromAction(PetActionEvent("bubble-1", "approve"))).asJsonObject
         assertEquals("event", event.get("type").asString)

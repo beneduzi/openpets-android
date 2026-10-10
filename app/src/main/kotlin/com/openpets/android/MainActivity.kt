@@ -38,6 +38,8 @@ import com.openpets.android.companion.TimerSnapshot
 import com.openpets.android.companion.Reminder
 import com.openpets.android.companion.ReminderController
 import com.openpets.android.companion.FocusController
+import com.openpets.android.companion.SttController
+import com.openpets.android.companion.SttState
 import com.openpets.android.companion.FocusSnapshot
 import com.openpets.android.companion.FocusState
 import com.openpets.android.companion.PetMood
@@ -88,6 +90,7 @@ import java.util.Calendar
  * Tap the pet to wave; long-press to open settings (ports, tokens, pet picker).
  */
 class MainActivity : AppCompatActivity(), PetBus.Listener {
+    private var sttController: SttController? = null
 
     private lateinit var stage: PetStageView
     private lateinit var settings: AppSettings
@@ -317,6 +320,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     }
 
     override fun onAction(event: PetActionEvent) {}
+    override fun onInputText(text: String) {}
 
     private fun speak(text: String) {
         if (!ttsReady) return
@@ -327,6 +331,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     }
 
     override fun onDestroy() {
+        sttController?.destroy()
         try {
             tts?.shutdown()
         } catch (_: Exception) {
@@ -635,6 +640,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton(getString(R.string.breathe_open)) { showBreathingDialog() })
             addView(actionButton(getString(R.string.resources_open)) { showResourcesDialog() })
             addView(actionButton(getString(R.string.calendar_open)) { showCalendarDialog() })
+            addView(actionButton(getString(R.string.settings_voice)) { showVoiceDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)
             addView(remoteEnabled)
@@ -722,6 +728,38 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1002 && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) showCalendarDialog()
+        if (requestCode == 1003) {
+            if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) showVoiceDialog()
+            else Toast.makeText(this, R.string.voice_permission, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showVoiceDialog() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1003)
+            return
+        }
+        val status = TextView(this)
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(12), dp(20), dp(12)); addView(status) }
+        val button = Button(this).apply { text = getString(R.string.voice_speak) }
+        content.addView(button)
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.voice_title).setView(content).setNegativeButton(R.string.dialog_close, null).create()
+        val controller = sttController ?: SttController(this, { text ->
+            PetBus.inputText(text)
+            runOnUiThread { Toast.makeText(this, R.string.voice_sent, Toast.LENGTH_SHORT).show() }
+        }, { state -> runOnUiThread { status.text = when (state) {
+            SttState.IDLE -> ""
+            SttState.LISTENING -> getString(R.string.voice_listening)
+            SttState.ERROR -> getString(R.string.voice_error)
+            SttState.UNAVAILABLE -> getString(R.string.voice_unavailable)
+        } } }).also { sttController = it }
+        var listening = false
+        button.setOnClickListener {
+            if (listening) { listening = false; controller.stop() }
+            else { listening = true; controller.start() }
+        }
+        dialog.setOnDismissListener { controller.cancel() }
+        dialog.show()
     }
 
     private fun startTimerTickIfRunning() {

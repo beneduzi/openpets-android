@@ -32,6 +32,7 @@ object PetBus {
         fun onDismissBubble(id: String?)
         fun onHud(hud: FeatureHud)
         fun onAction(event: PetActionEvent)
+        fun onInputText(text: String)
     }
 
     private val listeners = CopyOnWriteArrayList<Listener>()
@@ -67,6 +68,10 @@ object PetBus {
 
     fun action(event: PetActionEvent) {
         main.post { listeners.forEach { it.onAction(event) } }
+    }
+
+    fun inputText(text: String) {
+        main.post { listeners.forEach { it.onInputText(text) } }
     }
 
     /** Sink handed to the IPC/remote servers. */

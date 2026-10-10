@@ -156,4 +156,12 @@
     <string name="calendar_show">Show next on pet</string>
     <string name="calendar_remind">Remind before events</string>
     <string name="calendar_empty">No upcoming events</string>
+    <string name="settings_voice">Voice input…</string>
+    <string name="voice_title">Voice input</string>
+    <string name="voice_speak">Speak</string>
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_error">Could not transcribe</string>
+    <string name="voice_unavailable">Speech recognition unavailable</string>
+    <string name="voice_sent">Sent</string>
+    <string name="voice_permission">Microphone permission is needed</string>
 </resources>
