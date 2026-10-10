@@ -24,6 +24,7 @@ data class FeatureHud(
 )
 
 data class PetActionEvent(val bubbleId: String?, val actionId: String)
+data class CommandInvoked(val source: String, val commandId: String)
 
 object PetBus {
 
@@ -40,6 +41,8 @@ object PetBus {
         fun onVisibility(visible: Boolean)
         fun onPointer(kind: String, x: Float, y: Float)
         fun onNotify(request: NotificationRequest)
+        fun onCommandInvoked(event: CommandInvoked)
+        fun onCommandsChanged()
     }
 
     private val listeners = CopyOnWriteArrayList<Listener>()
@@ -86,6 +89,8 @@ object PetBus {
     fun visibility(value: Boolean) { main.post { listeners.forEach { it.onVisibility(value) } } }
     fun pointer(kind: String, x: Float, y: Float) { main.post { listeners.forEach { it.onPointer(kind, x, y) } } }
     fun notify(request: NotificationRequest) { main.post { listeners.forEach { it.onNotify(request) } } }
+    fun invokeCommand(source: String, commandId: String) { val event = CommandInvoked(source, commandId); main.post { listeners.forEach { it.onCommandInvoked(event) } } }
+    fun commandsChanged() { main.post { listeners.forEach { it.onCommandsChanged() } } }
 
     /** Sink handed to the IPC/remote servers. */
     val sink: PetEventSink = object : PetEventSink {

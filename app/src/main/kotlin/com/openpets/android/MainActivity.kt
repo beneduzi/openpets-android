@@ -71,6 +71,7 @@ import com.openpets.android.companion.DeviceEvent
 import com.openpets.android.companion.CalendarFormat
 import com.openpets.android.companion.ChecklistController
 import com.openpets.android.companion.ChecklistItem
+import com.openpets.android.net.CommandRegistry
 import com.openpets.android.FeatureHud
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
@@ -358,6 +359,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     override fun onVisibility(visible: Boolean) { if (::stage.isInitialized) stage.setPetVisible(visible) }
     override fun onPointer(kind: String, x: Float, y: Float) {}
     override fun onNotify(request: com.openpets.android.protocol.NotificationRequest) {}
+    override fun onCommandInvoked(event: CommandInvoked) {}
+    override fun onCommandsChanged() {}
 
     private fun speak(text: String) {
         if (!ttsReady) return
@@ -771,6 +774,20 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             .setNegativeButton(R.string.dialog_close, null).show()
     }
 
+    private fun showCommandsDialog() {
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(12), dp(20), dp(12)) }
+        val commands = CommandRegistry.list()
+        if (commands.isEmpty()) content.addView(sectionLabel(getString(R.string.commands_empty)))
+        commands.forEach { command ->
+            val button = actionButton("${command.title}\n${command.source}") { PetBus.invokeCommand(command.source, command.id) }
+            content.addView(button)
+            command.description?.takeIf { it.isNotBlank() }?.let { content.addView(sectionLabel(it)) }
+        }
+        AlertDialog.Builder(this).setTitle(R.string.commands_title)
+            .setView(ScrollView(this).apply { addView(content) })
+            .setNegativeButton(R.string.dialog_close, null).show()
+    }
+
     private fun showSettings() {
         val ipcEnabled = CheckBox(this).apply { text = getString(R.string.settings_ipc); isChecked = settings.ipcEnabled }
         val remoteEnabled = CheckBox(this).apply { text = getString(R.string.settings_remote); isChecked = settings.remoteEnabled }
@@ -818,6 +835,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton(getString(R.string.checklist_open)) { showChecklistDialog() })
             addView(actionButton(getString(R.string.walkabout_open)) { showWalkaboutDialog() })
             addView(actionButton(getString(R.string.vocab_open)) { showVocabSettingsDialog() })
+            addView(actionButton(getString(R.string.commands_open)) { showCommandsDialog() })
             addView(actionButton(getString(R.string.settings_voice)) { showVoiceDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)

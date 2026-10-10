@@ -40,6 +40,8 @@ class WebSocketBridge(
         override fun onVisibility(visible: Boolean) = broadcast(WsMessages.eventVisibility(visible))
         override fun onPointer(kind: String, x: Float, y: Float) = broadcast(WsMessages.eventPointer(kind, x, y))
         override fun onNotify(request: com.openpets.android.protocol.NotificationRequest) {}
+        override fun onCommandInvoked(event: com.openpets.android.CommandInvoked) = broadcast(WsMessages.eventFromCommand(event))
+        override fun onCommandsChanged() {}
     }
     @Volatile private var server: WebSocketServer? = null
     val isRunning: Boolean get() = server?.isRunning == true
@@ -62,6 +64,39 @@ class WebSocketBridge(
                 WsMessages.parseHostStatus(text)?.let { hostStatus.update(it); return }
                 try {
                     val command = WsMessages.parseCommand(text)
+                    if (command.method.startsWith("commands.")) {
+                        val params = command.params?.takeIf { it.isJsonObject }?.asJsonObject
+                            ?: throw IllegalArgumentException("Command params are required.")
+                        when (command.method) {
+                            "commands.register" -> {
+                                val source = params.get("source")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
+                                    ?: throw IllegalArgumentException("Command source is required.")
+                                val array = params.get("commands")?.takeIf { it.isJsonArray }?.asJsonArray
+                                    ?: throw IllegalArgumentException("Commands must be an array.")
+                                val registered = array.map { value ->
+                                    val obj = value.takeIf { it.isJsonObject }?.asJsonObject ?: throw IllegalArgumentException("Command must be an object.")
+                                    fun required(key: String): String = obj.get(key)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
+                                        ?: throw IllegalArgumentException("Command $key is required.")
+                                    val id = required("id"); val title = required("title")
+                                    val description = obj.get("description")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
+                                    if (id.isBlank() || id.length > 64 || title.isBlank() || title.length > 40 || (description?.length ?: 0) > 200) throw IllegalArgumentException("Invalid command fields.")
+                                    RemoteCommand(source, id, title, description)
+                                }
+                                CommandRegistry.register(source, registered)
+                                safeSend(conn, WsMessages.result(command.id, true, com.google.gson.JsonObject().apply { addProperty("count", registered.size) }))
+                                PetBus.commandsChanged()
+                            }
+                            "commands.unregister" -> {
+                                val source = params.get("source")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
+                                    ?: throw IllegalArgumentException("Command source is required.")
+                                CommandRegistry.unregister(source)
+                                safeSend(conn, WsMessages.result(command.id, true, com.google.gson.JsonObject()))
+                                PetBus.commandsChanged()
+                            }
+                            else -> safeSend(conn, WsMessages.error(command.id, "unknown_method", "Unknown command method."))
+                        }
+                        return
+                    }
                     val response = dispatcher.dispatch(IpcRequest(command.id, 1, tokenProvider(), command.method, command.params))
                     val ok = response.get("ok")?.asBoolean == true
                     safeSend(conn, if (ok) WsMessages.result(command.id, true, response.get("result")) else {

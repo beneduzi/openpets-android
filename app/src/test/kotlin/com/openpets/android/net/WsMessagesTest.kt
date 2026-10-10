@@ -21,6 +21,12 @@ class WsMessagesTest {
         assertEquals(0.25f, event.get("x").asFloat)
         assertEquals(0.75f, event.get("y").asFloat)
     }
+    @Test fun buildsCommandEvent() {
+        val event = JsonParser.parseString(WsMessages.eventFromCommand(com.openpets.android.CommandInvoked("plugin", "refresh"))).asJsonObject
+        assertEquals("command", event.get("event").asString)
+        assertEquals("plugin", event.get("source").asString)
+        assertEquals("refresh", event.get("commandId").asString)
+    }
     @Test fun buildsActionEvent() {
         val event = JsonParser.parseString(WsMessages.eventFromAction(PetActionEvent("bubble-1", "approve"))).asJsonObject
         assertEquals("event", event.get("type").asString)

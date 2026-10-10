@@ -192,6 +192,9 @@
     <string name="vocab_anki_host">Anki host</string>
     <string name="vocab_error">Lookup failed</string>
     <string name="vocab_sent">Sent</string>
+    <string name="commands_open">Plugin commands…</string>
+    <string name="commands_title">Plugin commands</string>
+    <string name="commands_empty">No plugin commands registered</string>
     <string name="settings_voice">Voice input…</string>
     <string name="voice_title">Voice input</string>
     <string name="voice_speak">Speak</string>

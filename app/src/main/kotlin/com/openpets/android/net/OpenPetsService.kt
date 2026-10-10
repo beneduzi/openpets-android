@@ -99,6 +99,8 @@ class OpenPetsService : Service() {
         override fun onNotify(request: com.openpets.android.protocol.NotificationRequest) {
             notifier.notifyEvent(request.title, request.body ?: request.title)
         }
+        override fun onCommandInvoked(event: com.openpets.android.CommandInvoked) {}
+        override fun onCommandsChanged() {}
 
         override fun onMedia(request: MediaRequest) {
             if (settings.soundEnabled) sound.play()

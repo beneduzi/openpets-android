@@ -93,6 +93,10 @@ The OpenCode plugin does **not** support remote mode. Remote constraints: raw TC
 
 ## Experimental WebSocket (`openpets-ws`, opt-in)
 
+### Plugin commands
+
+Experimental: a client sends `{ "id":"…", "method":"commands.register", "params":{"source":"plugin", "commands":[{"id":"refresh", "title":"Refresh", "description":"Optional description"}]}}`. The app lists registered commands in Settings → *Plugin commands*. Invoking one emits `{ "type":"event","event":"command","source":"plugin","commandId":"refresh" }` to connected clients.
+
 Voice input is experimental and microphone access is opt-in. When the user dictates, the app can send `{ "type":"event", "event":"input.text", "text": … }`; a host client may inject this as user input.
 
 An optional `ws://` endpoint (default port `18423`) that is **disabled by default** and marked **experimental**. Enable it in Settings → *WebSocket (experimental)*. It:

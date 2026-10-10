@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 import com.openpets.android.PetActionEvent
 import com.openpets.android.companion.HostStatus
 import com.openpets.android.protocol.MoveRequest
+import com.openpets.android.CommandInvoked
 
 data class WsCommand(val id: String, val method: String, val params: JsonElement?)
 
@@ -48,6 +49,9 @@ object WsMessages {
     }.toString()
     fun eventScale(scale: Float): String = JsonObject().apply { addProperty("type", "event"); addProperty("event", "scale"); addProperty("scale", scale) }.toString()
     fun eventVisibility(visible: Boolean): String = JsonObject().apply { addProperty("type", "event"); addProperty("event", "visibility"); addProperty("visible", visible) }.toString()
+    fun eventFromCommand(event: CommandInvoked): String = JsonObject().apply {
+        addProperty("type", "event"); addProperty("event", "command"); addProperty("source", event.source); addProperty("commandId", event.commandId)
+    }.toString()
 
     fun parseCommand(text: String): WsCommand {
         val obj = JsonParser.parseString(text).asJsonObject
