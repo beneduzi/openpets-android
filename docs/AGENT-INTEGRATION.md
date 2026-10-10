@@ -1,106 +1,134 @@
-# Integrando agentes com o OpenPets Android
+# Agent integrations
 
-O app Android é o **destino** OpenPets. Os agentes (OpenCode plugin, MCP `openpets`,
-CLI `@open-pets/cli`) precisam apontar para o IP do device em vez do app desktop.
+The Android app is the OpenPets *target/destination*. Agents (the OpenCode plugin, the OpenPets MCP server, and the `@open-pets` CLI) point at the device's IP instead of a desktop app.
 
-## 1. IPC (recomendado — cobre plugin e MCP)
+## How it works
 
-O cliente OpenPets localiza o destino por um arquivo de *discovery*. Basta substituí-lo
-por um que aponte via TCP para o Android:
+- **IPC:** `openpets-ipc` v1 on TCP port `18420`.
+- **Remote:** `openpets-remote` v1 on TCP port `18421`.
+- **Preferred path:** Agents use IPC via the discovery file. Remote is a fallback for MCP/CLI.
+
+## MCP Server Configuration
+
+### 1. Generate a discovery file
+
+Run `tools/write-discovery.sh <DEVICE_IP> <IPC_TOKEN> [IPC_PORT] [OUT_PATH]`. The default `OUT_PATH` is `~/.config/opencode/openpets-discovery.json`.
+
+Example JSON shape:
 
 ```json
 {
   "protocol": "openpets-ipc",
   "protocolVersion": 1,
   "endpoint": "tcp://192.168.0.14:18420",
-  "token": "<IPC token mostrado nas configurações do app>",
+  "token": "<IPC token>",
   "appVersion": "0.1.0",
   "pid": 12345,
   "platform": "linux"
 }
 ```
 
-Regras (validadas pelo próprio cliente):
-- `endpoint` TCP só aceita IPv4 **privado/local** (192.168.x, 10.x, 172.16-31.x, 169.254.x, 127.x).
-- `token` com 16..256 caracteres.
-- `platform` deve ser igual ao do processo consumidor (`linux` aqui; `darwin`/`win32` conforme o SO).
-- `pid` inteiro > 0.
+**Constraints:** The endpoint TCP address must be private/local IPv4 (`192.168.x`, `10.x`, `172.16–31.x`, `169.254.x`, `127.x`, or `100.64–127.x`). The token must be 16–256 characters. `platform` must match the consuming process (`linux`, `darwin`, or `win32`), and `pid` must be greater than 0.
 
-Gere o arquivo com o helper:
+### 2. Point the MCP server at the device
 
-```bash
-tools/write-discovery.sh <DEVICE_IP> <IPC_TOKEN> [IPC_PORT] [OUT_PATH]
-# padrão OUT_PATH: ~/.config/opencode/openpets-discovery.json
+Set `OPENPETS_DISCOVERY_FILE`; it covers both the OpenCode plugin and MCP.
+
+**Generic MCP client config:**
+
+```json
+{
+  "mcpServers": {
+    "openpets": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@open-pets/mcp@latest", "--pet", "default"]
+    }
+  }
+}
 ```
 
-### 1a. MCP `openpets` (via opencode.jsonc)
+**Canonical CLI form:** `npx @open-pets/cli mcp`
 
-Adicione o env ao servidor MCP em `~/.config/opencode/opencode.jsonc`:
+**OpenCode-specific** (`~/.config/opencode/opencode.jsonc`):
 
 ```jsonc
 "openpets": {
   "type": "local",
   "command": ["npx", "-y", "@open-pets/cli@4.0.0", "mcp", "--pet", "default"],
   "environment": {
-    "OPENPETS_DISCOVERY_FILE": "/home/gustavo/.config/opencode/openpets-discovery.json"
+    "OPENPETS_DISCOVERY_FILE": "/home/<user>/.config/opencode/openpets-discovery.json"
   },
   "enabled": true
 }
 ```
 
-### 1b. Plugin do OpenCode (`@open-pets/opencode`)
+## Available MCP tools
 
-O plugin roda dentro do processo do OpenCode e usa o mesmo discovery. Exporte a variável
-antes de subir o OpenCode (shell profile, `.env`, ou wrapper):
+| Tool | What it does |
+| --- | --- |
+| `openpets_status` | Reports the target pet ID and connectivity. |
+| `openpets_react` | Plays a reaction animation. |
+| `openpets_say` | Shows a short speech bubble. |
+
+## OpenCode plugin
+
+The plugin runs inside the OpenCode process and uses the same discovery file. Export `OPENPETS_DISCOVERY_FILE` before starting OpenCode:
 
 ```bash
 export OPENPETS_DISCOVERY_FILE="$HOME/.config/opencode/openpets-discovery.json"
 ```
 
-> Observação: o plugin OpenPets usa somente o modo *discovery/local* (o desktop não faz
-> push para viewers). Por isso o caminho via IPC acima é o único que cobre o plugin.
+The OpenPets plugin uses discovery/local mode only (no remote push).
 
-## 2. Remote (MCP/CLI)
-
-O cliente também suporta modo remote por env (o **plugin não** suporta):
+## Remote mode (MCP / CLI)
 
 ```bash
 export OPENPETS_REMOTE_ENDPOINT="tcp://192.168.0.14:18421"
-export OPENPETS_REMOTE_TOKEN="<Remote token mostrado nas configurações>"
-export OPENPETS_REMOTE_CLIENT_ID="android-companion"   # opcional
+export OPENPETS_REMOTE_TOKEN="<remote token from the app>"
+export OPENPETS_REMOTE_CLIENT_ID="android-companion"   # optional
 ```
 
-## 3. Teste
+The OpenCode plugin does **not** support remote mode. Remote constraints: raw TCP, one request per socket, 4 KB cap, private/local IPv4 only, token 43–256 base64url characters, and rate limited to 30 requests / 60 s.
+
+## Diagnose your setup
 
 ```bash
-# status via CLI (usa discovery do path padrão OU o modo remote por env)
-OPENPETS_DISCOVERY_FILE=~/.config/opencode/openpets-discovery.json \
-  npx -y @open-pets/cli@4.0.0 status
-
-# reação direta (sem OpenCode)
-node tools/send-reaction.mjs 192.168.0.14 18420 <IPC_TOKEN> react editing
-node tools/send-reaction.mjs 192.168.0.14 18420 <IPC_TOKEN> say "Rodando testes" testing
-
-# mídia: o app NAO baixa de URL; os bytes são empurrados (base64) pelo cliente
-node tools/send-media.mjs 192.168.0.14 18420 <IPC_TOKEN> ./print.png "print do app" 8000
+npx @open-pets/cli status
+npx @open-pets/cli doctor
 ```
 
-### Mídia (`pet.showMedia`)
-- Params: `data` (imagem em **base64**, empurrada — preferido) OU `url` (http/https, o app baixa),
-  `message` (legenda), `reaction`, `durationMs` (1–30 s, padrão 8 s), `clickUrl`.
-- Tipos: png/jpg/jpeg/webp/gif. Limite ~10 MB. O app só precisa da conexão IPC (não precisa de rede).
-- `clickUrl` (https/URL absoluta) abre no navegador ao tocar na imagem.
+Direct test scripts:
 
-## Mapa de reações → animação
+```bash
+node tools/send-reaction.mjs 192.168.0.14 18420 <IPC_TOKEN> react editing
+node tools/send-reaction.mjs 192.168.0.14 18420 <IPC_TOKEN> say "Running tests" testing
+node tools/send-media.mjs    192.168.0.14 18420 <IPC_TOKEN> ./print.png "screenshot" 8000
+```
 
-`idle, thinking, working, editing, running, testing, waiting, waving, success, error, celebrating`
+## Media (`pet.showMedia`)
 
-| reação | animação |
+- **Parameters:** `data` (base64 image, pushed inline—preferred and needs no network) or `url` (http/https; the app downloads it); optional `message`, `reaction`, `durationMs` (1000–30000, default 8000), and `clickUrl`.
+- **Types and size:** png/jpg/jpeg/webp/gif; about 10 MB limit.
+
+## Reaction → animation map
+
+| Reaction | Animation |
 | --- | --- |
-| idle | idle |
-| thinking | review |
-| working / editing / running | running |
-| testing / waiting | waiting |
-| waving | waving |
-| success / celebrating | jumping |
-| error | failed |
+| `idle` | `idle` |
+| `thinking` | `review` |
+| `working` / `editing` / `running` | `running` |
+| `testing` / `waiting` | `waiting` |
+| `waving` | `waving` |
+| `success` / `celebrating` | `jumping` |
+| `error` | `failed` |
+
+## IPC method reference
+
+Requests use `{ id, version:1, token, method, params }`. Success responses use `{ id, ok:true, result }`; errors use `{ id, ok:false, error:{code,message} }`.
+
+**Accepted methods:** `hello`, `status`, `pets.list`, `pets.install`, `pets.install-local`, `lease.acquire`, `lease.heartbeat`, `lease.release`, `pet.react`, `pet.say`, `pet.showMedia`.
+
+The lease TTL is 15 s.
+
+**Known limitation:** The dispatcher also handles `pet.bubbleDismiss`, but it is not yet in the accepted request whitelist, so it currently returns `unknown_method` over IPC.
