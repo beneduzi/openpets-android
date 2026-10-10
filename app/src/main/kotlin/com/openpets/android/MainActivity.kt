@@ -35,6 +35,9 @@ import com.openpets.android.companion.TimerRunState
 import com.openpets.android.companion.TimerSnapshot
 import com.openpets.android.companion.Reminder
 import com.openpets.android.companion.ReminderController
+import com.openpets.android.companion.FocusController
+import com.openpets.android.companion.FocusSnapshot
+import com.openpets.android.companion.FocusState
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
 import com.openpets.android.pet.PetPackageLoader
@@ -66,6 +69,11 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private var tts: TextToSpeech? = null
     private var ttsReady = false
     private var timerController: TimerController? = null
+    private var focusController: FocusController? = null
+    private var focusDialog: AlertDialog? = null
+    private var focusRemainingView: TextView? = null
+    private var focusDialogListener: ((FocusSnapshot) -> Unit)? = null
+    private var renderedFocusKey: String? = null
     private var reminderController: ReminderController? = null
     private var reminderDialogListener: ((List<Reminder>) -> Unit)? = null
     private val timerHandler = Handler(Looper.getMainLooper())
@@ -84,6 +92,18 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             val snapshot = controller.snapshot()
             if (snapshot.state == TimerRunState.RUNNING) {
                 timerRemainingView?.text = TimerEngine.formatRemaining(snapshot.remainingMs)
+                timerHandler.postDelayed(this, 1_000L)
+            }
+        }
+    }
+    private val focusTick = object : Runnable {
+        override fun run() {
+            if (isFinishing || isDestroyed || !activityStarted) return
+            val controller = focusController ?: return
+            controller.refresh()
+            val snapshot = controller.snapshot()
+            if (snapshot.state == FocusState.FOCUS || snapshot.state == FocusState.BREAK) {
+                focusRemainingView?.text = TimerEngine.formatRemaining(snapshot.phaseRemainingMs)
                 timerHandler.postDelayed(this, 1_000L)
             }
         }
@@ -125,6 +145,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         }
         setContentView(stage)
         timerController = TimerController(this)
+        focusController = FocusController(this)
         reminderController = ReminderController(this)
         reloadPet()
         applyAnimationConfig()
@@ -142,15 +163,20 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         startTimerTickIfRunning()
         reminderDialogListener?.let { reminderController?.addListener(it) }
         reminderController?.refresh()
+        focusDialogListener?.let { focusController?.addListener(it) }
+        focusController?.refresh()
+        startFocusTickIfRunning()
         if (::stage.isInitialized) applyAnimationConfig()
     }
 
     override fun onStop() {
         activityStarted = false
         timerHandler.removeCallbacks(timerTick)
+        timerHandler.removeCallbacks(focusTick)
         timerDialogListener?.let { timerController?.removeListener(it) }
         timerDialogListener = null
         reminderDialogListener?.let { reminderController?.removeListener(it) }
+        focusDialogListener?.let { focusController?.removeListener(it) }
         PetBus.unregister(this)
         AppState.foreground = false
         super.onStop()
@@ -478,6 +504,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton("Animações…") { showAnimationSettings() })
             addView(actionButton(getString(R.string.timer_open)) { showTimerDialog() })
             addView(actionButton(getString(R.string.reminders_open)) { showRemindersDialog() })
+            addView(actionButton(getString(R.string.focus_open)) { showFocusDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)
             addView(remoteEnabled)
@@ -658,6 +685,135 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         render(controller.snapshot())
         dialog.show()
         startTimerTickIfRunning()
+    }
+
+    private fun startFocusTickIfRunning() {
+        timerHandler.removeCallbacks(focusTick)
+        val state = focusController?.snapshot()?.state
+        if ((state == FocusState.FOCUS || state == FocusState.BREAK) && activityStarted && !isFinishing) {
+            timerHandler.postDelayed(focusTick, 1_000L)
+        }
+    }
+
+    private fun showFocusDialog() {
+        val controller = focusController ?: return
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.focus_title)
+            .setView(ScrollView(this).apply { addView(content) })
+            .setNegativeButton(R.string.dialog_close, null)
+            .create()
+        focusDialog = dialog
+
+        fun spacer() = View(this).apply { layoutParams = LinearLayout.LayoutParams(1, dp(8)) }
+        fun fullButton(label: String, onClick: () -> Unit) = actionButton(label, onClick).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+        fun render(snapshot: FocusSnapshot) {
+            val key = "${snapshot.state}:${snapshot.pausedPhase}"
+            renderedFocusKey = key
+            content.removeAllViews()
+            focusRemainingView = null
+            when (snapshot.state) {
+                FocusState.IDLE -> {
+                    content.addView(sectionLabel(getString(R.string.focus_title)))
+                    val presets = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+                    listOf(25 to 5, 50 to 10).forEach { (focus, breakMinutes) ->
+                        presets.addView(
+                            actionButton("$focus/$breakMinutes") { controller.start(focus, breakMinutes) },
+                            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+                        )
+                    }
+                    val focusInput = EditText(this).apply {
+                        inputType = InputType.TYPE_CLASS_NUMBER
+                        setText("25")
+                        hint = getString(R.string.focus_focus_minutes)
+                        setTextColor(Color.WHITE)
+                        setHintTextColor(0xFF9E9E9E.toInt())
+                    }
+                    val breakInput = EditText(this).apply {
+                        inputType = InputType.TYPE_CLASS_NUMBER
+                        setText("5")
+                        hint = getString(R.string.focus_break_minutes)
+                        setTextColor(Color.WHITE)
+                        setHintTextColor(0xFF9E9E9E.toInt())
+                    }
+                    content.addView(presets)
+                    content.addView(spacer())
+                    content.addView(labelWithField(getString(R.string.focus_focus_minutes), focusInput))
+                    content.addView(labelWithField(getString(R.string.focus_break_minutes), breakInput))
+                    content.addView(spacer())
+                    content.addView(fullButton(getString(R.string.focus_start)) {
+                        val focus = focusInput.text.toString().toIntOrNull()
+                        val breakValue = breakInput.text.toString().toIntOrNull()
+                        if (focus == null || focus <= 0 || breakValue == null || breakValue <= 0) {
+                            Toast.makeText(this, getString(R.string.focus_invalid), Toast.LENGTH_SHORT).show()
+                        } else controller.start(focus, breakValue)
+                    })
+                }
+                FocusState.FOCUS, FocusState.BREAK, FocusState.PAUSED -> {
+                    val remaining = TextView(this).apply {
+                        text = TimerEngine.formatRemaining(snapshot.phaseRemainingMs)
+                        textSize = 34f
+                        gravity = android.view.Gravity.CENTER
+                        setTextColor(when {
+                            snapshot.state == FocusState.FOCUS -> Color.WHITE
+                            snapshot.state == FocusState.BREAK -> 0xFF81C784.toInt()
+                            else -> 0xFF9E9E9E.toInt()
+                        })
+                        setPadding(0, dp(12), 0, dp(8))
+                    }
+                    focusRemainingView = remaining
+                    content.addView(remaining)
+                    val statusText = when (snapshot.state) {
+                        FocusState.FOCUS -> getString(R.string.focus_cycles, snapshot.cyclesCompleted)
+                        FocusState.BREAK -> getString(R.string.focus_break_label)
+                        FocusState.PAUSED -> getString(
+                            if (snapshot.pausedPhase == com.openpets.android.companion.FocusPhase.BREAK) R.string.focus_paused_break else R.string.focus_paused_focus,
+                        )
+                        FocusState.IDLE -> ""
+                    }
+                    content.addView(TextView(this).apply {
+                        text = statusText
+                        gravity = android.view.Gravity.CENTER
+                        setTextColor(0xFF9E9E9E.toInt())
+                    })
+                    content.addView(spacer())
+                    if (snapshot.state == FocusState.PAUSED) {
+                        content.addView(fullButton(getString(R.string.focus_resume)) { controller.resume() })
+                    } else {
+                        content.addView(fullButton(getString(R.string.focus_pause)) { controller.pause() })
+                        content.addView(fullButton(getString(if (snapshot.state == FocusState.FOCUS) R.string.focus_skip_break else R.string.focus_skip_focus)) {
+                            controller.skip()
+                        })
+                    }
+                    content.addView(fullButton(getString(R.string.focus_end)) { controller.end() })
+                }
+            }
+        }
+
+        val listener: (FocusSnapshot) -> Unit = { snapshot ->
+            val key = "${snapshot.state}:${snapshot.pausedPhase}"
+            if (key != renderedFocusKey) render(snapshot)
+        }
+        focusDialogListener?.let { controller.removeListener(it) }
+        focusDialogListener = listener
+        controller.addListener(listener)
+        dialog.setOnDismissListener {
+            timerHandler.removeCallbacks(focusTick)
+            focusDialogListener?.let { controller.removeListener(it) }
+            focusDialogListener = null
+            focusDialog = null
+            focusRemainingView = null
+            renderedFocusKey = null
+        }
+        render(controller.snapshot())
+        dialog.show()
+        startFocusTickIfRunning()
+        controller.refresh()
     }
 
     private fun showRemindersDialog() {

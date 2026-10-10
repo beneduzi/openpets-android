@@ -46,4 +46,20 @@
     <string name="reminders_snooze">Snooze 10m</string>
     <string name="reminders_delete">Delete</string>
     <string name="reminders_invalid">Enter a title and minutes</string>
+    <string name="focus_open">Focus…</string>
+    <string name="focus_title">Focus</string>
+    <string name="focus_focus_minutes">Focus (minutes)</string>
+    <string name="focus_break_minutes">Break (minutes)</string>
+    <string name="focus_start">Start session</string>
+    <string name="focus_pause">Pause</string>
+    <string name="focus_resume">Resume</string>
+    <string name="focus_skip_break">Skip to break</string>
+    <string name="focus_skip_focus">Skip to focus</string>
+    <string name="focus_end">End session</string>
+    <string name="focus_focus_label">Focus</string>
+    <string name="focus_break_label">Break</string>
+    <string name="focus_paused_focus">Focus paused</string>
+    <string name="focus_paused_break">Break paused</string>
+    <string name="focus_cycles">Focus · %1$d cycles</string>
+    <string name="focus_invalid">Enter focus and break minutes</string>
 </resources>
