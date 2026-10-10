@@ -105,3 +105,21 @@ Install the same way as `openpets.ts`, then restart the OpenCode service:
 cp openpets-approvals.ts ~/.config/opencode/plugins/openpets-approvals.ts
 ```
 
+## `openpets-voice.ts` — host-side voice input (experimental)
+
+Consumes the app's **Voice input**. It connects to the experimental WebSocket
+endpoint and, on `{"type":"event","event":"input.text","text":…}` (your phone
+dictation transcript), injects the text into OpenCode as a user message so the
+coding agent receives it.
+
+- Target session: `OPENPETS_VOICE_SESSION` (env) pins a session; otherwise the
+  most recently listed session is used (best effort).
+- Requires the app's WebSocket endpoint **and** the app's Voice input to be used
+  (microphone is opt-in on the phone).
+- Experimental; the frame schema may change.
+
+```bash
+cp openpets-voice.ts ~/.config/opencode/plugins/openpets-voice.ts
+```
+
+
