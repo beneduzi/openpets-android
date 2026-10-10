@@ -25,6 +25,34 @@ class NotificationHelper(private val context: Context) {
         )
     }
 
+    fun notifyTimerFinished(title: String, text: String) {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        ensureTimerChannel()
+        val notification = NotificationCompat.Builder(context, TIMER_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        manager.notify(TIMER_NOTIFICATION_ID, notification)
+    }
+
+    private fun ensureTimerChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (manager.getNotificationChannel(TIMER_CHANNEL_ID) == null) {
+            manager.createNotificationChannel(
+                NotificationChannel(TIMER_CHANNEL_ID, "Timer", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = "Simple timer notifications"
+                    setShowBadge(true)
+                },
+            )
+        }
+    }
+
     fun notifyEvent(title: String?, text: String) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         ensureChannel()
@@ -43,5 +71,7 @@ class NotificationHelper(private val context: Context) {
     companion object {
         const val EVENT_CHANNEL_ID = "openpets_events"
         const val EVENT_NOTIFICATION_ID = 1011
+        const val TIMER_CHANNEL_ID = "openpets_timer"
+        const val TIMER_NOTIFICATION_ID = 1012
     }
 }
