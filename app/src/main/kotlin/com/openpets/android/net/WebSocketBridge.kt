@@ -12,6 +12,7 @@ import com.openpets.android.protocol.WebSocketConnection
 import com.openpets.android.protocol.WebSocketListener
 import com.openpets.android.protocol.WebSocketServer
 import com.openpets.android.protocol.isValidRemotePeerAddress
+import com.openpets.android.companion.HostStatusController
 import com.openpets.android.protocol.SayRequest
 import com.openpets.android.protocol.MediaRequest
 import java.util.concurrent.ConcurrentHashMap
@@ -24,6 +25,7 @@ class WebSocketBridge(
 ) {
     private val connections = ConcurrentHashMap.newKeySet<WebSocketConnection>()
     private val gson = Gson()
+    private val hostStatus = HostStatusController(context)
     private val busListener = object : PetBus.Listener {
         override fun onReact(reaction: String, source: String?) = broadcast(WsMessages.eventFromReact(JsonParser.parseString(gson.toJson(mapOf("reaction" to reaction, "source" to source)))))
         override fun onSay(request: SayRequest) = broadcast(WsMessages.eventFromSay(JsonParser.parseString(gson.toJson(request))))
@@ -50,6 +52,7 @@ class WebSocketBridge(
                 } catch (_: Exception) {}
             }
             override fun onMessage(conn: WebSocketConnection, text: String) {
+                WsMessages.parseHostStatus(text)?.let { hostStatus.update(it); return }
                 try {
                     val command = WsMessages.parseCommand(text)
                     val response = dispatcher.dispatch(IpcRequest(command.id, 1, tokenProvider(), command.method, command.params))

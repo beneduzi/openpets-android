@@ -27,6 +27,10 @@ class AppSettings(context: Context) {
         get() = prefs.getBoolean("wsEnabled", false)
         set(value) = prefs.edit().putBoolean("wsEnabled", value).apply()
 
+    var hostStatusEnabled: Boolean
+        get() = prefs.getBoolean("hostStatusEnabled", false)
+        set(value) = prefs.edit().putBoolean("hostStatusEnabled", value).apply()
+
     var wsPort: Int
         get() = prefs.getInt("wsPort", 18423)
         set(value) = prefs.edit().putInt("wsPort", value).apply()

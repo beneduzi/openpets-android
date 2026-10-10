@@ -34,4 +34,13 @@ class WsMessagesTest {
         val error = JsonParser.parseString(WsMessages.error("b", "bad", "No")).asJsonObject
         assertFalse(error.get("ok").asBoolean); assertEquals("bad", error.getAsJsonObject("error").get("code").asString)
     }
+
+    @Test fun parsesHostStatusFrames() {
+        val status = WsMessages.parseHostStatus("""{"type":"status.host","params":{"cpuPct":42.5,"ramUsedMb":1024,"ramTotalMb":4096.0,"diskUsedPct":55,"netRxKbps":12.5,"netTxKbps":9,"loadAvg":1.25,"ts":123}}""")!!
+        assertEquals(42, status.cpuPct); assertEquals(1024L, status.ramUsedMb); assertEquals(4096L, status.ramTotalMb)
+        assertEquals(55, status.diskUsedPct); assertEquals(12L, status.netRxKbps); assertEquals(9L, status.netTxKbps)
+        assertEquals(1.25, status.loadAvg!!, 0.0); assertEquals(123L, status.tsMs)
+        assertEquals(null, WsMessages.parseHostStatus("{\"type\":\"hello\",\"params\":{}}"))
+        assertEquals(null, WsMessages.parseHostStatus("{\"type\":\"status.host\"}"))
+    }
 }

@@ -596,6 +596,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         val ipcEnabled = CheckBox(this).apply { text = getString(R.string.settings_ipc); isChecked = settings.ipcEnabled }
         val remoteEnabled = CheckBox(this).apply { text = getString(R.string.settings_remote); isChecked = settings.remoteEnabled }
         val wsEnabled = CheckBox(this).apply { text = getString(R.string.settings_ws); isChecked = settings.wsEnabled }
+        val hostStatus = CheckBox(this).apply { text = getString(R.string.settings_host_status); isChecked = settings.hostStatusEnabled }
         val autoStart = CheckBox(this).apply { text = getString(R.string.settings_autostart); isChecked = settings.autoStartOnBoot }
         val soundToggle = CheckBox(this).apply { text = "Som de notificação"; isChecked = settings.soundEnabled }
         val hapticsToggle = CheckBox(this).apply { text = "Vibrar junto"; isChecked = settings.hapticsEnabled }
@@ -638,6 +639,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(ipcEnabled)
             addView(remoteEnabled)
             addView(wsEnabled)
+            addView(hostStatus)
             addView(labelWithField(getString(R.string.settings_ws_port), wsPort))
             addView(sectionLabel(getString(R.string.settings_ws_hint)))
             addView(autoStart)
@@ -670,6 +672,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
                 settings.ipcEnabled = ipcEnabled.isChecked
                 settings.remoteEnabled = remoteEnabled.isChecked
                 settings.wsEnabled = wsEnabled.isChecked
+                settings.hostStatusEnabled = hostStatus.isChecked
                 settings.autoStartOnBoot = autoStart.isChecked
                 settings.soundEnabled = soundToggle.isChecked
                 settings.hapticsEnabled = hapticsToggle.isChecked

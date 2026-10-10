@@ -11,6 +11,7 @@
     <string name="settings_ws">WebSocket (experimental)</string>
     <string name="settings_ws_port">WebSocket port</string>
     <string name="settings_ws_hint">Experimental: ws:// LAN endpoint (uses the IPC token). Disabled by default.</string>
+    <string name="settings_host_status">Show host status on the pet</string>
     <string name="settings_remote">Remote server</string>
     <string name="settings_bind">Bind address</string>
     <string name="settings_ipc_port">IPC port</string>
