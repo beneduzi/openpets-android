@@ -1,72 +1,88 @@
 # OpenPets Android — companion
 
-App Android que funciona como o **destino OpenPets**: exibe um pet (spritesheet)
-em tela sempre ligada e recebe reações/falas dos agentes (OpenCode, MCP, etc.)
-via TCP, para uso como companion em device antigo.
+[![Android CI](https://github.com/beneduzi/openpets-android/actions/workflows/android.yml/badge.svg)](https://github.com/beneduzi/openpets-android/actions/workflows/android.yml)
 
-- Kotlin nativo, `minSdk 24` (Android 7+), render via `Canvas` (sem Compose/WebView).
-- Implementa os protocolos do OpenPets sobre TCP:
-  - **IPC** `openpets-ipc` v1 (porta padrão `18420`) — drop-in para o cliente/plugin OpenPets.
-  - **Remote** `openpets-remote` v1 (porta padrão `18421`) — token `[A-Za-z0-9_-]`, 30 req/min.
-- Foreground service + tela ligada + reinício no boot.
+App Android que funciona como **companion OpenPets**: exibe um pet (spritesheet) em tela sempre ligada e recebe
+reações/falas/mídia dos agentes (OpenCode, MCP, etc.) por TCP, para uso como companion dedicado em um device antigo.
+
+Construído do zero com base no protocolo do [OpenPets](https://github.com/OpenPetsHQ/openpets) (MIT).
+
+## Screenshots
+
+| Pet (Hoot) | Balão rico (markdown + HUD + botões) | Mídia | Formulário |
+| :-: | :-: | :-: | :-: |
+| ![hoot](docs/screenshots/pet-hoot.png) | ![rich](docs/screenshots/rich-bubble.png) | ![media](docs/screenshots/media.png) | ![form](docs/screenshots/form.png) |
+
+| Capivara | Ações |
+| :-: | :-: |
+| ![capy](docs/screenshots/pet-capybara.png) | ![actions](docs/screenshots/actions.png) |
+
+## Recursos
+
+- **Pet** por spritesheet (8×9, 192×208) com animações por reação (idle/thinking/working/editing/running/testing/
+  waiting/waving/success/error/celebrating) e **passeio** (anda para os lados quando ocioso).
+- **Balões ricos**: texto com **markdown**, **HUD** (barras de progresso), **até 4 botões** de ação
+  (`url` abre / `callbackUrl` faz POST), **pinado** + `id` (`pet.bubbleDismiss`), e **formulários** (inputs → POST em `submitUrl`).
+- **Mídia** (`pet.showMedia`): imagem/GIF **empurrada em base64** (sem rede) ou por URL; o pet vai para a direita e a
+  imagem preenche a área à esquerda.
+- **Cores + rótulo por projeto** (o plugin do OpenCode manda `source`).
+- **Som** (bip ou **som personalizado** via seletor), **haptics**, **voz (TTS)** e **notificação de sistema** (toggles).
+- **Arrastar/seguir o dedo**, toque = wave, toque longo = Configurações.
+- **Pets embutidos** (Professor Hoot, Tux, Melon Capybara, Lazy Raccoon, Mellow Duck, American Eagle),
+  **importar .zip/pasta**, **catálogo online** (codex-pets.net), **`pets.install`/`install-local`**.
+- **Lease** opcional (`status.leases`, "Exigir lease") e **mapeamento reação→animação** + duração do `waiting`.
+- Always-on: foreground service, tela ligada, modo imersivo, auto-start no boot, ícone oficial OpenPets.
 
 ## Estrutura
 
 ```
-openpets-android/
-├── app/        # UI (Canvas pet + balão), service de rede, settings, always-on
-├── protocol/   # Kotlin puro (JVM-testável): wire protocol, validators, servers TCP, mapping
-└── tools/      # helpers de integração (discovery JSON, envio de reações)
+app/        # UI (Canvas pet + balões ricos + mídia/form), service de rede, settings, always-on
+protocol/   # Kotlin puro (JVM-testável): protocolo IPC/remote, validadores, servidores TCP, mapping
+tools/      # helpers (discovery, send-reaction, send-media)
+docs/       # integração e arquitetura (inclui plano de plugins on-device)
 ```
-
-Módulos:
-- `:protocol` — sem dependências Android. Contém `IpcServer`, `RemoteServer`,
-  `LineServer`, validadores, `PetReactionStateMachine`, `ReactionMapping`, `PetManifest`.
-- `:app` — `PetView`/`SpeechBubbleView`/`PetStageView`, `OpenPetsService`, `BootReceiver`,
-  `AppSettings`, `MainActivity`.
 
 ## Build
 
 ```bash
-cd openpets-android
-./gradlew :protocol:test          # testes do protocolo + integração dos servidores
-./gradlew :app:assembleDebug      # gera app/build/outputs/apk/debug/app-debug.apk
+./gradlew :protocol:test        # testes (protocolo + integração dos servidores)
+./gradlew :app:assembleDebug    # app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Requisitos: JDK 17, Android SDK (platform 34, build-tools 34), `local.properties` com `sdk.dir`.
+Requisitos: JDK 17, Android SDK (platform 34, build-tools 34). `local.properties` com `sdk.dir`.
 
-## Uso no device
+## Usar no device
 
 1. Instale o APK (`adb install -r app-debug.apk`).
-2. Abra o app: o pet aparece e o foreground service sobe (IPC 18420 + Remote 18421).
-3. **Toque** no pet → reação `waving`. **Pressione e segure** → configurações
-   (bind address, portas, tokens, auto-start no boot, IP do device).
-4. Anote o **IP do device** e o **IPC token** / **Remote token** (botões "Copiar").
+2. Abra o app: o pet aparece; o foreground service sobe (IPC `18420` + Remote `18421`).
+3. **Toque e segure** → Configurações (bind/portas/tokens, pet, animações, som/voz/vibração/notificação, lease).
+4. Anote o **IP do device** e os **tokens** (IPC/Remote).
 
-### Tela sempre ligada
-O app usa `FLAG_KEEP_SCREEN_ON` e modo imersivo. Para um companion dedicado:
-- Desative a otimização de bateria para o app (MIUI: "Sem restrições" / autostart).
-- Opcional: fixe o app (screen pinning) ou use como "daydream"/quiosque.
-
-## Apontando os agentes para o device
+## Integrar com o OpenCode
 
 Veja [`docs/AGENT-INTEGRATION.md`](docs/AGENT-INTEGRATION.md). Resumo:
-
-- **IPC (recomendado)**: gere um discovery JSON com `tools/write-discovery.sh` e defina
-  `OPENPETS_DISCOVERY_FILE` no processo do OpenCode. Cobre o **plugin** do OpenCode e o MCP.
-- **Remote**: defina `OPENPETS_REMOTE_ENDPOINT`/`OPENPETS_REMOTE_TOKEN` (suportado pelo MCP).
-
-Teste rápido sem OpenCode:
+- **IPC (recomendado)**: gere um discovery com `tools/write-discovery.sh` e defina `OPENPETS_DISCOVERY_FILE`
+  (cobre o **plugin** do OpenCode e o MCP).
+- **Remote**: `OPENPETS_REMOTE_ENDPOINT` / `OPENPETS_REMOTE_TOKEN` (MCP).
 
 ```bash
-node tools/send-reaction.mjs 192.168.0.14 18420 <ipcToken> react thinking
-node tools/send-reaction.mjs 192.168.0.14 18420 <ipcToken> say "Trabalhando nisso" editing
+node tools/send-reaction.mjs <ip> 18420 <ipcToken> say "Rodando testes" testing
+node tools/send-media.mjs    <ip> 18420 <ipcToken> ./print.png "print" 8000
 ```
 
-## Status
+## Protocolo (resumo)
 
-- ✅ Fase 0 — scaffold + `:protocol` (validado por testes)
-- ✅ Fase 1 — render Canvas (spritesheet + balão + máquina de estados)
-- ✅ Fase 2 — servidores TCP IPC + Remote (testes de integração verdes)
-- ✅ Fase 3 — service always-on, boot, configurações, docs
-- ⏳ Verificação end-to-end no device físico (aguarda habilitar "Instalar via USB" no MIUI)
+- **IPC `openpets-ipc` v1** sobre TCP (token): `hello`, `status` (inclui `leases`), `pets.list`, `pets.install`,
+  `pets.install-local`, `lease.acquire/heartbeat/release`, `pet.react`, `pet.say` (com `hud`/`inputs`/`submitUrl`/`id`/`pinned`),
+  `pet.showMedia` (com `data`/`url`), `pet.bubbleDismiss`.
+- **Remote `openpets-remote` v1** sobre TCP (token): `status`, `pet.react`, `pet.say`.
+
+## Plugins nativos do desktop
+
+Os plugins do OpenPets desktop rodam num host (Electron) que **renderiza a UI**. Rodá-los **no próprio app**
+(QuickJS + host de compatibilidade + UI nativa) é viável, mas grande. Documentado em
+[`docs/PLUGINS-ON-DEVICE.md`](docs/PLUGINS-ON-DEVICE.md) (e a alternativa descartada em `docs/PLUGINS-REMOTE-RENDERER.md`).
+
+## Licença
+
+MIT — veja [LICENSE](LICENSE). Marca/arte do OpenPets: projeto MIT do OpenPetsHQ (atribuição mantida).
