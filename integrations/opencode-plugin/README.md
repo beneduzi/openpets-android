@@ -74,3 +74,34 @@ recommended path for agent-issued `say`/`react` tool calls.)
 - This is the host-side companion for the **stable IPC** path. The app's
   experimental `ws://` endpoint (see the app README) is a separate, opt-in
   transport and is not required by this plugin.
+
+## `openpets-approvals.ts` — host-side approval flow (experimental)
+
+An **optional, experimental** second plugin that finishes the "interactive
+approvals on the pet" idea. It requires the app's experimental WebSocket
+endpoint to be enabled (Settings → *WebSocket (experimental)*, default
+`ws://<device>:18423`).
+
+- When a **permission** request is raised, it shows a pinned pet bubble with
+  **Approve / Always / Deny** buttons.
+- It holds a WebSocket connection to the app and receives your tap as
+  `{"type":"event","event":"action","bubbleId":…,"actionId":…}`.
+- On a matching tap it calls `ctx.permission.reply(...)` to resolve the request.
+
+Caveats:
+
+- The OpenCode permission-event payload is not in the public schema, so the
+  request/session ids are parsed defensively; adjust `extractRequest(...)` if
+  your build differs.
+- **Question-tool answers cannot be injected back into the tool** by a plugin,
+  so this covers permissions only. Questions are still *notified* by
+  `openpets.ts`.
+- If the WS endpoint is disabled/unreachable, it is a no-op and approvals are
+  answered normally in the TUI.
+
+Install the same way as `openpets.ts`, then restart the OpenCode service:
+
+```bash
+cp openpets-approvals.ts ~/.config/opencode/plugins/openpets-approvals.ts
+```
+
