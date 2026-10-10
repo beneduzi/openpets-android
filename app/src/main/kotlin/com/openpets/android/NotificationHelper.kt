@@ -190,6 +190,16 @@ class NotificationHelper(private val context: Context) {
             .setAutoCancel(true).setOnlyAlertOnce(true).setPriority(NotificationCompat.PRIORITY_DEFAULT).build())
     }
 
+    fun notifyDeadline(title: String, text: String) {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && manager.getNotificationChannel(DEADLINE_CHANNEL_ID) == null) {
+            manager.createNotificationChannel(NotificationChannel(DEADLINE_CHANNEL_ID, "Deadlines", NotificationManager.IMPORTANCE_DEFAULT))
+        }
+        manager.notify(DEADLINE_NOTIFICATION_BASE + (title.hashCode() and 0x3fffffff), NotificationCompat.Builder(context, DEADLINE_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_notify_sync).setContentTitle(title).setContentText(text)
+            .setAutoCancel(true).setOnlyAlertOnce(true).setPriority(NotificationCompat.PRIORITY_DEFAULT).build())
+    }
+
     companion object {
         const val EVENT_CHANNEL_ID = "openpets_events"
         const val EVENT_NOTIFICATION_ID = 1011
@@ -204,6 +214,8 @@ class NotificationHelper(private val context: Context) {
         const val ROUTINE_NOTIFICATION_ID = 1015
         const val CALENDAR_CHANNEL_ID = "openpets_calendar"
         const val CALENDAR_NOTIFICATION_ID = 1016
+        const val DEADLINE_CHANNEL_ID = "openpets_deadline"
+        private const val DEADLINE_NOTIFICATION_BASE = 30_000
         private const val REMINDER_NOTIFICATION_BASE = 20_000
     }
 }

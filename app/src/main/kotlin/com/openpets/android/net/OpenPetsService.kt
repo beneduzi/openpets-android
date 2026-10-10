@@ -116,6 +116,7 @@ class OpenPetsService : Service() {
         // controller reschedules the exact alarm. The HUD is re-shown when the activity opens.
         timerController = CompanionRuntime.timer.also { it.refresh() }
         reminderController = CompanionRuntime.reminders.also { it.refresh() }
+        CompanionRuntime.deadline.refresh()
         focusController = CompanionRuntime.focus.also { it.refresh() }
         waterController = CompanionRuntime.water.also { it.refresh() }
         routineController = CompanionRuntime.routine.also { it.refresh() }

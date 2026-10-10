@@ -2,6 +2,8 @@ package com.openpets.android
 
 import android.Manifest
 import android.app.AlertDialog
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -37,6 +39,8 @@ import com.openpets.android.companion.TimerRunState
 import com.openpets.android.companion.TimerSnapshot
 import com.openpets.android.companion.Reminder
 import com.openpets.android.companion.ReminderController
+import com.openpets.android.companion.DeadlineController
+import com.openpets.android.companion.Deadline
 import com.openpets.android.companion.FocusController
 import com.openpets.android.companion.SttController
 import com.openpets.android.companion.SttState
@@ -597,6 +601,24 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
 
     // ---- settings ----
 
+    private fun showDeadlineDialog() {
+        val controller = com.openpets.android.companion.CompanionRuntime.deadline
+        val title = EditText(this).apply { hint = "Title" }
+        val due = java.util.Calendar.getInstance().apply { add(java.util.Calendar.HOUR, 1) }
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(8), dp(20), dp(8)) }
+        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(sectionLabel("Add deadline")); root.addView(title)
+        root.addView(actionButton(getString(R.string.deadline_date)) { DatePickerDialog(this, { _, y, m, d -> due.set(y,m,d) }, due.get(java.util.Calendar.YEAR), due.get(java.util.Calendar.MONTH), due.get(java.util.Calendar.DAY_OF_MONTH)).show() })
+        root.addView(actionButton(getString(R.string.deadline_time)) { TimePickerDialog(this, { _, h, m -> due.set(java.util.Calendar.HOUR_OF_DAY,h); due.set(java.util.Calendar.MINUTE,m) }, due.get(java.util.Calendar.HOUR_OF_DAY), due.get(java.util.Calendar.MINUTE), DateFormat.is24HourFormat(this)).show() })
+        root.addView(actionButton(getString(R.string.deadline_add)) { runCatching { controller.add(title.text.toString(), due.timeInMillis); title.text.clear() }.onFailure { Toast.makeText(this, it.message, Toast.LENGTH_SHORT).show() } })
+        root.addView(sectionLabel(getString(R.string.deadline_title))); root.addView(list)
+        var dialog: AlertDialog? = null
+        val render: (List<Deadline>) -> Unit = { entries -> runOnUiThread { list.removeAllViews(); val nearest=entries.firstOrNull(); list.addView(sectionLabel(nearest?.let { getString(R.string.deadline_nearest, it.title) } ?: getString(R.string.deadline_empty))); entries.forEach { item -> val row=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }; row.addView(sectionLabel("${item.title} — ${if(item.dueAtMs < System.currentTimeMillis()) "overdue" else "${(item.dueAtMs-System.currentTimeMillis())/60000} min"}")); row.addView(actionButton(getString(R.string.deadline_complete)) { controller.complete(item.id) }); row.addView(actionButton(getString(R.string.deadline_delete)) { controller.remove(item.id) }); list.addView(row) } } }
+        controller.addListener(render)
+        dialog = AlertDialog.Builder(this).setTitle(R.string.deadline_title).setView(root).setNegativeButton(R.string.dialog_close, null).create()
+        dialog.setOnDismissListener { controller.removeListener(render) }; dialog.show(); controller.refresh(); render(controller.upcoming())
+    }
+
     private fun showSettings() {
         val ipcEnabled = CheckBox(this).apply { text = getString(R.string.settings_ipc); isChecked = settings.ipcEnabled }
         val remoteEnabled = CheckBox(this).apply { text = getString(R.string.settings_remote); isChecked = settings.remoteEnabled }
@@ -631,6 +653,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton("Animações…") { showAnimationSettings() })
             addView(actionButton(getString(R.string.timer_open)) { showTimerDialog() })
             addView(actionButton(getString(R.string.reminders_open)) { showRemindersDialog() })
+            addView(actionButton(getString(R.string.deadline_open)) { showDeadlineDialog() })
             addView(actionButton(getString(R.string.focus_open)) { showFocusDialog() })
             addView(actionButton(getString(R.string.virtualpet_open)) { showVirtualPetDialog() })
             addView(actionButton(getString(R.string.water_open)) { showWaterDialog() })

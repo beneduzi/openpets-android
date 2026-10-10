@@ -48,6 +48,8 @@
             android:enabled="true"
             android:exported="false" />
 
+        <receiver android:name=".companion.DeadlineAlarmReceiver" android:enabled="true" android:exported="false" />
+
         <receiver
             android:name=".companion.FocusAlarmReceiver"
             android:enabled="true"

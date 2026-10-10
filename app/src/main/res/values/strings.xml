@@ -41,6 +41,15 @@
     <string name="dialog_close">Close</string>
     <string name="timer_finished">Timer finished</string>
     <string name="reminders_open">Reminders…</string>
+    <string name="deadline_open">Deadlines…</string>
+    <string name="deadline_title">Deadlines</string>
+    <string name="deadline_add">Add deadline</string>
+    <string name="deadline_date">Date</string>
+    <string name="deadline_time">Time</string>
+    <string name="deadline_complete">Complete</string>
+    <string name="deadline_delete">Delete</string>
+    <string name="deadline_empty">No deadlines</string>
+    <string name="deadline_nearest">Nearest: %1$s</string>
     <string name="reminders_title">Reminders</string>
     <string name="reminders_add_title">Title</string>
     <string name="reminders_in_minutes">In (minutes)</string>
