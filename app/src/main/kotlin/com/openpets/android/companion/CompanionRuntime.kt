@@ -17,4 +17,5 @@ object CompanionRuntime {
     val focus: FocusController by lazy { FocusController.createRuntime(ctx()) }
     val virtualPet: VirtualPetController by lazy { VirtualPetController.createRuntime(ctx()) }
     val water: WaterController by lazy { WaterController.createRuntime(ctx()) }
+    val mood: MoodController by lazy { MoodController.createRuntime(ctx()) }
 }

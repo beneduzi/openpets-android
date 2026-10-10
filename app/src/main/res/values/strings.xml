@@ -99,4 +99,16 @@
     <string name="greeting_night">Good night!</string>
     <string name="eightball_question_hint">Ask a yes/no question</string>
     <string name="eightball_answer_title">The 8-ball says…</string>
+    <string name="mood_open">Mood…</string>
+    <string name="mood_title">Mood</string>
+    <string name="mood_note">Note</string>
+    <string name="mood_nudge">Nudge me</string>
+    <string name="mood_latest">Latest: %1$s</string>
+    <string name="mood_average">Recent average: %1$s</string>
+    <string name="mood_level_1">Very low</string>
+    <string name="mood_level_2">Low</string>
+    <string name="mood_level_3">Okay</string>
+    <string name="mood_level_4">Good</string>
+    <string name="mood_level_5">Very good</string>
+    <string name="mood_empty">No check-ins yet</string>
 </resources>

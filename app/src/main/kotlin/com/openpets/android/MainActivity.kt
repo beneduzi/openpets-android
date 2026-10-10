@@ -46,6 +46,10 @@ import com.openpets.android.companion.VirtualPetController
 import com.openpets.android.companion.WaterController
 import com.openpets.android.companion.WaterEngine
 import com.openpets.android.companion.WaterSettings
+import com.openpets.android.companion.MoodController
+import com.openpets.android.companion.MoodEntry
+import com.openpets.android.companion.MoodLevel
+import com.openpets.android.companion.level
 import com.openpets.android.FeatureHud
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
@@ -97,6 +101,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private var waterDialog: AlertDialog? = null
     private var waterDialogListener: ((WaterSettings) -> Unit)? = null
     private var waterDialogRender: ((WaterSettings) -> Unit)? = null
+    private var moodController: MoodController? = null
+    private var moodDialog: AlertDialog? = null
+    private var moodDialogListener: ((List<MoodEntry>) -> Unit)? = null
+    private var moodDialogRender: ((List<MoodEntry>) -> Unit)? = null
     private val timerHandler = Handler(Looper.getMainLooper())
     private var timerDialog: AlertDialog? = null
     private var timerRemainingView: TextView? = null
@@ -171,6 +179,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         reminderController = ReminderController(this)
         virtualPetController = VirtualPetController(this)
         waterController = WaterController(this)
+        moodController = MoodController(this)
         reloadPet()
         applyAnimationConfig()
 
@@ -194,12 +203,15 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         virtualPetController?.refresh()
         waterDialogListener?.let { waterController?.addListener(it) }
         waterController?.refresh()
+        moodDialogListener?.let { moodController?.addListener(it) }
+        moodController?.refresh()
         startFocusTickIfRunning()
         if (timerDialog?.isShowing == true) timerController?.snapshot()?.let { timerDialogRender?.invoke(it) }
         if (focusDialog?.isShowing == true) focusController?.snapshot()?.let { focusDialogRender?.invoke(it) }
         if (reminderDialog?.isShowing == true) reminderDialogRender?.invoke(reminderController?.snapshot().orEmpty())
         if (virtualPetDialog?.isShowing == true) virtualPetController?.snapshot()?.let { virtualPetDialogRender?.invoke(it) }
         if (waterDialog?.isShowing == true) waterController?.settings()?.let { waterDialogRender?.invoke(it) }
+        if (moodDialog?.isShowing == true) moodController?.recent()?.let { moodDialogRender?.invoke(it) }
         if (::stage.isInitialized) applyAnimationConfig()
     }
 
@@ -212,6 +224,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         focusDialogListener?.let { focusController?.removeListener(it) }
         virtualPetDialogListener?.let { virtualPetController?.removeListener(it) }
         waterDialogListener?.let { waterController?.removeListener(it) }
+        moodDialogListener?.let { moodController?.removeListener(it) }
         PetBus.unregister(this)
         AppState.foreground = false
         super.onStop()
@@ -547,6 +560,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton(getString(R.string.virtualpet_open)) { showVirtualPetDialog() })
             addView(actionButton(getString(R.string.water_open)) { showWaterDialog() })
             addView(actionButton(getString(R.string.fun_open)) { showFunDialog() })
+            addView(actionButton(getString(R.string.mood_open)) { showMoodDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)
             addView(remoteEnabled)
@@ -1016,6 +1030,113 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         render(controller.settings())
         dialog.show()
         controller.refresh()
+    }
+
+    private fun showMoodDialog() {
+        val controller = moodController ?: return
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.mood_title)
+            .setView(ScrollView(this).apply { addView(content) })
+            .setNegativeButton(R.string.dialog_close, null)
+            .create()
+        moodDialog = dialog
+        var noteText = ""
+
+        fun valueLabel(value: Int): Int = when (value) {
+            1 -> R.string.mood_level_1
+            2 -> R.string.mood_level_2
+            3 -> R.string.mood_level_3
+            4 -> R.string.mood_level_4
+            else -> R.string.mood_level_5
+        }
+        fun relativeTime(atMs: Long, now: Long): String {
+            val elapsed = (now - atMs).coerceAtLeast(0L)
+            return when {
+                elapsed < 60_000L -> "just now"
+                elapsed < 60 * 60_000L -> "${elapsed / 60_000L} min ago"
+                elapsed < 24 * 60 * 60_000L -> "${elapsed / 3_600_000L} h ago"
+                else -> "${elapsed / (24 * 60 * 60_000L)} d ago"
+            }
+        }
+        fun render(entries: List<MoodEntry>) {
+            content.removeAllViews()
+            content.addView(sectionLabel(getString(R.string.mood_title)))
+            val note = EditText(this).apply {
+                hint = getString(R.string.mood_note)
+                setText(noteText)
+                setTextColor(Color.WHITE)
+                setHintTextColor(0xFF9E9E9E.toInt())
+                addTextChangedListener(object : android.text.TextWatcher {
+                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                        noteText = s?.toString().orEmpty()
+                    }
+                    override fun afterTextChanged(s: android.text.Editable?) = Unit
+                })
+            }
+            content.addView(labelWithField(getString(R.string.mood_note), note))
+            val choices = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            for (value in 1..5) {
+                choices.addView(
+                    actionButton(getString(valueLabel(value))) {
+                        noteText = note.text.toString()
+                        controller.record(value, noteText)
+                        controller.showOnPet()
+                    },
+                    LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f),
+                )
+            }
+            content.addView(choices)
+            content.addView(View(this).apply { layoutParams = LayoutParams(1, dp(8)) })
+
+            val latest = controller.latest()
+            val average = controller.average(7)
+            content.addView(sectionLabel(
+                getString(R.string.mood_latest, latest?.let { getString(valueLabel(it.value)) } ?: getString(R.string.mood_empty)),
+            ))
+            content.addView(sectionLabel(
+                getString(R.string.mood_average, average?.let { "%.1f".format(it) } ?: "—"),
+            ))
+            if (entries.isEmpty()) {
+                content.addView(sectionLabel(getString(R.string.mood_empty)))
+            } else {
+                val now = System.currentTimeMillis()
+                entries.forEach { entry ->
+                    val line = buildString {
+                        append(getString(valueLabel(entry.value)))
+                        entry.note?.let { append(" · ").append(it) }
+                        append(" · ").append(relativeTime(entry.atMs, now))
+                    }
+                    content.addView(TextView(this).apply {
+                        text = line
+                        setTextColor(0xFF9E9E9E.toInt())
+                        setPadding(0, dp(4), 0, dp(4))
+                        maxLines = 2
+                    })
+                }
+            }
+            content.addView(actionButton(getString(R.string.mood_nudge)) { controller.nudge() })
+        }
+
+        val listener: (List<MoodEntry>) -> Unit = { render(it) }
+        moodDialogListener?.let { controller.removeListener(it) }
+        moodDialogListener = listener
+        moodDialogRender = { render(it) }
+        controller.addListener(listener)
+        dialog.setOnDismissListener {
+            moodDialogListener?.let { controller.removeListener(it) }
+            moodDialogListener = null
+            moodDialogRender = null
+            moodDialog = null
+        }
+        render(controller.recent())
+        dialog.show()
+        controller.refresh()
+        controller.showOnPet()
     }
 
     private fun showFunDialog() {
