@@ -60,6 +60,7 @@ data class MediaRequest(
 )
 
 data class MoveRequest(val x: Float, val y: Float?, val durationMs: Int)
+data class NotificationRequest(val title: String, val body: String?)
 
 /**
  * Sink for pet-driving side effects produced by incoming protocol requests.
@@ -72,4 +73,5 @@ interface PetEventSink {
     fun onMove(request: MoveRequest)
     fun onScale(scale: Float)
     fun onVisibility(visible: Boolean)
+    fun onNotify(request: NotificationRequest)
 }

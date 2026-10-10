@@ -7,6 +7,7 @@ import com.openpets.android.protocol.PetEventSink
 import com.openpets.android.protocol.SayRequest
 import com.openpets.android.protocol.HudItem
 import com.openpets.android.protocol.MoveRequest
+import com.openpets.android.protocol.NotificationRequest
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -38,6 +39,7 @@ object PetBus {
         fun onScale(scale: Float)
         fun onVisibility(visible: Boolean)
         fun onPointer(kind: String, x: Float, y: Float)
+        fun onNotify(request: NotificationRequest)
     }
 
     private val listeners = CopyOnWriteArrayList<Listener>()
@@ -83,6 +85,7 @@ object PetBus {
     fun scale(value: Float) { main.post { listeners.forEach { it.onScale(value) } } }
     fun visibility(value: Boolean) { main.post { listeners.forEach { it.onVisibility(value) } } }
     fun pointer(kind: String, x: Float, y: Float) { main.post { listeners.forEach { it.onPointer(kind, x, y) } } }
+    fun notify(request: NotificationRequest) { main.post { listeners.forEach { it.onNotify(request) } } }
 
     /** Sink handed to the IPC/remote servers. */
     val sink: PetEventSink = object : PetEventSink {
@@ -93,5 +96,6 @@ object PetBus {
         override fun onMove(request: MoveRequest) = move(request)
         override fun onScale(scale: Float) = scale(scale)
         override fun onVisibility(visible: Boolean) = visibility(visible)
+        override fun onNotify(request: NotificationRequest) = notify(request)
     }
 }

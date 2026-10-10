@@ -39,6 +39,7 @@ class WebSocketBridge(
         override fun onScale(scale: Float) = broadcast(WsMessages.eventScale(scale))
         override fun onVisibility(visible: Boolean) = broadcast(WsMessages.eventVisibility(visible))
         override fun onPointer(kind: String, x: Float, y: Float) = broadcast(WsMessages.eventPointer(kind, x, y))
+        override fun onNotify(request: com.openpets.android.protocol.NotificationRequest) {}
     }
     @Volatile private var server: WebSocketServer? = null
     val isRunning: Boolean get() = server?.isRunning == true

@@ -96,6 +96,9 @@ class OpenPetsService : Service() {
         override fun onScale(scale: Float) {}
         override fun onVisibility(visible: Boolean) {}
         override fun onPointer(kind: String, x: Float, y: Float) {}
+        override fun onNotify(request: com.openpets.android.protocol.NotificationRequest) {
+            notifier.notifyEvent(request.title, request.body ?: request.title)
+        }
 
         override fun onMedia(request: MediaRequest) {
             if (settings.soundEnabled) sound.play()

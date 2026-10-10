@@ -121,6 +121,10 @@ class IpcDispatcher(
         }
         "pet.hide" -> { sink.onVisibility(false); okResponse(request.id, okOnly()) }
         "pet.show" -> { sink.onVisibility(true); okResponse(request.id, okOnly()) }
+        "notify" -> {
+            sink.onNotify(NotificationRequest(validateNotifyTitle(request.params.str("title")), validateNotifyBody(request.params.str("body"))))
+            okResponse(request.id, okOnly())
+        }
         "pet.say" -> {
             requireLeaseIfNeeded(request.params)
             val message = validateSayMessage(request.params.str("message"))

@@ -357,6 +357,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     override fun onScale(scale: Float) { if (::stage.isInitialized) stage.applyPetScale(scale) }
     override fun onVisibility(visible: Boolean) { if (::stage.isInitialized) stage.setPetVisible(visible) }
     override fun onPointer(kind: String, x: Float, y: Float) {}
+    override fun onNotify(request: com.openpets.android.protocol.NotificationRequest) {}
 
     private fun speak(text: String) {
         if (!ttsReady) return

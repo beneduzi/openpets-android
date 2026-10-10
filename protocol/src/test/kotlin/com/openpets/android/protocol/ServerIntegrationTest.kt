@@ -18,6 +18,7 @@ private class FakeSink : PetEventSink {
     val says = CopyOnWriteArrayList<SayRequest>()
     val media = CopyOnWriteArrayList<MediaRequest>()
     val dismissals = CopyOnWriteArrayList<String?>()
+    val notifications = CopyOnWriteArrayList<NotificationRequest>()
     override fun onReact(reaction: String, source: String?) {
         reactions.add(reaction)
     }
@@ -36,6 +37,7 @@ private class FakeSink : PetEventSink {
     override fun onMove(request: MoveRequest) {}
     override fun onScale(scale: Float) {}
     override fun onVisibility(visible: Boolean) {}
+    override fun onNotify(request: NotificationRequest) { notifications.add(request) }
 }
 
 private const val IPC_TOKEN = "0123456789abcdef0123456789abcdef"

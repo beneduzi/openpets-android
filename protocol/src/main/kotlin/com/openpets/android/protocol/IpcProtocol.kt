@@ -30,7 +30,7 @@ val REACTIONS: List<String> = listOf(
 val IPC_METHODS: List<String> = listOf(
     "hello", "status", "pets.list", "pets.install", "pets.install-local",
     "lease.acquire", "lease.heartbeat", "lease.release",
-    "pet.react", "pet.say", "pet.showMedia", "pet.bubbleDismiss", "pet.move", "pet.setScale", "pet.hide", "pet.show",
+    "pet.react", "pet.say", "pet.showMedia", "pet.bubbleDismiss", "pet.move", "pet.setScale", "pet.hide", "pet.show", "notify",
 )
 
 /** Protocol violation carrying the machine-readable error code used on the wire. */
@@ -148,6 +148,23 @@ fun validateMoveDuration(value: Int?): Int {
 fun validateScale(value: Float?): Float {
     if (value == null || !value.isFinite() || value !in 0.25f..3f) throw IpcProtocolError("invalid_params", "Scale must be between 0.25 and 3.")
     return value
+}
+
+fun validateNotifyTitle(value: String?): String {
+    val title = value?.trim() ?: throw IpcProtocolError("invalid_params", "Notification title is required.")
+    if (title.isEmpty() || title.length > 80 || Regex("[\\r\\n]").containsMatchIn(title)) {
+        throw IpcProtocolError("invalid_params", "Notification title is invalid.")
+    }
+    return title
+}
+
+fun validateNotifyBody(value: String?): String? {
+    if (value == null) return null
+    val body = value.trim()
+    if (body.length > 200 || Regex("[\\r\\n]").containsMatchIn(body)) {
+        throw IpcProtocolError("invalid_params", "Notification body is invalid.")
+    }
+    return body
 }
 
 fun validateSayMessage(value: String?): String {
