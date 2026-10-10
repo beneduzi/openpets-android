@@ -14,6 +14,7 @@ import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.text.InputType
+import android.text.format.DateFormat
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
@@ -32,6 +33,8 @@ import com.openpets.android.companion.TimerController
 import com.openpets.android.companion.TimerEngine
 import com.openpets.android.companion.TimerRunState
 import com.openpets.android.companion.TimerSnapshot
+import com.openpets.android.companion.Reminder
+import com.openpets.android.companion.ReminderController
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
 import com.openpets.android.pet.PetPackageLoader
@@ -63,6 +66,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private var tts: TextToSpeech? = null
     private var ttsReady = false
     private var timerController: TimerController? = null
+    private var reminderController: ReminderController? = null
+    private var reminderDialogListener: ((List<Reminder>) -> Unit)? = null
     private val timerHandler = Handler(Looper.getMainLooper())
     private var timerDialog: AlertDialog? = null
     private var timerRemainingView: TextView? = null
@@ -120,6 +125,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         }
         setContentView(stage)
         timerController = TimerController(this)
+        reminderController = ReminderController(this)
         reloadPet()
         applyAnimationConfig()
 
@@ -134,6 +140,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         PetBus.register(this)
         timerController?.refresh()
         startTimerTickIfRunning()
+        reminderDialogListener?.let { reminderController?.addListener(it) }
+        reminderController?.refresh()
         if (::stage.isInitialized) applyAnimationConfig()
     }
 
@@ -142,6 +150,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         timerHandler.removeCallbacks(timerTick)
         timerDialogListener?.let { timerController?.removeListener(it) }
         timerDialogListener = null
+        reminderDialogListener?.let { reminderController?.removeListener(it) }
         PetBus.unregister(this)
         AppState.foreground = false
         super.onStop()
@@ -468,6 +477,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton("Alterar pet…") { showPetPicker() })
             addView(actionButton("Animações…") { showAnimationSettings() })
             addView(actionButton(getString(R.string.timer_open)) { showTimerDialog() })
+            addView(actionButton(getString(R.string.reminders_open)) { showRemindersDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)
             addView(remoteEnabled)
@@ -534,7 +544,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.timer_title)
             .setView(ScrollView(this).apply { addView(content) })
-            .setNegativeButton(R.string.timer_close, null)
+            .setNegativeButton(R.string.dialog_close, null)
             .create()
         timerDialog = dialog
         timerControls = content
@@ -648,6 +658,118 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         render(controller.snapshot())
         dialog.show()
         startTimerTickIfRunning()
+    }
+
+    private fun showRemindersDialog() {
+        val controller = reminderController ?: return
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.reminders_title)
+            .setView(ScrollView(this).apply { addView(content) })
+            .setNegativeButton(R.string.dialog_close, null)
+            .create()
+
+        fun spacer(height: Int = 8) = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(1, dp(height))
+        }
+        fun fullButton(text: String, onClick: () -> Unit) = actionButton(text, onClick).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+        fun dueText(dueAtMs: Long, now: Long): String {
+            val delta = dueAtMs - now
+            return when {
+                delta <= 0L -> "overdue"
+                delta < 60 * 60_000L -> "in ${((delta + 59_999L) / 60_000L)} min"
+                delta < 24 * 60 * 60_000L -> "in ${((delta + 3_599_999L) / 3_600_000L)} h"
+                else -> DateFormat.format("MMM d, HH:mm", dueAtMs).toString()
+            }
+        }
+        fun render(reminders: List<Reminder>) {
+            content.removeAllViews()
+            val title = EditText(this).apply {
+                hint = getString(R.string.reminders_add_title)
+                setTextColor(Color.WHITE)
+                setHintTextColor(0xFF9E9E9E.toInt())
+            }
+            val minutes = EditText(this).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                setText("10")
+                setTextColor(Color.WHITE)
+                setHintTextColor(0xFF9E9E9E.toInt())
+                hint = getString(R.string.reminders_in_minutes)
+            }
+            content.addView(labelWithField(getString(R.string.reminders_add_title), title))
+            content.addView(labelWithField(getString(R.string.reminders_in_minutes), minutes))
+            content.addView(spacer())
+            content.addView(fullButton(getString(R.string.reminders_add)) {
+                val cleanTitle = title.text.toString().trim()
+                val delay = minutes.text.toString().toIntOrNull()
+                if (cleanTitle.isEmpty() || delay == null || delay <= 0) {
+                    Toast.makeText(this, getString(R.string.reminders_invalid), Toast.LENGTH_SHORT).show()
+                } else {
+                    controller.addInMinutes(cleanTitle, delay)
+                    title.text.clear()
+                }
+            })
+            content.addView(spacer(12))
+
+            if (reminders.isEmpty()) {
+                content.addView(sectionLabel(getString(R.string.reminders_empty)))
+            } else {
+                val now = System.currentTimeMillis()
+                reminders.forEachIndexed { index, reminder ->
+                    val row = LinearLayout(this).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(0, dp(6), 0, dp(6))
+                    }
+                    val titleLine = TextView(this).apply {
+                        text = reminder.title
+                        textSize = 16f
+                        setTextColor(Color.WHITE)
+                        maxLines = 1
+                        ellipsize = android.text.TextUtils.TruncateAt.END
+                    }
+                    val dueLine = TextView(this).apply {
+                        text = dueText(reminder.dueAtMs, now)
+                        textSize = 12f
+                        setTextColor(0xFF9E9E9E.toInt())
+                    }
+                    row.addView(titleLine)
+                    row.addView(dueLine)
+                    val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+                    listOf(
+                        getString(R.string.reminders_done) to { controller.complete(reminder.id) },
+                        getString(R.string.reminders_snooze) to { controller.snooze(reminder.id, 10) },
+                        getString(R.string.reminders_delete) to { controller.remove(reminder.id) },
+                    ).forEach { (label, action) ->
+                        actions.addView(actionButton(label, action), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                    }
+                    row.addView(actions)
+                    content.addView(row)
+                    if (index < reminders.lastIndex) {
+                        content.addView(View(this).apply {
+                            setBackgroundColor(0x339E9E9E)
+                            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
+                        })
+                    }
+                }
+            }
+        }
+
+        val listener: (List<Reminder>) -> Unit = { render(it) }
+        reminderDialogListener?.let { controller.removeListener(it) }
+        reminderDialogListener = listener
+        controller.addListener(listener)
+        dialog.setOnDismissListener {
+            reminderDialogListener?.let { controller.removeListener(it) }
+            reminderDialogListener = null
+        }
+        render(controller.snapshot())
+        dialog.show()
+        controller.refresh()
     }
 
     private fun requestNotificationPermission() {

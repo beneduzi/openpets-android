@@ -34,6 +34,16 @@
     <string name="timer_add_five">+5 min</string>
     <string name="timer_cancel">Cancel</string>
     <string name="timer_dismiss">Dismiss</string>
-    <string name="timer_close">Close</string>
+    <string name="dialog_close">Close</string>
     <string name="timer_finished">Timer finished</string>
+    <string name="reminders_open">Reminders…</string>
+    <string name="reminders_title">Reminders</string>
+    <string name="reminders_add_title">Title</string>
+    <string name="reminders_in_minutes">In (minutes)</string>
+    <string name="reminders_add">Add reminder</string>
+    <string name="reminders_empty">No reminders</string>
+    <string name="reminders_done">Done</string>
+    <string name="reminders_snooze">Snooze 10m</string>
+    <string name="reminders_delete">Delete</string>
+    <string name="reminders_invalid">Enter a title and minutes</string>
 </resources>
