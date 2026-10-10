@@ -15,4 +15,5 @@ object CompanionRuntime {
     val timer: TimerController by lazy { TimerController.createRuntime(ctx()) }
     val reminders: ReminderController by lazy { ReminderController.createRuntime(ctx()) }
     val focus: FocusController by lazy { FocusController.createRuntime(ctx()) }
+    val virtualPet: VirtualPetController by lazy { VirtualPetController.createRuntime(ctx()) }
 }

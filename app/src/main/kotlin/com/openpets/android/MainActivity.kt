@@ -21,6 +21,7 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
@@ -38,6 +39,9 @@ import com.openpets.android.companion.ReminderController
 import com.openpets.android.companion.FocusController
 import com.openpets.android.companion.FocusSnapshot
 import com.openpets.android.companion.FocusState
+import com.openpets.android.companion.PetMood
+import com.openpets.android.companion.PetStats
+import com.openpets.android.companion.VirtualPetController
 import com.openpets.android.FeatureHud
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
@@ -80,6 +84,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private var reminderDialogListener: ((List<Reminder>) -> Unit)? = null
     private var reminderDialog: AlertDialog? = null
     private var reminderDialogRender: ((List<Reminder>) -> Unit)? = null
+    private var virtualPetController: VirtualPetController? = null
+    private var virtualPetDialog: AlertDialog? = null
+    private var virtualPetDialogListener: ((PetStats) -> Unit)? = null
+    private var virtualPetDialogRender: ((PetStats) -> Unit)? = null
     private val timerHandler = Handler(Looper.getMainLooper())
     private var timerDialog: AlertDialog? = null
     private var timerRemainingView: TextView? = null
@@ -152,6 +160,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         timerController = TimerController(this)
         focusController = FocusController(this)
         reminderController = ReminderController(this)
+        virtualPetController = VirtualPetController(this)
         reloadPet()
         applyAnimationConfig()
 
@@ -171,10 +180,13 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         reminderController?.refresh()
         focusDialogListener?.let { focusController?.addListener(it) }
         focusController?.refresh()
+        virtualPetDialogListener?.let { virtualPetController?.addListener(it) }
+        virtualPetController?.refresh()
         startFocusTickIfRunning()
         if (timerDialog?.isShowing == true) timerController?.snapshot()?.let { timerDialogRender?.invoke(it) }
         if (focusDialog?.isShowing == true) focusController?.snapshot()?.let { focusDialogRender?.invoke(it) }
         if (reminderDialog?.isShowing == true) reminderDialogRender?.invoke(reminderController?.snapshot().orEmpty())
+        if (virtualPetDialog?.isShowing == true) virtualPetController?.snapshot()?.let { virtualPetDialogRender?.invoke(it) }
         if (::stage.isInitialized) applyAnimationConfig()
     }
 
@@ -185,6 +197,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         timerDialogListener?.let { timerController?.removeListener(it) }
         reminderDialogListener?.let { reminderController?.removeListener(it) }
         focusDialogListener?.let { focusController?.removeListener(it) }
+        virtualPetDialogListener?.let { virtualPetController?.removeListener(it) }
         PetBus.unregister(this)
         AppState.foreground = false
         super.onStop()
@@ -517,6 +530,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton(getString(R.string.timer_open)) { showTimerDialog() })
             addView(actionButton(getString(R.string.reminders_open)) { showRemindersDialog() })
             addView(actionButton(getString(R.string.focus_open)) { showFocusDialog() })
+            addView(actionButton(getString(R.string.virtualpet_open)) { showVirtualPetDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)
             addView(remoteEnabled)
@@ -831,6 +845,80 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         dialog.show()
         startFocusTickIfRunning()
         controller.refresh()
+    }
+
+    private fun showVirtualPetDialog() {
+        val controller = virtualPetController ?: return
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.virtualpet_title)
+            .setView(ScrollView(this).apply { addView(content) })
+            .setNegativeButton(R.string.dialog_close, null)
+            .create()
+        virtualPetDialog = dialog
+
+        fun fullButton(text: String, action: () -> Unit) = actionButton(text, action).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+        fun moodLabel(mood: PetMood): Int = when (mood) {
+            PetMood.HAPPY -> R.string.virtualpet_mood_happy
+            PetMood.CONTENT -> R.string.virtualpet_mood_content
+            PetMood.TIRED -> R.string.virtualpet_mood_tired
+            PetMood.HUNGRY -> R.string.virtualpet_mood_hungry
+            PetMood.EXCITED -> R.string.virtualpet_mood_excited
+        }
+        fun statRow(label: Int, value: Int, color: Int) {
+            content.addView(TextView(this).apply {
+                text = "${getString(label)} · $value%"
+                setTextColor(Color.WHITE)
+                textSize = 14f
+                setPadding(0, dp(6), 0, dp(2))
+            })
+            content.addView(ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+                max = 100
+                progress = value.coerceIn(0, 100)
+                progressTintList = android.content.res.ColorStateList.valueOf(color)
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(8))
+            })
+        }
+        fun render(stats: PetStats) {
+            content.removeAllViews()
+            content.addView(sectionLabel(getString(R.string.virtualpet_mood, getString(moodLabel(controller.mood())))))
+            statRow(R.string.virtualpet_satiety, stats.satiety, 0xFF16A34A.toInt())
+            statRow(R.string.virtualpet_happiness, stats.happiness, 0xFFDB2777.toInt())
+            statRow(R.string.virtualpet_energy, stats.energy, 0xFF2563EB.toInt())
+            val spacing = View(this).apply { layoutParams = LinearLayout.LayoutParams(1, dp(8)) }
+            content.addView(spacing)
+            fun action(label: Int, perform: () -> Unit) {
+                content.addView(fullButton(getString(label)) {
+                    perform()
+                    controller.showOnPet()
+                })
+            }
+            action(R.string.virtualpet_feed) { controller.feed() }
+            action(R.string.virtualpet_play) { controller.play() }
+            action(R.string.virtualpet_pet) { controller.cuddle() }
+            action(R.string.virtualpet_nap) { controller.rest() }
+        }
+
+        val listener: (PetStats) -> Unit = { render(it) }
+        virtualPetDialogListener?.let { controller.removeListener(it) }
+        virtualPetDialogListener = listener
+        virtualPetDialogRender = { render(it) }
+        controller.addListener(listener)
+        dialog.setOnDismissListener {
+            virtualPetDialogListener?.let { controller.removeListener(it) }
+            virtualPetDialogListener = null
+            virtualPetDialogRender = null
+            virtualPetDialog = null
+        }
+        render(controller.snapshot())
+        dialog.show()
+        controller.refresh()
+        controller.showOnPet()
     }
 
     private fun showRemindersDialog() {

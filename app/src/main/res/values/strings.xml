@@ -63,4 +63,19 @@
     <string name="focus_paused_break">Break paused</string>
     <string name="focus_cycles">Focus · %1$d cycles</string>
     <string name="focus_invalid">Enter focus and break minutes</string>
+    <string name="virtualpet_open">Virtual Pet…</string>
+    <string name="virtualpet_title">Virtual Pet</string>
+    <string name="virtualpet_mood">Mood: %1$s</string>
+    <string name="virtualpet_satiety">Satiety</string>
+    <string name="virtualpet_happiness">Happiness</string>
+    <string name="virtualpet_energy">Energy</string>
+    <string name="virtualpet_feed">Feed</string>
+    <string name="virtualpet_play">Play</string>
+    <string name="virtualpet_pet">Pet</string>
+    <string name="virtualpet_nap">Nap</string>
+    <string name="virtualpet_mood_happy">Happy</string>
+    <string name="virtualpet_mood_content">Content</string>
+    <string name="virtualpet_mood_tired">Tired</string>
+    <string name="virtualpet_mood_hungry">Hungry</string>
+    <string name="virtualpet_mood_excited">Excited</string>
 </resources>
