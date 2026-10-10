@@ -3,6 +3,7 @@ package com.openpets.android.net
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import com.google.gson.JsonObject
+import com.openpets.android.PetActionEvent
 
 data class WsCommand(val id: String, val method: String, val params: JsonElement?)
 
@@ -15,6 +16,11 @@ object WsMessages {
     fun eventFromMedia(payloadJson: JsonElement) = event("media", payloadJson)
     fun eventFromDismiss(payloadJson: JsonElement) = event("dismiss", payloadJson)
     fun eventFromHud(payloadJson: JsonElement) = event("hud", payloadJson)
+    fun eventFromAction(actionEvent: PetActionEvent): String = JsonObject().apply {
+        addProperty("type", "event"); addProperty("event", "action")
+        actionEvent.bubbleId?.let { addProperty("bubbleId", it) }
+        addProperty("actionId", actionEvent.actionId)
+    }.toString()
 
     fun parseCommand(text: String): WsCommand {
         val obj = JsonParser.parseString(text).asJsonObject

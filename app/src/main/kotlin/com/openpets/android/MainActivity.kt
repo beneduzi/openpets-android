@@ -316,6 +316,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         if (::stage.isInitialized) stage.onHud(hud)
     }
 
+    override fun onAction(event: PetActionEvent) {}
+
     private fun speak(text: String) {
         if (!ttsReady) return
         try {

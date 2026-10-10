@@ -101,6 +101,10 @@ An optional `ws://` endpoint (default port `18423`) that is **disabled by defaul
 
 Connect with `ws://<device-ip>:18423/?token=<IPC_TOKEN>`. Because this is experimental, the message schema may change between versions.
 
+### Interactive actions
+
+A client can send `pet.say` with `actions` (each `{ "id", "label" }`). When the user taps an action on the pet, connected clients receive `{ "type":"event", "event":"action", "bubbleId":…, "actionId":… }` and can react, for example by sending another command. This interaction is experimental.
+
 ## Diagnose your setup
 
 ```bash

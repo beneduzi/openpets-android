@@ -4,6 +4,7 @@ import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.JsonParser
 import com.openpets.android.FeatureHud
+import com.openpets.android.PetActionEvent
 import com.openpets.android.PetBus
 import com.openpets.android.protocol.IpcDispatcher
 import com.openpets.android.protocol.IpcRequest
@@ -29,6 +30,7 @@ class WebSocketBridge(
         override fun onMedia(request: MediaRequest) = broadcast(WsMessages.eventFromMedia(JsonParser.parseString(gson.toJson(request))))
         override fun onDismissBubble(id: String?) = broadcast(WsMessages.eventFromDismiss(JsonParser.parseString(gson.toJson(mapOf("id" to id)))))
         override fun onHud(hud: FeatureHud) = broadcast(WsMessages.eventFromHud(JsonParser.parseString(gson.toJson(hud))))
+        override fun onAction(event: PetActionEvent) = broadcast(WsMessages.eventFromAction(event))
     }
     @Volatile private var server: WebSocketServer? = null
     val isRunning: Boolean get() = server?.isRunning == true

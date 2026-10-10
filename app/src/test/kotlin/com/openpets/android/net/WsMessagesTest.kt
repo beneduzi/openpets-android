@@ -1,12 +1,20 @@
 package com.openpets.android.net
 
 import com.google.gson.JsonParser
+import com.openpets.android.PetActionEvent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WsMessagesTest {
+    @Test fun buildsActionEvent() {
+        val event = JsonParser.parseString(WsMessages.eventFromAction(PetActionEvent("bubble-1", "approve"))).asJsonObject
+        assertEquals("event", event.get("type").asString)
+        assertEquals("action", event.get("event").asString)
+        assertEquals("bubble-1", event.get("bubbleId").asString)
+        assertEquals("approve", event.get("actionId").asString)
+    }
     @Test fun helloStatusAndEventMessagesRoundTrip() {
         assertEquals("hello", JsonParser.parseString(WsMessages.hello("1.2")).asJsonObject.get("type").asString)
         assertEquals("1.2", JsonParser.parseString(WsMessages.hello("1.2")).asJsonObject.get("appVersion").asString)

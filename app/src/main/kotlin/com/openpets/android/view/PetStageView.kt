@@ -19,6 +19,8 @@ import android.widget.LinearLayout
 import com.openpets.android.pet.MediaLoader
 import com.openpets.android.pet.PetPackage
 import com.openpets.android.FeatureHud
+import com.openpets.android.PetBus
+import com.openpets.android.PetActionEvent
 import com.openpets.android.protocol.BUSY_REACTIONS
 import com.openpets.android.protocol.BubbleInput
 import com.openpets.android.protocol.DEFAULT_WAITING_ANIMATION_MS
@@ -167,7 +169,7 @@ class PetStageView @JvmOverloads constructor(
             hud = request.hud,
             bubbleId = request.bubbleId,
             pinned = request.pinned,
-            onAction = { action -> handleAction(action) },
+            onAction = { action -> handleAction(action, request.bubbleId) },
         )
     }
 
@@ -191,9 +193,10 @@ class PetStageView @JvmOverloads constructor(
         }
     }
 
-    private fun handleAction(action: PetAction) {
+    private fun handleAction(action: PetAction, bubbleId: String?) {
         action.callbackUrl?.let { url -> postJson(url, mapOf("actionId" to action.id)) }
         action.url?.let { openUrl(it) }
+        PetBus.action(PetActionEvent(bubbleId, action.id))
     }
 
     private fun showForm(request: SayRequest) {
@@ -304,7 +307,7 @@ class PetStageView @JvmOverloads constructor(
                 hud = emptyList(),
                 bubbleId = request.bubbleId,
                 pinned = request.pinned,
-                onAction = { action -> handleAction(action) },
+                onAction = { action -> handleAction(action, request.bubbleId) },
             )
         }
         val dataBase64 = request.dataBase64

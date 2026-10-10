@@ -21,6 +21,8 @@ data class FeatureHud(
     val claim: Boolean,
 )
 
+data class PetActionEvent(val bubbleId: String?, val actionId: String)
+
 object PetBus {
 
     interface Listener {
@@ -29,6 +31,7 @@ object PetBus {
         fun onMedia(request: MediaRequest)
         fun onDismissBubble(id: String?)
         fun onHud(hud: FeatureHud)
+        fun onAction(event: PetActionEvent)
     }
 
     private val listeners = CopyOnWriteArrayList<Listener>()
@@ -60,6 +63,10 @@ object PetBus {
 
     fun hud(hud: FeatureHud) {
         main.post { listeners.forEach { it.onHud(hud) } }
+    }
+
+    fun action(event: PetActionEvent) {
+        main.post { listeners.forEach { it.onAction(event) } }
     }
 
     /** Sink handed to the IPC/remote servers. */
