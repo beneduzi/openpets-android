@@ -111,4 +111,15 @@
     <string name="mood_level_4">Good</string>
     <string name="mood_level_5">Very good</string>
     <string name="mood_empty">No check-ins yet</string>
+    <string name="routine_open">Routine…</string>
+    <string name="routine_title">Routine</string>
+    <string name="routine_morning">Morning</string>
+    <string name="routine_evening">Evening</string>
+    <string name="routine_enabled">Enabled</string>
+    <string name="routine_hour">Hour</string>
+    <string name="routine_minute">Minute</string>
+    <string name="routine_save">Save</string>
+    <string name="routine_saved">Saved</string>
+    <string name="routine_next">Next: %1$s</string>
+    <string name="routine_invalid">Enter valid hours and minutes</string>
 </resources>

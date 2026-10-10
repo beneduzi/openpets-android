@@ -137,6 +137,34 @@ class NotificationHelper(private val context: Context) {
         }
     }
 
+    fun notifyRoutine(title: String, text: String) {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        ensureRoutineChannel()
+        val notification = NotificationCompat.Builder(context, ROUTINE_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        manager.notify(ROUTINE_NOTIFICATION_ID, notification)
+    }
+
+    private fun ensureRoutineChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (manager.getNotificationChannel(ROUTINE_CHANNEL_ID) == null) {
+            manager.createNotificationChannel(
+                NotificationChannel(ROUTINE_CHANNEL_ID, "Routine check-ins", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = "Morning and evening routine notifications"
+                    setShowBadge(true)
+                },
+            )
+        }
+    }
+
     fun notifyEvent(title: String?, text: String) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         ensureChannel()
@@ -162,6 +190,8 @@ class NotificationHelper(private val context: Context) {
         const val FOCUS_NOTIFICATION_ID = 1013
         const val WATER_CHANNEL_ID = "openpets_water"
         const val WATER_NOTIFICATION_ID = 1014
+        const val ROUTINE_CHANNEL_ID = "openpets_routine"
+        const val ROUTINE_NOTIFICATION_ID = 1015
         private const val REMINDER_NOTIFICATION_BASE = 20_000
     }
 }

@@ -50,6 +50,9 @@ import com.openpets.android.companion.MoodController
 import com.openpets.android.companion.MoodEntry
 import com.openpets.android.companion.MoodLevel
 import com.openpets.android.companion.level
+import com.openpets.android.companion.RoutineController
+import com.openpets.android.companion.RoutineSettings
+import com.openpets.android.companion.RoutineEngine
 import com.openpets.android.FeatureHud
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
@@ -105,6 +108,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private var moodDialog: AlertDialog? = null
     private var moodDialogListener: ((List<MoodEntry>) -> Unit)? = null
     private var moodDialogRender: ((List<MoodEntry>) -> Unit)? = null
+    private var routineController: RoutineController? = null
+    private var routineDialog: AlertDialog? = null
+    private var routineDialogListener: ((RoutineSettings) -> Unit)? = null
+    private var routineDialogRender: ((RoutineSettings) -> Unit)? = null
     private val timerHandler = Handler(Looper.getMainLooper())
     private var timerDialog: AlertDialog? = null
     private var timerRemainingView: TextView? = null
@@ -180,6 +187,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         virtualPetController = VirtualPetController(this)
         waterController = WaterController(this)
         moodController = MoodController(this)
+        routineController = RoutineController(this)
         reloadPet()
         applyAnimationConfig()
 
@@ -205,6 +213,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         waterController?.refresh()
         moodDialogListener?.let { moodController?.addListener(it) }
         moodController?.refresh()
+        routineDialogListener?.let { routineController?.addListener(it) }
+        routineController?.refresh()
         startFocusTickIfRunning()
         if (timerDialog?.isShowing == true) timerController?.snapshot()?.let { timerDialogRender?.invoke(it) }
         if (focusDialog?.isShowing == true) focusController?.snapshot()?.let { focusDialogRender?.invoke(it) }
@@ -212,6 +222,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         if (virtualPetDialog?.isShowing == true) virtualPetController?.snapshot()?.let { virtualPetDialogRender?.invoke(it) }
         if (waterDialog?.isShowing == true) waterController?.settings()?.let { waterDialogRender?.invoke(it) }
         if (moodDialog?.isShowing == true) moodController?.recent()?.let { moodDialogRender?.invoke(it) }
+        if (routineDialog?.isShowing == true) routineController?.settings()?.let { routineDialogRender?.invoke(it) }
         if (::stage.isInitialized) applyAnimationConfig()
     }
 
@@ -225,6 +236,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         virtualPetDialogListener?.let { virtualPetController?.removeListener(it) }
         waterDialogListener?.let { waterController?.removeListener(it) }
         moodDialogListener?.let { moodController?.removeListener(it) }
+        routineDialogListener?.let { routineController?.removeListener(it) }
         PetBus.unregister(this)
         AppState.foreground = false
         super.onStop()
@@ -561,6 +573,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton(getString(R.string.water_open)) { showWaterDialog() })
             addView(actionButton(getString(R.string.fun_open)) { showFunDialog() })
             addView(actionButton(getString(R.string.mood_open)) { showMoodDialog() })
+            addView(actionButton(getString(R.string.routine_open)) { showRoutineDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)
             addView(remoteEnabled)
@@ -1026,6 +1039,102 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             waterDialogListener = null
             waterDialogRender = null
             waterDialog = null
+        }
+        render(controller.settings())
+        dialog.show()
+        controller.refresh()
+    }
+
+    private fun showRoutineDialog() {
+        val controller = routineController ?: return
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.routine_title)
+            .setView(ScrollView(this).apply { addView(content) })
+            .setNegativeButton(R.string.dialog_close, null)
+            .create()
+        routineDialog = dialog
+
+        fun fullButton(label: String, action: () -> Unit) = actionButton(label, action).apply {
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+        }
+        fun render(settings: RoutineSettings) {
+            content.removeAllViews()
+            val morningEnabled = CheckBox(this).apply {
+                text = getString(R.string.routine_enabled)
+                isChecked = settings.morningEnabled
+            }
+            val morningHour = EditText(this).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                setText(settings.morningHour.toString())
+                setTextColor(Color.WHITE)
+            }
+            val morningMinute = EditText(this).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                setText(settings.morningMinute.toString())
+                setTextColor(Color.WHITE)
+            }
+            content.addView(sectionLabel(getString(R.string.routine_morning)))
+            content.addView(morningEnabled)
+            content.addView(labelWithField(getString(R.string.routine_hour), morningHour))
+            content.addView(labelWithField(getString(R.string.routine_minute), morningMinute))
+
+            val eveningEnabled = CheckBox(this).apply {
+                text = getString(R.string.routine_enabled)
+                isChecked = settings.eveningEnabled
+            }
+            val eveningHour = EditText(this).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                setText(settings.eveningHour.toString())
+                setTextColor(Color.WHITE)
+            }
+            val eveningMinute = EditText(this).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                setText(settings.eveningMinute.toString())
+                setTextColor(Color.WHITE)
+            }
+            content.addView(sectionLabel(getString(R.string.routine_evening)))
+            content.addView(eveningEnabled)
+            content.addView(labelWithField(getString(R.string.routine_hour), eveningHour))
+            content.addView(labelWithField(getString(R.string.routine_minute), eveningMinute))
+
+            val next = RoutineEngine().nextFire(System.currentTimeMillis(), settings)
+            content.addView(sectionLabel(
+                getString(
+                    R.string.routine_next,
+                    next?.let { android.text.format.DateFormat.format("MMM d, HH:mm", it).toString() } ?: "—",
+                ),
+            ))
+            content.addView(View(this).apply { layoutParams = LayoutParams(1, dp(8)) })
+            content.addView(fullButton(getString(R.string.routine_save)) {
+                val mh = morningHour.text.toString().toIntOrNull()
+                val mm = morningMinute.text.toString().toIntOrNull()
+                val eh = eveningHour.text.toString().toIntOrNull()
+                val em = eveningMinute.text.toString().toIntOrNull()
+                if (mh == null || mh !in 0..23 || mm == null || mm !in 0..59 ||
+                    eh == null || eh !in 0..23 || em == null || em !in 0..59
+                ) {
+                    Toast.makeText(this, getString(R.string.routine_invalid), Toast.LENGTH_SHORT).show()
+                } else {
+                    controller.update(morningEnabled.isChecked, mh, mm, eveningEnabled.isChecked, eh, em)
+                    Toast.makeText(this, getString(R.string.routine_saved), Toast.LENGTH_SHORT).show()
+                }
+            })
+        }
+
+        val listener: (RoutineSettings) -> Unit = { render(it) }
+        routineDialogListener?.let { controller.removeListener(it) }
+        routineDialogListener = listener
+        routineDialogRender = { render(it) }
+        controller.addListener(listener)
+        dialog.setOnDismissListener {
+            routineDialogListener?.let { controller.removeListener(it) }
+            routineDialogListener = null
+            routineDialogRender = null
+            routineDialog = null
         }
         render(controller.settings())
         dialog.show()

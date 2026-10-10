@@ -19,6 +19,7 @@ import com.openpets.android.companion.TimerController
 import com.openpets.android.companion.ReminderController
 import com.openpets.android.companion.FocusController
 import com.openpets.android.companion.WaterController
+import com.openpets.android.companion.RoutineController
 import com.openpets.android.NotificationHelper
 import com.openpets.android.PetBus
 import com.openpets.android.FeatureHud
@@ -52,6 +53,7 @@ class OpenPetsService : Service() {
     private var reminderController: ReminderController? = null
     private var focusController: FocusController? = null
     private var waterController: WaterController? = null
+    private var routineController: RoutineController? = null
 
     private val eventListener = object : PetBus.Listener {
         override fun onReact(reaction: String, source: String?) {
@@ -104,6 +106,7 @@ class OpenPetsService : Service() {
         reminderController = CompanionRuntime.reminders.also { it.refresh() }
         focusController = CompanionRuntime.focus.also { it.refresh() }
         waterController = CompanionRuntime.water.also { it.refresh() }
+        routineController = CompanionRuntime.routine.also { it.refresh() }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
