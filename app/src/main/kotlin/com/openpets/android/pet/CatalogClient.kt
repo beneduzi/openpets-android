@@ -3,6 +3,8 @@ package com.openpets.android.pet
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -64,7 +66,7 @@ class CatalogClient(private val baseUrl: String = "https://codex-pets.net") {
     fun downloadPet(pet: CatalogPet, target: File) {
         val path = pet.downloadPath.ifEmpty { "/api/pets/${pet.id}/download" }
         val url = if (path.startsWith("http")) path else baseUrl + path
-        target.writeBytes(downloadBytes(url))
+        download(url, target)
     }
 
     /** Downloads a pet's `.codex-pet.zip` bytes by id. */
@@ -80,7 +82,11 @@ class CatalogClient(private val baseUrl: String = "https://codex-pets.net") {
         try {
             val code = conn.responseCode
             if (code !in 200..299) throw IllegalStateException("HTTP $code")
-            return conn.inputStream.use { it.readBytes() }
+            return conn.inputStream.use { input ->
+                ByteArrayOutputStream().also { output ->
+                    PetImportSupport.copyBounded(input, output, CATALOG_DOWNLOAD_MAX_BYTES)
+                }.toByteArray()
+            }
         } finally {
             conn.disconnect()
         }
@@ -113,9 +119,17 @@ class CatalogClient(private val baseUrl: String = "https://codex-pets.net") {
         try {
             val code = conn.responseCode
             if (code !in 200..299) throw IllegalStateException("HTTP $code")
-            conn.inputStream.use { input -> target.outputStream().use { input.copyTo(it) } }
+            conn.inputStream.use { input ->
+                target.outputStream().use { output ->
+                    PetImportSupport.copyBounded(input, output, CATALOG_DOWNLOAD_MAX_BYTES)
+                }
+            }
         } finally {
             conn.disconnect()
         }
+    }
+
+    private companion object {
+        const val CATALOG_DOWNLOAD_MAX_BYTES = 32L * 1024 * 1024
     }
 }

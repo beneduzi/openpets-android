@@ -60,7 +60,7 @@ class PetRepository(private val context: Context) {
         val temp = newTempDir()
         try {
             context.contentResolver.openInputStream(uri)?.use { input ->
-                ZipInputStream(input).use { zip -> extractZip(zip, temp) }
+                ZipInputStream(input).use { zip -> PetImportSupport.extractToDir(zip, temp) }
             } ?: throw IOException("Não foi possível abrir o arquivo.")
             return finalizeImport(temp)
         } catch (e: Exception) {
@@ -75,26 +75,12 @@ class PetRepository(private val context: Context) {
         val temp = newTempDir()
         try {
             ByteArrayInputStream(bytes).use { input ->
-                ZipInputStream(input).use { zip -> extractZip(zip, temp) }
+                ZipInputStream(input).use { zip -> PetImportSupport.extractToDir(zip, temp) }
             }
             return finalizeImport(temp)
         } catch (e: Exception) {
             temp.deleteRecursively()
             throw e
-        }
-    }
-
-    private fun extractZip(zip: ZipInputStream, temp: File) {
-        var entry = zip.nextEntry
-        while (entry != null) {
-            if (!entry.isDirectory) {
-                val name = entry.name.substringAfterLast('/')
-                if (name.isNotEmpty()) {
-                    File(temp, name).outputStream().use { zip.copyTo(it) }
-                }
-            }
-            zip.closeEntry()
-            entry = zip.nextEntry
         }
     }
 
@@ -128,17 +114,13 @@ class PetRepository(private val context: Context) {
         val sheetName = File(manifest.spritesheetPath).name
         if (!File(temp, sheetName).isFile) throw IOException("Spritesheet não encontrado no pacote.")
         val target = File(importedRoot, manifest.id)
-        if (target.exists()) target.deleteRecursively()
-        if (!temp.renameTo(target)) {
-            temp.copyRecursively(target, overwrite = true)
-            temp.deleteRecursively()
-        }
+        PetImportSupport.publish(temp, target)
         return PetDescriptor(manifest.id, manifest.displayName, builtIn = false)
     }
 
     private fun copyDoc(doc: DocumentFile, target: File) {
         context.contentResolver.openInputStream(doc.uri)?.use { input ->
-            target.outputStream().use { input.copyTo(it) }
+            target.outputStream().use { output -> PetImportSupport.copyBounded(input, output, ImportLimits().maxEntryBytes) }
         } ?: throw IOException("Não foi possível ler ${doc.name}.")
     }
 
