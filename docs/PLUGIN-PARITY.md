@@ -60,19 +60,19 @@ about the **effect surface**, not the plugin API.
 | `bubble.onAction` | `callbackUrl` POST **or** WS `event:"action"` | 🟡 |
 | `ui.alert` / `ui.toast` | — (app toasts not exposed) | ❌ |
 | `ui.panel` / `delivery` / `session` | — (no such surfaces) | ❌ |
-| `pet.move` / `follow` / `physics` / `setScale` / `hide` | — (no `pet.*` IPC methods; Walkabout is local) | ❌ |
+| `pet.move` / `setScale` / `hide` / `show` | IPC `pet.move` / `pet.setScale` / `pet.hide` / `pet.show`; WS `pointer` events | ✅ (follow/physics still ❌) |
 | `schedule.*` | host-side (plugin schedules itself) + native features | ✅ (host) |
 | `storage` / `config` | host-side persistence | ✅ (host) |
-| `events` (click, drag, drop, idle, power, display) | app emits react/say/media/dismiss/hud/action/input.text over WS; **pet click/drag not emitted** | 🟡 |
+| `events` (click, drag, drop, idle, power, display) | WS emits react/say/media/dismiss/hud/action/input.text **and `pointer` (tap/drag)**; drop/idle/power still not emitted | 🟡 |
 | `bus` | — | ❌ |
 | `audio.play` | app plays sound on notify/reaction (not addressable) | 🟡 |
 | `voice.speak` | app TTS on `pet.say` | ✅ |
 | `voice.listen` (push-to-talk) | app **Voice input** → WS `input.text` (app-initiated) | 🟡 |
-| `notify` | app notifications for its own features; host can't request a phone notification | ❌ |
+| `notify` | IPC/WS `notify` → phone notification | ✅ |
 | `ai.complete` | host-side (plugin runs on the PC) | ✅ |
 | `secrets` / `auth` / `net` / `files` | host-side | ✅ |
 | `system.metrics` | device metrics native; **host** metrics via WS `status.host` | 🟡 |
-| `commands.register` (pet menu) | no command surface for plugins (bubble buttons only) | ❌ |
+| `commands.register` (pet menu) | WS `commands.register`/`unregister` → Settings → *Plugin commands*; invoke → WS `event:"command"` | ✅ (list UI, not the pet menu) |
 | `status` | — | ❌ |
 | `assistant.registerCapability` | app has no assistant | ❌ |
 
@@ -92,15 +92,16 @@ about the **effect surface**, not the plugin API.
    inside a sandbox (QuickJS/WASM) behind an SDK bridge + permission UI. Largest
    effort; required only if an in-app plugin store is the goal.
 
-## Gap-closing list (to raise protocol parity)
+## Gap-closing (done this round)
 
-Only worth doing if we want host plugins to control more of the phone:
+- ✅ `pet.move` / `pet.setScale` / `pet.hide` / `pet.show` (IPC + WS).
+- ✅ `notify` (IPC/WS) → phone notification.
+- ✅ Plugin command registry: WS `commands.register`/`unregister`; Settings →
+  *Plugin commands*; invoke → WS `event:"command"`.
+- ✅ Pet interaction `pointer` (tap/drag) events over WS.
 
-- Add IPC/WS methods: `pet.move`, `pet.setScale`, `pet.hide`/`show`, `status`,
-  `notify`, and a `command` registry surfaced in the app.
-- Emit pet interaction events (tap/drag) over WS.
-- Define a **common effect subset** that both desktop and phone targets support,
-  and document a "works on both" plugin guide.
+Still open: a `status` surface, richer events (drop/idle/power), `follow`/physics,
+and a common-effect "works on both" plugin guide.
 
 Surfaces with **no meaningful phone analogue**: panels, deliveries, sessions,
 bus, assistant capabilities, host AI.
