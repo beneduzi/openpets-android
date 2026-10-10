@@ -162,6 +162,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         PetBus.register(this)
         timerController?.refresh()
         startTimerTickIfRunning()
+        timerDialogListener?.let { timerController?.addListener(it) }
         reminderDialogListener?.let { reminderController?.addListener(it) }
         reminderController?.refresh()
         focusDialogListener?.let { focusController?.addListener(it) }
@@ -675,6 +676,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
 
         val listener: (TimerSnapshot) -> Unit = { snapshot ->
             if (snapshot.state != renderedTimerState) render(snapshot)
+            startTimerTickIfRunning()
         }
         timerDialogListener?.let { controller.removeListener(it) }
         timerDialogListener = listener
@@ -803,6 +805,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         val listener: (FocusSnapshot) -> Unit = { snapshot ->
             val key = "${snapshot.state}:${snapshot.pausedPhase}"
             if (key != renderedFocusKey) render(snapshot)
+            startFocusTickIfRunning()
         }
         focusDialogListener?.let { controller.removeListener(it) }
         focusDialogListener = listener
@@ -870,6 +873,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
                 val delay = minutes.text.toString().toIntOrNull()
                 if (cleanTitle.isEmpty() || delay == null || delay <= 0) {
                     Toast.makeText(this, getString(R.string.reminders_invalid), Toast.LENGTH_SHORT).show()
+                } else if (cleanTitle.length > 120) {
+                    Toast.makeText(this, getString(R.string.reminders_title_too_long), Toast.LENGTH_SHORT).show()
                 } else {
                     controller.addInMinutes(cleanTitle, delay)
                     title.text.clear()

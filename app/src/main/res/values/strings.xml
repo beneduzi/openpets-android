@@ -46,6 +46,7 @@
     <string name="reminders_snooze">Snooze 10m</string>
     <string name="reminders_delete">Delete</string>
     <string name="reminders_invalid">Enter a title and minutes</string>
+    <string name="reminders_title_too_long">Title is too long</string>
     <string name="focus_open">Focus…</string>
     <string name="focus_title">Focus</string>
     <string name="focus_focus_minutes">Focus (minutes)</string>
