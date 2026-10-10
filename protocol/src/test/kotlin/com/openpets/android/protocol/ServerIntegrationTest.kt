@@ -11,6 +11,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.Socket
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicInteger
 
 private class FakeSink : PetEventSink {
     val reactions = CopyOnWriteArrayList<String>()
@@ -124,7 +125,7 @@ class IpcServerTest {
         try {
             val resp = json(port, ipc("46", "lease.heartbeat", """{"leaseId":"does-not-exist"}"""))
             assertEquals(false, resp.get("ok").asBoolean)
-            assertEquals("invalid_lease", resp.getAsJsonObject("error").get("code").asString)
+            assertEquals("unknown_lease", resp.getAsJsonObject("error").get("code").asString)
         } finally {
             server.stop()
         }
@@ -281,6 +282,67 @@ class IpcServerTest {
                 out.write("1}".toByteArray(Charsets.UTF_8)); out.flush()
                 val line = BufferedReader(InputStreamReader(s.getInputStream(), Charsets.UTF_8)).readLine()
                 assertNull(line)
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test fun deadlineLateNewlineDoesNotDispatch() {
+        val calls = AtomicInteger()
+        val server = LineServer(0, "127.0.0.1", 1024, 5000, 4, 250) { _, _ ->
+            calls.incrementAndGet()
+            "ok"
+        }
+        val port = server.start()
+        try {
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 5000
+                socket.getOutputStream().write("{\"partial\":".toByteArray(Charsets.UTF_8))
+                socket.getOutputStream().flush()
+                Thread.sleep(700)
+                socket.getOutputStream().write("1}\n".toByteArray(Charsets.UTF_8))
+                socket.getOutputStream().flush()
+                assertNull(BufferedReader(InputStreamReader(socket.getInputStream(), Charsets.UTF_8)).readLine())
+            }
+            assertEquals(0, calls.get())
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test fun deadlineTimelyCompletionDispatches() {
+        val calls = AtomicInteger()
+        val server = LineServer(0, "127.0.0.1", 1024, 5000, 4, 250) { _, _ ->
+            calls.incrementAndGet()
+            "ok"
+        }
+        val port = server.start()
+        try {
+            assertEquals("ok", send(port, "{}"))
+            assertEquals(1, calls.get())
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test fun deadlineDisabledStillProcesses() {
+        val server = LineServer(0, "127.0.0.1", 1024, 5000, 4, 0) { _, _ -> "ok" }
+        val port = server.start()
+        try {
+            assertEquals("ok", send(port, "{}"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test fun deadlineFreesSlotForReuse() {
+        val server = LineServer(0, "127.0.0.1", 1024, 5000, 1, 200) { _, _ -> "ok" }
+        val port = server.start()
+        try {
+            Socket("127.0.0.1", port).use {
+                Thread.sleep(600)
+                assertEquals("ok", send(port, "{}"))
             }
         } finally {
             server.stop()

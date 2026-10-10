@@ -6,6 +6,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import com.google.gson.JsonParser
 
 class IpcProtocolTest {
 
@@ -73,6 +74,41 @@ class IpcProtocolTest {
             fail("Expected IpcProtocolError($code)")
         } catch (e: IpcProtocolError) {
             assertEquals(code, e.code)
+        }
+    }
+}
+
+class IpcLeaseTest {
+    @Test fun heartbeatRenewsExpiry() {
+        var now = 1_000L
+        val sink = object : PetEventSink {
+            override fun onReact(reaction: String, source: String?) = Unit
+            override fun onSay(request: SayRequest) = Unit
+            override fun onMedia(request: MediaRequest) = Unit
+            override fun onDismissBubble(id: String?) = Unit
+        }
+        val dispatcher = IpcDispatcher(sink, "0.1.0", StaticPetCatalogProvider(), null, false, { now })
+        fun request(id: String, method: String, params: String) = IpcRequest(
+            id = id,
+            version = 1,
+            token = "t",
+            method = method,
+            params = JsonParser.parseString(params),
+        )
+
+        val acquired = dispatcher.dispatch(request("1", "lease.acquire", "{}"))
+        val leaseId = acquired.getAsJsonObject("result").get("leaseId").asString
+        val originalExpiry = acquired.getAsJsonObject("result").get("expiresAt").asLong
+        now += 5_000L
+        val heartbeat = dispatcher.dispatch(request("2", "lease.heartbeat", """{"leaseId":"$leaseId"}"""))
+        val renewedExpiry = heartbeat.getAsJsonObject("result").get("expiresAt").asLong
+        assertTrue(renewedExpiry > originalExpiry)
+        now = renewedExpiry + 1
+        try {
+            dispatcher.dispatch(request("3", "lease.heartbeat", """{"leaseId":"$leaseId"}"""))
+            fail("Expected unknown_lease")
+        } catch (e: IpcProtocolError) {
+            assertEquals("unknown_lease", e.code)
         }
     }
 }

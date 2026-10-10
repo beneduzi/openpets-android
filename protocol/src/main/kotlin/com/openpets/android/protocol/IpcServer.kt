@@ -22,8 +22,9 @@ class IpcServer(
     petCatalog: PetCatalogProvider = StaticPetCatalogProvider(),
     installer: PetInstaller? = null,
     enforceLease: Boolean = false,
+    clock: () -> Long = System::currentTimeMillis,
 ) {
-    private val dispatcher = IpcDispatcher(sink, appVersion, petCatalog, installer, enforceLease)
+    private val dispatcher = IpcDispatcher(sink, appVersion, petCatalog, installer, enforceLease, clock)
     private val server = LineServer(
         port = port,
         bindAddress = bindAddress,
@@ -64,8 +65,10 @@ class IpcDispatcher(
     private val petCatalog: PetCatalogProvider,
     private val installer: PetInstaller? = null,
     private val enforceLease: Boolean = false,
+    private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val leases = ConcurrentHashMap<String, Long>()
+    private val leaseLock = Any()
     private val leaseSeq = AtomicLong(0)
     private val leaseTtlMs = 15_000L
 
@@ -79,18 +82,25 @@ class IpcDispatcher(
             if (leaseId == null) {
                 okResponse(request.id, okOnly())
             } else {
-                val expiry = leases[leaseId]
-                if (expiry == null || expiry <= System.currentTimeMillis()) {
-                    leases.remove(leaseId)
-                    throw IpcProtocolError("invalid_lease", "Unknown or expired lease id.")
+                val expiresAt = synchronized(leaseLock) {
+                    val expiry = leases[leaseId]
+                    if (expiry == null || expiry <= clock()) {
+                        leases.remove(leaseId)
+                        throw IpcProtocolError("unknown_lease", "Unknown or expired lease id.")
+                    }
+                    (clock() + leaseTtlMs).also { leases[leaseId] = it }
                 }
-                leases[leaseId] = System.currentTimeMillis() + leaseTtlMs
-                okResponse(request.id, okOnly())
+                val result = JsonObject().apply {
+                    addProperty("ok", true)
+                    addProperty("leaseId", leaseId)
+                    addProperty("expiresAt", expiresAt)
+                }
+                okResponse(request.id, result)
             }
         }
         "lease.release" -> {
             val leaseId = validateOptionalLeaseId(request.params.str("leaseId"))
-            if (leaseId != null) leases.remove(leaseId)
+            if (leaseId != null) synchronized(leaseLock) { leases.remove(leaseId) }
             okResponse(request.id, okOnly())
         }
         "pet.react" -> {
@@ -121,6 +131,7 @@ class IpcDispatcher(
             okResponse(request.id, okOnly())
         }
         "pet.bubbleDismiss" -> {
+            requireLeaseIfNeeded(request.params)
             sink.onDismissBubble(validateBubbleId(request.params.str("id")))
             okResponse(request.id, okOnly())
         }
@@ -154,9 +165,14 @@ class IpcDispatcher(
     private fun leaseAcquire(request: IpcRequest): JsonObject {
         validateRequestedPetId(request.params.str("requestedPetId"))
         validateSessionNonce(request.params.str("sessionNonce"))
-        val id = "lease-${leaseSeq.incrementAndGet()}-${System.currentTimeMillis()}"
-        val expiresAt = System.currentTimeMillis() + leaseTtlMs
-        leases[id] = expiresAt
+        val id: String
+        val expiresAt: Long
+        synchronized(leaseLock) {
+            val now = clock()
+            id = "lease-${leaseSeq.incrementAndGet()}-$now"
+            expiresAt = now + leaseTtlMs
+            leases[id] = expiresAt
+        }
         val result = JsonObject()
         result.addProperty("ok", true)
         result.addProperty("leaseId", id)
@@ -184,7 +200,7 @@ class IpcDispatcher(
     }
 
     private fun activeLeaseCount(): Int {
-        val now = System.currentTimeMillis()
+        val now = clock()
         return leases.count { it.value > now }
     }
 
@@ -193,7 +209,7 @@ class IpcDispatcher(
         if (!enforceLease) return
         val leaseId = params.str("leaseId")
         val expiry = leaseId?.let { leases[it] }
-        if (leaseId == null || expiry == null || expiry < System.currentTimeMillis()) {
+        if (leaseId == null || expiry == null || expiry < clock()) {
             throw IpcProtocolError("invalid_lease", "A valid lease id is required.")
         }
     }

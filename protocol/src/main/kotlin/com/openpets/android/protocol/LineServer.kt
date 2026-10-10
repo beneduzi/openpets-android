@@ -10,6 +10,7 @@ import java.net.Socket
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.min
 
 /**
  * Minimal newline-delimited JSON over TCP.
@@ -84,11 +85,11 @@ class LineServer(
 
     private fun handle(socket: Socket) {
         socket.use { s ->
-            s.soTimeout = socketTimeoutMs
             val input = s.getInputStream()
             val output: OutputStream = s.getOutputStream()
-            val deadline = if (connectionDeadlineMs > 0) System.currentTimeMillis() + connectionDeadlineMs else 0L
-            val line = readLine(input, deadline) ?: return
+            val startNs = System.nanoTime()
+            val budgetNs = if (connectionDeadlineMs > 0) connectionDeadlineMs * 1_000_000L else 0L
+            val line = readLine(s, input, startNs, budgetNs) ?: return
             if (line.isEmpty()) return
             val response = handler(String(line, Charsets.UTF_8), s.inetAddress)
             if (response != null) {
@@ -100,12 +101,19 @@ class LineServer(
     }
 
     /** Reads one newline-terminated line as bytes, enforcing the cap. Null if oversized/EOF. */
-    private fun readLine(input: InputStream, deadlineMs: Long): ByteArray? {
+    private fun readLine(socket: Socket, input: InputStream, startNs: Long, budgetNs: Long): ByteArray? {
         val out = ByteArrayOutputStream()
         val buf = ByteArray(16 * 1024)
         while (true) {
-            if (deadlineMs > 0 && System.currentTimeMillis() > deadlineMs) return null
+            if (budgetNs > 0) {
+                val remainingMs = (budgetNs - (System.nanoTime() - startNs)) / 1_000_000L
+                if (remainingMs <= 0) return null
+                socket.soTimeout = min(socketTimeoutMs.toLong(), remainingMs).toInt().coerceAtLeast(1)
+            } else {
+                socket.soTimeout = socketTimeoutMs
+            }
             val n = input.read(buf)
+            if (budgetNs > 0 && System.nanoTime() - startNs > budgetNs) return null
             if (n == -1) return if (out.size() == 0) null else out.toByteArray()
             var i = 0
             while (i < n) {
