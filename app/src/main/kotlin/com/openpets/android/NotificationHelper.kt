@@ -53,6 +53,34 @@ class NotificationHelper(private val context: Context) {
         }
     }
 
+    fun notifyReminder(id: String, title: String, text: String) {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        ensureRemindersChannel()
+        val notification = NotificationCompat.Builder(context, REMINDERS_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        manager.notify(REMINDER_NOTIFICATION_BASE + (id.hashCode() and 0x3fffffff), notification)
+    }
+
+    private fun ensureRemindersChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (manager.getNotificationChannel(REMINDERS_CHANNEL_ID) == null) {
+            manager.createNotificationChannel(
+                NotificationChannel(REMINDERS_CHANNEL_ID, "Reminders", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = "Quick reminder notifications"
+                    setShowBadge(true)
+                },
+            )
+        }
+    }
+
     fun notifyEvent(title: String?, text: String) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         ensureChannel()
@@ -73,5 +101,7 @@ class NotificationHelper(private val context: Context) {
         const val EVENT_NOTIFICATION_ID = 1011
         const val TIMER_CHANNEL_ID = "openpets_timer"
         const val TIMER_NOTIFICATION_ID = 1012
+        const val REMINDERS_CHANNEL_ID = "openpets_reminders"
+        private const val REMINDER_NOTIFICATION_BASE = 20_000
     }
 }
