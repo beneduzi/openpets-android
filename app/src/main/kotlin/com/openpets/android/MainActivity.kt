@@ -57,6 +57,9 @@ import com.openpets.android.companion.BreathingController
 import com.openpets.android.companion.BreathSnapshot
 import com.openpets.android.companion.BreathPhase
 import com.openpets.android.companion.BreathingPattern
+import com.openpets.android.companion.SystemResourcesController
+import com.openpets.android.companion.DeviceResources
+import com.openpets.android.companion.SystemResourcesFormatter
 import com.openpets.android.FeatureHud
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
@@ -122,6 +125,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private var breathingDialogListener: ((BreathSnapshot) -> Unit)? = null
     private var breathingDialogRender: ((BreathSnapshot) -> Unit)? = null
     private var renderedBreathingKey: String? = null
+    private var resourcesController: SystemResourcesController? = null
+    private var resourcesDialog: AlertDialog? = null
+    private var resourcesDialogListener: ((DeviceResources) -> Unit)? = null
+    private var resourcesDialogRender: ((DeviceResources) -> Unit)? = null
     private val timerHandler = Handler(Looper.getMainLooper())
     private var timerDialog: AlertDialog? = null
     private var timerRemainingView: TextView? = null
@@ -211,6 +218,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         moodController = MoodController(this)
         routineController = RoutineController(this)
         breathingController = BreathingController(this)
+        resourcesController = SystemResourcesController(this)
         reloadPet()
         applyAnimationConfig()
 
@@ -240,6 +248,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         routineController?.refresh()
         breathingDialogListener?.let { breathingController?.addListener(it) }
         breathingController?.refresh()
+        resourcesDialogListener?.let { resourcesController?.addListener(it) }
+        resourcesController?.refresh()
         startFocusTickIfRunning()
         startBreathingTickIfActive()
         if (timerDialog?.isShowing == true) timerController?.snapshot()?.let { timerDialogRender?.invoke(it) }
@@ -250,6 +260,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         if (moodDialog?.isShowing == true) moodController?.recent()?.let { moodDialogRender?.invoke(it) }
         if (routineDialog?.isShowing == true) routineController?.settings()?.let { routineDialogRender?.invoke(it) }
         if (breathingDialog?.isShowing == true) breathingController?.snapshot()?.let { breathingDialogRender?.invoke(it) }
+        if (resourcesDialog?.isShowing == true) resourcesController?.snapshot()?.let { resourcesDialogRender?.invoke(it) }
         if (::stage.isInitialized) applyAnimationConfig()
     }
 
@@ -266,6 +277,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         moodDialogListener?.let { moodController?.removeListener(it) }
         routineDialogListener?.let { routineController?.removeListener(it) }
         breathingDialogListener?.let { breathingController?.removeListener(it) }
+        resourcesDialogListener?.let { resourcesController?.removeListener(it) }
         PetBus.unregister(this)
         AppState.foreground = false
         super.onStop()
@@ -604,6 +616,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton(getString(R.string.mood_open)) { showMoodDialog() })
             addView(actionButton(getString(R.string.routine_open)) { showRoutineDialog() })
             addView(actionButton(getString(R.string.breathe_open)) { showBreathingDialog() })
+            addView(actionButton(getString(R.string.resources_open)) { showResourcesDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)
             addView(remoteEnabled)
@@ -812,6 +825,54 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             BreathPhase.DONE -> getString(R.string.breathe_done)
         }
         return "$label · ${snapshot.phaseRemainingSec}s"
+    }
+
+    private fun showResourcesDialog() {
+        val controller = resourcesController ?: return
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.resources_title)
+            .setView(ScrollView(this).apply { addView(content) })
+            .setNegativeButton(R.string.dialog_close, null)
+            .create()
+        resourcesDialog = dialog
+
+        fun render(resources: DeviceResources) {
+            content.removeAllViews()
+            val unavailable = getString(R.string.resources_unavailable)
+            val battery = resources.batteryPercent?.let { "$it%" } ?: unavailable
+            val charging = resources.charging?.let { if (it) getString(R.string.resources_charging) else "Not charging" } ?: unavailable
+            content.addView(sectionLabel("${getString(R.string.resources_battery)}: $battery"))
+            content.addView(sectionLabel("${getString(R.string.resources_charging)}: $charging"))
+            content.addView(sectionLabel(
+                "${getString(R.string.resources_memory)}: ${SystemResourcesFormatter.megabytes(resources.memoryUsedMb)} / ${SystemResourcesFormatter.megabytes(resources.memoryTotalMb)}",
+            ))
+            content.addView(sectionLabel(
+                "${getString(R.string.resources_storage)}: ${SystemResourcesFormatter.megabytes(resources.storageUsedMb)} / ${SystemResourcesFormatter.megabytes(resources.storageTotalMb)}",
+            ))
+            content.addView(sectionLabel("${getString(R.string.resources_network)}: ${resources.networkType ?: unavailable}"))
+            resources.batteryTempC?.let { content.addView(sectionLabel("Battery temperature: %.1f °C".format(it))) }
+            content.addView(actionButton(getString(R.string.resources_refresh)) { controller.refresh() })
+            content.addView(actionButton(getString(R.string.resources_show)) { controller.showOnPet() })
+        }
+
+        val listener: (DeviceResources) -> Unit = { render(it) }
+        resourcesDialogListener?.let { controller.removeListener(it) }
+        resourcesDialogListener = listener
+        resourcesDialogRender = { render(it) }
+        controller.addListener(listener)
+        dialog.setOnDismissListener {
+            resourcesDialogListener?.let { controller.removeListener(it) }
+            resourcesDialogListener = null
+            resourcesDialogRender = null
+            resourcesDialog = null
+        }
+        render(controller.snapshot())
+        dialog.show()
+        controller.refresh()
     }
 
     private fun showBreathingDialog() {

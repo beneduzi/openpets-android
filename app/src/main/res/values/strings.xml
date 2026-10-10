@@ -134,4 +134,14 @@
     <string name="breathe_out">Out</string>
     <string name="breathe_done">Done</string>
     <string name="breathe_invalid">Enter a positive number of minutes</string>
+    <string name="resources_open">Resources…</string>
+    <string name="resources_title">System Resources</string>
+    <string name="resources_refresh">Refresh</string>
+    <string name="resources_show">Show on pet</string>
+    <string name="resources_battery">Battery</string>
+    <string name="resources_charging">Charging</string>
+    <string name="resources_memory">Memory</string>
+    <string name="resources_storage">Storage</string>
+    <string name="resources_network">Network</string>
+    <string name="resources_unavailable">unavailable</string>
 </resources>
