@@ -7,3 +7,6 @@ captures/
 .cxx/
 *.apk
 .kotlin/
+
+# deepwork session state
+.slim/deepwork/
