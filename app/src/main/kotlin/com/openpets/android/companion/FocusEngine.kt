@@ -122,3 +122,29 @@ class FocusEngine(private val clock: () -> Long = System::currentTimeMillis) {
         finishAt = at + focusMs
     }
 }
+
+/** Tracks phase instances, including repeated phases in later completed cycles. */
+class FocusPhaseAnnouncementGate(initialSnapshot: FocusSnapshot? = null) {
+    private var lastKey: String? = initialSnapshot?.let(::phaseInstanceKey)
+
+    fun shouldAnnounce(snapshot: FocusSnapshot): Boolean {
+        val nextKey = phaseInstanceKey(snapshot) ?: return false
+        if (nextKey == lastKey) return false
+        lastKey = nextKey
+        return true
+    }
+
+    fun reset() { lastKey = null }
+
+    companion object {
+        fun phaseInstanceKey(snapshot: FocusSnapshot): String? {
+            val phase = when (snapshot.state) {
+                FocusState.FOCUS -> FocusPhase.FOCUS
+                FocusState.BREAK -> FocusPhase.BREAK
+                FocusState.PAUSED -> snapshot.pausedPhase
+                FocusState.IDLE -> null
+            } ?: return null
+            return "$phase:${snapshot.cyclesCompleted}"
+        }
+    }
+}

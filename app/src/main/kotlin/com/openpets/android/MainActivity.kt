@@ -74,14 +74,18 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private var focusDialog: AlertDialog? = null
     private var focusRemainingView: TextView? = null
     private var focusDialogListener: ((FocusSnapshot) -> Unit)? = null
+    private var focusDialogRender: ((FocusSnapshot) -> Unit)? = null
     private var renderedFocusKey: String? = null
     private var reminderController: ReminderController? = null
     private var reminderDialogListener: ((List<Reminder>) -> Unit)? = null
+    private var reminderDialog: AlertDialog? = null
+    private var reminderDialogRender: ((List<Reminder>) -> Unit)? = null
     private val timerHandler = Handler(Looper.getMainLooper())
     private var timerDialog: AlertDialog? = null
     private var timerRemainingView: TextView? = null
     private var timerLabelView: TextView? = null
     private var timerDialogListener: ((TimerSnapshot) -> Unit)? = null
+    private var timerDialogRender: ((TimerSnapshot) -> Unit)? = null
     private var timerControls: LinearLayout? = null
     private var renderedTimerState: TimerRunState? = null
     private var activityStarted = false
@@ -168,6 +172,9 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         focusDialogListener?.let { focusController?.addListener(it) }
         focusController?.refresh()
         startFocusTickIfRunning()
+        if (timerDialog?.isShowing == true) timerController?.snapshot()?.let { timerDialogRender?.invoke(it) }
+        if (focusDialog?.isShowing == true) focusController?.snapshot()?.let { focusDialogRender?.invoke(it) }
+        if (reminderDialog?.isShowing == true) reminderDialogRender?.invoke(reminderController?.snapshot().orEmpty())
         if (::stage.isInitialized) applyAnimationConfig()
     }
 
@@ -176,7 +183,6 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         timerHandler.removeCallbacks(timerTick)
         timerHandler.removeCallbacks(focusTick)
         timerDialogListener?.let { timerController?.removeListener(it) }
-        timerDialogListener = null
         reminderDialogListener?.let { reminderController?.removeListener(it) }
         focusDialogListener?.let { focusController?.removeListener(it) }
         PetBus.unregister(this)
@@ -680,10 +686,12 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         }
         timerDialogListener?.let { controller.removeListener(it) }
         timerDialogListener = listener
+        timerDialogRender = { render(it) }
         controller.addListener(listener)
         dialog.setOnDismissListener {
             timerDialogListener?.let { controller.removeListener(it) }
             timerDialogListener = null
+            timerDialogRender = null
             timerDialog = null
             timerRemainingView = null
             timerLabelView = null
@@ -809,11 +817,12 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         }
         focusDialogListener?.let { controller.removeListener(it) }
         focusDialogListener = listener
+        focusDialogRender = { render(it) }
         controller.addListener(listener)
         dialog.setOnDismissListener {
-            timerHandler.removeCallbacks(focusTick)
             focusDialogListener?.let { controller.removeListener(it) }
             focusDialogListener = null
+            focusDialogRender = null
             focusDialog = null
             focusRemainingView = null
             renderedFocusKey = null
@@ -928,10 +937,14 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         val listener: (List<Reminder>) -> Unit = { render(it) }
         reminderDialogListener?.let { controller.removeListener(it) }
         reminderDialogListener = listener
+        reminderDialogRender = { render(it) }
+        reminderDialog = dialog
         controller.addListener(listener)
         dialog.setOnDismissListener {
             reminderDialogListener?.let { controller.removeListener(it) }
             reminderDialogListener = null
+            reminderDialogRender = null
+            reminderDialog = null
         }
         render(controller.snapshot())
         dialog.show()

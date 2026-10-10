@@ -5,7 +5,6 @@ import com.openpets.android.FeatureHud
 import com.openpets.android.NotificationHelper
 import com.openpets.android.PetBus
 import com.openpets.android.protocol.HudItem
-import com.openpets.android.protocol.SayRequest
 import java.util.concurrent.CopyOnWriteArrayList
 
 /** UI API: snapshot(), refresh(), start(minutes, minutes), pause(), resume(), skip(), end(), listeners, showOnPet(). */
@@ -20,7 +19,7 @@ class FocusController private constructor(context: Context, runtimeInstance: Boo
     private var focusMs = 0L
     private var breakMs = 0L
     private var lastObservedKey: String
-    private var lastAnnouncedPhase: FocusPhase?
+    private lateinit var announcementGate: FocusPhaseAnnouncementGate
     private var lastHudKey: String? = null
 
     init {
@@ -29,7 +28,7 @@ class FocusController private constructor(context: Context, runtimeInstance: Boo
         breakMs = stored.breakMs
         engine.restore(stored.snapshot, stored.finishAtMs, focusMs, breakMs)
         lastObservedKey = key(stored.snapshot)
-        lastAnnouncedPhase = phase(stored.snapshot)
+        announcementGate = FocusPhaseAnnouncementGate(stored.snapshot)
         if (stored.snapshot.state == FocusState.FOCUS || stored.snapshot.state == FocusState.BREAK) {
             scheduler.schedule(stored.finishAtMs)
         }
@@ -40,11 +39,7 @@ class FocusController private constructor(context: Context, runtimeInstance: Boo
     @Synchronized fun refresh() {
         delegate?.let { it.refresh(); return }
         val current = engine.snapshot()
-        val currentPhase = phase(current)
-        val announceTransition = currentPhase != null && currentPhase != lastAnnouncedPhase
-        if (announceTransition) {
-            lastAnnouncedPhase = currentPhase
-        }
+        val announceTransition = announcementGate.shouldAnnounce(current)
         persistAndSchedule(current)
         if (announceTransition) announcePhase(current)
         if (current.state == FocusState.FOCUS || current.state == FocusState.BREAK) showOnPet()
@@ -61,7 +56,7 @@ class FocusController private constructor(context: Context, runtimeInstance: Boo
         focusMs = focusMinutes * 60_000L
         breakMs = breakMinutes * 60_000L
         lastHudKey = null
-        lastAnnouncedPhase = null
+        announcementGate.reset()
         engine.start(focusMs, breakMs)
         persistAndSchedule(engine.snapshot())
         refresh()
@@ -78,7 +73,7 @@ class FocusController private constructor(context: Context, runtimeInstance: Boo
         focusMs = 0L
         breakMs = 0L
         lastHudKey = null
-        lastAnnouncedPhase = null
+        announcementGate.reset()
         persistAndSchedule(engine.snapshot())
         PetBus.sink.onDismissBubble("focus-buddy")
         refresh()
@@ -110,17 +105,19 @@ class FocusController private constructor(context: Context, runtimeInstance: Boo
     private fun announcePhase(snapshot: FocusSnapshot) {
         val isBreak = snapshot.state == FocusState.BREAK
         val message = if (isBreak) "Break time" else "Focus session"
+        lastHudKey = key(snapshot)
         NotificationHelper(appContext).notifyFocusFinished(message, message)
-        PetBus.sink.onSay(
-            SayRequest(
-                message = message,
-                reaction = if (isBreak) "waiting" else "testing",
-                source = "focus",
-                hud = listOf(HudItem(if (isBreak) "Break" else "Focus", snapshot.phaseRemainingMs.toFloat(), snapshot.phaseTotalMs.toFloat().coerceAtLeast(1f), "info", "focus")),
+        PetBus.hud(
+            FeatureHud(
                 bubbleId = "focus-buddy",
-                pinned = true,
+                source = "focus",
+                message = message,
+                subtext = TimerEngine.formatRemaining(snapshot.phaseRemainingMs),
+                hud = listOf(HudItem(if (isBreak) "Break" else "Focus", snapshot.phaseRemainingMs.toFloat(), snapshot.phaseTotalMs.toFloat().coerceAtLeast(1f), "info", "focus")),
+                claim = true,
             ),
         )
+        PetBus.sink.onReact(if (isBreak) "waiting" else "testing", "focus")
     }
 
     private fun persistAndSchedule(snapshot: FocusSnapshot) {
@@ -128,13 +125,6 @@ class FocusController private constructor(context: Context, runtimeInstance: Boo
         store.save(snapshot, focusMs, breakMs, if (active) engine.finishAtMs() else 0L)
         scheduler.cancel()
         if (active) scheduler.schedule(engine.finishAtMs())
-    }
-
-    private fun phase(snapshot: FocusSnapshot): FocusPhase? = when (snapshot.state) {
-        FocusState.FOCUS -> FocusPhase.FOCUS
-        FocusState.BREAK -> FocusPhase.BREAK
-        FocusState.PAUSED -> snapshot.pausedPhase
-        FocusState.IDLE -> null
     }
 
     private fun key(snapshot: FocusSnapshot): String = "${snapshot.state}:${snapshot.pausedPhase}"

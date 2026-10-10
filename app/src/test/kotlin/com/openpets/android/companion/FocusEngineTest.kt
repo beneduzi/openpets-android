@@ -56,4 +56,21 @@ class FocusEngineTest {
         engine.start(1_000L, 500L)
         assertEquals(0L, engine.remainingAt(now + 2_000L))
     }
+
+    @Test fun phaseInstanceGateAnnouncesRepeatedFocusInNewCycleOnce() {
+        val gate = FocusPhaseAnnouncementGate()
+        var snapshot = engine.start(1_000L, 1_000L)
+        assertEquals(true, gate.shouldAnnounce(snapshot))
+        assertEquals(false, gate.shouldAnnounce(snapshot))
+        now += 1_000L
+        snapshot = engine.snapshot()
+        assertEquals(FocusState.BREAK, snapshot.state)
+        assertEquals(true, gate.shouldAnnounce(snapshot))
+        now += 1_000L
+        snapshot = engine.snapshot()
+        assertEquals(FocusState.FOCUS, snapshot.state)
+        assertEquals(1, snapshot.cyclesCompleted)
+        assertEquals(true, gate.shouldAnnounce(snapshot))
+        assertEquals(false, gate.shouldAnnounce(snapshot))
+    }
 }

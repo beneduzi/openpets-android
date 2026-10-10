@@ -5,7 +5,6 @@ import com.openpets.android.NotificationHelper
 import com.openpets.android.PetBus
 import com.openpets.android.FeatureHud
 import com.openpets.android.protocol.HudItem
-import com.openpets.android.protocol.SayRequest
 import java.util.concurrent.CopyOnWriteArrayList
 
 /** UI-facing, application-scoped timer API. */
@@ -152,16 +151,17 @@ class TimerController private constructor(context: Context, runtimeInstance: Boo
 
     private fun announceFinished(snapshot: TimerSnapshot) {
         NotificationHelper(appContext).notifyTimerFinished("Timer finished", snapshot.label ?: "Your timer is done.")
-        PetBus.sink.onSay(
-            SayRequest(
-                message = "Timer finished",
-                reaction = "success",
-                source = "timer",
-                hud = listOf(HudItem(snapshot.label ?: "Timer", 0f, 1f, "success", "timer")),
+        PetBus.hud(
+            FeatureHud(
                 bubbleId = "simple-timer",
-                pinned = true,
+                source = "timer",
+                message = "Timer finished",
+                subtext = snapshot.label,
+                hud = listOf(HudItem(snapshot.label ?: "Timer", 0f, 1f, "success", "timer")),
+                claim = true,
             ),
         )
+        PetBus.sink.onReact("success", "timer")
     }
 
     private fun persist(snapshot: TimerSnapshot) {

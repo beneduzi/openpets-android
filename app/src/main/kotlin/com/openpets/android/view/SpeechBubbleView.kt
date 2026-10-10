@@ -101,6 +101,7 @@ class SpeechBubbleView @JvmOverloads constructor(
     private val buttonRects = ArrayList<Pair<RectF, PetAction>>()
 
     var onDismissed: (() -> Unit)? = null
+    var onUserDismissed: (() -> Unit)? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private val dismissRunnable = Runnable { dismiss() }
@@ -362,7 +363,10 @@ class SpeechBubbleView @JvmOverloads constructor(
                         return true
                     }
                 }
-                if (pinned && !isOverAnyButton(event.x, event.y)) dismiss()
+                if (pinned && !isOverAnyButton(event.x, event.y)) {
+                    onUserDismissed?.invoke()
+                    dismiss()
+                }
             }
             MotionEvent.ACTION_CANCEL -> return true
         }

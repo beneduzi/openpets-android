@@ -69,6 +69,7 @@ class PetStageView @JvmOverloads constructor(
     private var mediaActive = false
     private var agentBubbleActive = false
     private var featureHudSource: String? = null
+    private var suppressedFeatureSource: String? = null
     private var overrides: Map<String, String> = emptyMap()
     private var waitingDurationMs: Int = DEFAULT_WAITING_ANIMATION_MS
 
@@ -116,6 +117,11 @@ class PetStageView @JvmOverloads constructor(
         bubbleView.onDismissed = {
             agentBubbleActive = false
             featureHudSource = null
+        }
+        bubbleView.onUserDismissed = {
+            if (!agentBubbleActive && featureHudSource != null) {
+                suppressedFeatureSource = featureHudSource
+            }
         }
         petView.onAnimationComplete = {
             machine.onAnimationComplete()
@@ -167,7 +173,7 @@ class PetStageView @JvmOverloads constructor(
 
     fun dismissBubble(id: String?) {
         val current = bubbleView.bubbleId
-        if (id == null || current == null || current == id) {
+        if (id == null || current == id) {
             bubbleView.dismiss()
             hideForm()
             agentBubbleActive = false
@@ -177,9 +183,11 @@ class PetStageView @JvmOverloads constructor(
 
     fun onHud(hud: FeatureHud) {
         if (agentBubbleActive) return
+        if (hud.source == suppressedFeatureSource && !hud.claim) return
         if (hud.claim || featureHudSource == hud.source || featureHudSource == null) {
             bubbleView.showFeatureHud(hud.message, hud.subtext, hud.hud, hud.bubbleId)
             featureHudSource = hud.source
+            if (hud.claim) suppressedFeatureSource = null
         }
     }
 
