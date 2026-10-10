@@ -115,10 +115,40 @@ async function diskPct() {
   }
 }
 
+async function usage() {
+  const url = process.env.OPENPETS_USAGE_URL;
+  if (!url) return { pct: null, label: null };
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return { pct: null, label: null };
+    let pct = null;
+    const ct = res.headers.get("content-type") || "";
+    if (ct.includes("application/json")) {
+      const j = await res.json();
+      for (const k of ["usedPct", "usagePct", "percent", "claudePct", "quotaUsedPct", "pct"]) {
+        if (typeof j?.[k] === "number") {
+          pct = Math.round(j[k]);
+          break;
+        }
+      }
+      if (pct === null && typeof j?.claude?.usedPct === "number") pct = Math.round(j.claude.usedPct);
+      if (pct === null && typeof j?.codex?.usedPct === "number") pct = Math.round(j.codex.usedPct);
+    } else {
+      const m = /(\d{1,3})(?:\.\d+)?\s*%?/.exec(await res.text());
+      if (m) pct = Math.round(Number(m[1]));
+    }
+    if (pct !== null) pct = Math.max(0, Math.min(100, pct));
+    return { pct, label: process.env.OPENPETS_USAGE_LABEL || "Usage" };
+  } catch {
+    return { pct: null, label: null };
+  }
+}
+
 async function sample() {
   const m = mem();
   const n = netKbps();
   const la = loadavg()[0];
+  const u = await usage();
   return {
     cpuPct: cpuPct(),
     ramUsedMb: m.used,
@@ -127,6 +157,8 @@ async function sample() {
     netRxKbps: n.rx,
     netTxKbps: n.tx,
     loadAvg: Number.isFinite(la) ? la : null,
+    usagePct: u.pct,
+    usageLabel: u.label,
     ts: Date.now(),
   };
 }

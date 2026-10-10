@@ -43,6 +43,8 @@ without updates.
 | `OPENPETS_WS_PORT` | `18423` | app WebSocket port |
 | `OPENPETS_WS_HOST` | host from discovery | override host |
 | `OPENPETS_STATUS_INTERVAL_MS` | `5000` | sample interval |
+| `OPENPETS_USAGE_URL` | *(unset)* | optional usage/`quota` endpoint to include as a `usagePct`/`usageLabel` bar |
+| `OPENPETS_USAGE_LABEL` | `Usage` | label for the usage bar |
 
 ## Platform notes
 

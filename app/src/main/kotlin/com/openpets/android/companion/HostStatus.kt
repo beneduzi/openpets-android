@@ -11,6 +11,7 @@ import com.openpets.android.settings.AppSettings
 data class HostStatus(
     val cpuPct: Int?, val ramUsedMb: Long?, val ramTotalMb: Long?, val diskUsedPct: Int?,
     val netRxKbps: Long?, val netTxKbps: Long?, val loadAvg: Double?, val tsMs: Long,
+    val usagePct: Int? = null, val usageLabel: String? = null,
 )
 
 class HostStatusController(context: Context) {
@@ -34,6 +35,7 @@ class HostStatusController(context: Context) {
             status.cpuPct?.let { add(HudItem("CPU", it.toFloat(), 100f, "green", null)) }
             if (status.ramUsedMb != null && status.ramTotalMb != null && status.ramTotalMb > 0) add(HudItem("RAM", status.ramUsedMb.toFloat(), status.ramTotalMb.toFloat(), "blue", null))
             status.diskUsedPct?.let { add(HudItem("Disk", it.toFloat(), 100f, "amber", null)) }
+            status.usagePct?.let { add(HudItem(status.usageLabel ?: "Usage", it.toFloat(), 100f, "pink", null)) }
         }
         val memory = if (status.ramUsedMb != null && status.ramTotalMb != null) "${"%.1f".format(status.ramUsedMb / 1024.0)} / ${"%.1f".format(status.ramTotalMb / 1024.0)} GB" else ""
         PetBus.hud(FeatureHud("host-status", "host", "Host", memory, hud, claim = true))

@@ -105,7 +105,7 @@ Connect with `ws://<device-ip>:18423/?token=<IPC_TOKEN>`. Because this is experi
 
 ### Host status
 
-A client can send `{ "type":"status.host", "params":{ cpuPct, ramUsedMb, ramTotalMb, diskUsedPct, netRxKbps, netTxKbps, loadAvg, ts } }`. When enabled in Settings, the app shows these metrics as a pinned HUD on the pet and clears it after about 30 seconds without updates.
+A client can send `{ "type":"status.host", "params":{ cpuPct, ramUsedMb, ramTotalMb, diskUsedPct, netRxKbps, netTxKbps, loadAvg, ts, usagePct, usageLabel } }`. A client may include usage percentages (for example, quota usage) and an optional short label. When enabled in Settings, the app shows these metrics as a pinned HUD on the pet and clears it after about 30 seconds without updates.
 
 ### Interactive actions
 

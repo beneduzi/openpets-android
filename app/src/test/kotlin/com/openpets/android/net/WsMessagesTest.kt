@@ -42,10 +42,14 @@ class WsMessagesTest {
     }
 
     @Test fun parsesHostStatusFrames() {
-        val status = WsMessages.parseHostStatus("""{"type":"status.host","params":{"cpuPct":42.5,"ramUsedMb":1024,"ramTotalMb":4096.0,"diskUsedPct":55,"netRxKbps":12.5,"netTxKbps":9,"loadAvg":1.25,"ts":123}}""")!!
+        val status = WsMessages.parseHostStatus("""{"type":"status.host","params":{"cpuPct":42.5,"ramUsedMb":1024,"ramTotalMb":4096.0,"diskUsedPct":55,"netRxKbps":12.5,"netTxKbps":9,"loadAvg":1.25,"ts":123,"usagePct":108,"usageLabel":"  Daily quota exceeded beyond label length  "}}""")!!
         assertEquals(42, status.cpuPct); assertEquals(1024L, status.ramUsedMb); assertEquals(4096L, status.ramTotalMb)
         assertEquals(55, status.diskUsedPct); assertEquals(12L, status.netRxKbps); assertEquals(9L, status.netTxKbps)
         assertEquals(1.25, status.loadAvg!!, 0.0); assertEquals(123L, status.tsMs)
+        assertEquals(100, status.usagePct)
+        assertEquals("Daily quota exceeded bey", status.usageLabel)
+        val withoutUsage = WsMessages.parseHostStatus("""{"type":"status.host","params":{"cpuPct":12}}""")!!
+        assertEquals(null, withoutUsage.usagePct); assertEquals(null, withoutUsage.usageLabel)
         assertEquals(null, WsMessages.parseHostStatus("{\"type\":\"hello\",\"params\":{}}"))
         assertEquals(null, WsMessages.parseHostStatus("{\"type\":\"status.host\"}"))
     }

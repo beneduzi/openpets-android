@@ -15,7 +15,10 @@ object WsMessages {
         if (root.get("type")?.takeIf { it.isJsonPrimitive }?.asString != "status.host") return null
         val params = root.get("params")?.takeIf { it.isJsonObject }?.asJsonObject ?: return null
         fun number(name: String): Double? = params.get(name)?.takeUnless { it.isJsonNull }?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }?.asDouble
-        HostStatus(number("cpuPct")?.toInt(), number("ramUsedMb")?.toLong(), number("ramTotalMb")?.toLong(), number("diskUsedPct")?.toInt(), number("netRxKbps")?.toLong(), number("netTxKbps")?.toLong(), number("loadAvg"), number("ts")?.toLong() ?: System.currentTimeMillis())
+        val usagePct = number("usagePct")?.toInt()?.coerceIn(0, 100)
+        val usageLabel = params.get("usageLabel")?.takeUnless { it.isJsonNull }
+            ?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString?.trim()?.take(24)?.takeIf { it.isNotEmpty() }
+        HostStatus(number("cpuPct")?.toInt(), number("ramUsedMb")?.toLong(), number("ramTotalMb")?.toLong(), number("diskUsedPct")?.toInt(), number("netRxKbps")?.toLong(), number("netTxKbps")?.toLong(), number("loadAvg"), number("ts")?.toLong() ?: System.currentTimeMillis(), usagePct, usageLabel)
         } catch (_: Exception) { null }
     }
 
