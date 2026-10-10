@@ -74,6 +74,8 @@ class PetStageView @JvmOverloads constructor(
     private var suppressedFeatureSource: String? = null
     private var overrides: Map<String, String> = emptyMap()
     private var waitingDurationMs: Int = DEFAULT_WAITING_ANIMATION_MS
+    private var walkaboutMode: String = "roam"
+    private var walkaboutSpeed: Float = 1f
 
     /** Tap on the empty area (wave); long-press (settings). */
     var onTap: (() -> Unit)? = null
@@ -140,6 +142,22 @@ class PetStageView @JvmOverloads constructor(
         this.overrides = overrides
         this.waitingDurationMs = waitingDurationMs
         applyReactionState()
+    }
+
+    fun applyWalkabout(mode: String, speed: Float) {
+        walkaboutMode = mode.takeIf { it in setOf("off", "roam", "patrol") } ?: "roam"
+        walkaboutSpeed = speed.coerceIn(0.5f, 3f)
+        roamEnabled = walkaboutMode != "off"
+        if (walkaboutMode == "off" || machine.currentReaction != "idle" || mediaActive) {
+            cancelRoam()
+            cancelWalk()
+        } else if (walkaboutMode == "patrol") {
+            cancelRoam()
+            if (activeWalk == null) startWalk()
+        } else {
+            cancelWalk()
+            scheduleRoam(nextRoamDelay())
+        }
     }
 
     private fun currentSprite(): SpriteState =
@@ -395,12 +413,15 @@ class PetStageView @JvmOverloads constructor(
         }
     }
 
-    private fun nextRoamDelay(): Long =
-        if (width == 0) 5_000L else Random.nextLong(6_000L, 18_000L)
+    private fun nextRoamDelay(): Long = when {
+        width == 0 -> 5_000L
+        walkaboutMode == "patrol" -> 0L
+        else -> Random.nextLong(6_000L, 18_000L)
+    }
 
     private fun scheduleRoam(delayMs: Long) {
         cancelRoam()
-        if (!roamEnabled) return
+        if (!roamEnabled || machine.currentReaction != "idle" || mediaActive) return
         val runnable = Runnable { startWalk() }
         scheduledRoam = runnable
         handler.postDelayed(runnable, delayMs)
@@ -418,7 +439,7 @@ class PetStageView @JvmOverloads constructor(
     }
 
     private fun startWalk() {
-        if (!roamEnabled || machine.currentReaction != "idle") return
+        if (!roamEnabled || machine.currentReaction != "idle" || mediaActive) return
         val maxOffset = maxHorizontalOffset()
         if (maxOffset < dp(20f)) {
             scheduleRoam(nextRoamDelay())
@@ -444,7 +465,7 @@ class PetStageView @JvmOverloads constructor(
         petView.spriteState = spriteStateFor(if (goingRight) "running-right" else "running-left")
 
         val speedPxPerMs = dpf(0.06f).coerceAtLeast(0.02f)
-        val durationMs = (distance / speedPxPerMs).toLong().coerceIn(350L, 9_000L)
+        val durationMs = (distance / speedPxPerMs / walkaboutSpeed).toLong().coerceIn(250L, 9_000L)
         val startAt = SystemClock.uptimeMillis()
         val step = object : Runnable {
             override fun run() {
@@ -464,7 +485,7 @@ class PetStageView @JvmOverloads constructor(
     private fun finishWalk() {
         cancelWalk()
         petView.spriteState = currentSprite()
-        if (roamEnabled && machine.currentReaction == "idle") scheduleRoam(nextRoamDelay())
+        if (roamEnabled && machine.currentReaction == "idle" && !mediaActive) scheduleRoam(nextRoamDelay())
     }
 
     private fun setPetOffset(offset: Float) {
@@ -498,7 +519,7 @@ class PetStageView @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        if (roamEnabled) scheduleRoam(3_000L)
+        if (roamEnabled && machine.currentReaction == "idle") scheduleRoam(if (walkaboutMode == "patrol") 0L else 3_000L)
     }
 
     override fun onDetachedFromWindow() {

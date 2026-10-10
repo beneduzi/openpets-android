@@ -371,6 +371,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
 
     private fun applyAnimationConfig() {
         stage.setAnimationConfig(settings.reactionOverrides, settings.waitingDurationMs)
+        stage.applyWalkabout(settings.walkaboutMode, settings.walkaboutSpeed)
     }
 
     private fun showAnimationSettings() {
@@ -663,6 +664,45 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         render(controller.items())
     }
 
+    private fun showWalkaboutDialog() {
+        val speed = EditText(this).apply {
+            hint = "0.5–3.0"
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setText(settings.walkaboutSpeed.toString())
+        }
+        var selectedMode = settings.walkaboutMode
+        val modes = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(8), dp(20), dp(8)) }
+        root.addView(sectionLabel(getString(R.string.walkabout_title)))
+        fun renderModes() {
+            modes.removeAllViews()
+            listOf("off" to R.string.walkabout_off, "roam" to R.string.walkabout_roam, "patrol" to R.string.walkabout_patrol).forEach { (mode, label) ->
+                val text = getString(label) + if (selectedMode == mode) " ✓" else ""
+                modes.addView(actionButton(text) { selectedMode = mode; renderModes() })
+            }
+        }
+        renderModes()
+        root.addView(modes)
+        root.addView(labelWithField(getString(R.string.walkabout_speed), speed))
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.walkabout_title).setView(root)
+            .setPositiveButton(R.string.settings_save, null)
+            .setNegativeButton(R.string.dialog_close, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val parsed = speed.text.toString().toFloatOrNull()
+                if (parsed == null || parsed !in 0.5f..3.0f) {
+                    Toast.makeText(this, "Enter a speed from 0.5 to 3.0", Toast.LENGTH_SHORT).show()
+                } else {
+                    settings.walkaboutMode = selectedMode
+                    settings.walkaboutSpeed = parsed
+                    stage.applyWalkabout(settings.walkaboutMode, settings.walkaboutSpeed)
+                    dialog.dismiss()
+                }
+            }
+        }
+        dialog.show()
+    }
+
     private fun showSettings() {
         val ipcEnabled = CheckBox(this).apply { text = getString(R.string.settings_ipc); isChecked = settings.ipcEnabled }
         val remoteEnabled = CheckBox(this).apply { text = getString(R.string.settings_remote); isChecked = settings.remoteEnabled }
@@ -708,6 +748,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton(getString(R.string.resources_open)) { showResourcesDialog() })
             addView(actionButton(getString(R.string.calendar_open)) { showCalendarDialog() })
             addView(actionButton(getString(R.string.checklist_open)) { showChecklistDialog() })
+            addView(actionButton(getString(R.string.walkabout_open)) { showWalkaboutDialog() })
             addView(actionButton(getString(R.string.settings_voice)) { showVoiceDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)

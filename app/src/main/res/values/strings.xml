@@ -176,6 +176,12 @@
     <string name="checklist_launch">Launch</string>
     <string name="checklist_greeting">Greeting</string>
     <string name="checklist_empty">Nothing on the checklist</string>
+    <string name="walkabout_open">Walkabout…</string>
+    <string name="walkabout_title">Walkabout</string>
+    <string name="walkabout_off">Off</string>
+    <string name="walkabout_roam">Roam</string>
+    <string name="walkabout_patrol">Patrol</string>
+    <string name="walkabout_speed">Speed</string>
     <string name="settings_voice">Voice input…</string>
     <string name="voice_title">Voice input</string>
     <string name="voice_speak">Speak</string>
