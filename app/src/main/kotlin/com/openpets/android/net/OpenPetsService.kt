@@ -15,6 +15,7 @@ import androidx.core.app.ServiceCompat
 import com.openpets.android.AppState
 import com.openpets.android.HapticsNotifier
 import com.openpets.android.companion.CompanionRuntime
+import com.openpets.android.companion.CompanionSources
 import com.openpets.android.companion.TimerController
 import com.openpets.android.companion.ReminderController
 import com.openpets.android.companion.FocusController
@@ -60,7 +61,8 @@ class OpenPetsService : Service() {
             if (reaction !in SoundNotifier.NOTIFY_REACTIONS) return
             if (settings.soundEnabled) sound.play()
             if (settings.hapticsEnabled) haptics.vibrate()
-            if (settings.notifyEnabled && !AppState.foreground) {
+            // Companion sources already post dedicated notifications; avoid duplicating them.
+            if (settings.notifyEnabled && !AppState.foreground && source !in CompanionSources.ALL) {
                 notifier.notifyEvent(source, this@OpenPetsService.getString(R.string.reaction_label, reaction))
             }
         }
@@ -68,7 +70,8 @@ class OpenPetsService : Service() {
         override fun onSay(request: SayRequest) {
             if (settings.soundEnabled) sound.play()
             if (settings.hapticsEnabled) haptics.vibrate()
-            if (settings.notifyEnabled && !AppState.foreground) {
+            // Companion sources already post dedicated notifications; avoid duplicating them.
+            if (settings.notifyEnabled && !AppState.foreground && request.source !in CompanionSources.ALL) {
                 notifier.notifyEvent(request.source, request.message)
             }
         }
