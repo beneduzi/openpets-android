@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Credentials (IPC/Remote tokens) live in the "openpets" SharedPreferences
+     file; keep them out of cloud backup and device-to-device transfer. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="openpets.xml" />
+</full-backup-content>
