@@ -227,6 +227,7 @@ The release APK is signed with the debug key so it can be sideloaded. CI builds 
 | `protocol/` | Pure Kotlin (JVM-testable): IPC/remote protocol, validators, TCP servers, reaction mapping. |
 | `tools/` | Helper scripts for discovery and sending reactions/media. |
 | `docs/` | Installation and agent-integration guides. |
+| `integrations/` | Host-side integrations, e.g. the OpenCode plugin that drives and notifies the pet. |
 
 ## Contributing
 
