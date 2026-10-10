@@ -10,6 +10,8 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.text.InputType
 import android.view.View
@@ -26,6 +28,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.openpets.android.net.OpenPetsService
+import com.openpets.android.companion.TimerController
+import com.openpets.android.companion.TimerEngine
+import com.openpets.android.companion.TimerRunState
+import com.openpets.android.companion.TimerSnapshot
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
 import com.openpets.android.pet.PetPackageLoader
@@ -56,6 +62,27 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private val catalogClient = CatalogClient()
     private var tts: TextToSpeech? = null
     private var ttsReady = false
+    private var timerController: TimerController? = null
+    private val timerHandler = Handler(Looper.getMainLooper())
+    private var timerDialog: AlertDialog? = null
+    private var timerRemainingView: TextView? = null
+    private var timerLabelView: TextView? = null
+    private var timerDialogListener: ((TimerSnapshot) -> Unit)? = null
+    private var timerControls: LinearLayout? = null
+    private var renderedTimerState: TimerRunState? = null
+    private var activityStarted = false
+    private val timerTick = object : Runnable {
+        override fun run() {
+            if (isFinishing || isDestroyed || !activityStarted) return
+            val controller = timerController ?: return
+            controller.refresh()
+            val snapshot = controller.snapshot()
+            if (snapshot.state == TimerRunState.RUNNING) {
+                timerRemainingView?.text = TimerEngine.formatRemaining(snapshot.remainingMs)
+                timerHandler.postDelayed(this, 1_000L)
+            }
+        }
+    }
 
     private val importZipLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { importPet { repository.importZip(it) } }
@@ -92,6 +119,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             onLongPress = { showSettings() }
         }
         setContentView(stage)
+        timerController = TimerController(this)
         reloadPet()
         applyAnimationConfig()
 
@@ -101,12 +129,19 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
 
     override fun onStart() {
         super.onStart()
+        activityStarted = true
         AppState.foreground = true
         PetBus.register(this)
+        timerController?.refresh()
+        startTimerTickIfRunning()
         if (::stage.isInitialized) applyAnimationConfig()
     }
 
     override fun onStop() {
+        activityStarted = false
+        timerHandler.removeCallbacks(timerTick)
+        timerDialogListener?.let { timerController?.removeListener(it) }
+        timerDialogListener = null
         PetBus.unregister(this)
         AppState.foreground = false
         super.onStop()
@@ -432,6 +467,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(sectionLabel("Pet atual: ${currentPetLabel()}"))
             addView(actionButton("Alterar pet…") { showPetPicker() })
             addView(actionButton("Animações…") { showAnimationSettings() })
+            addView(actionButton(getString(R.string.timer_open)) { showTimerDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)
             addView(remoteEnabled)
@@ -480,6 +516,138 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             }
             .setNegativeButton(R.string.settings_cancel, null)
             .show()
+    }
+
+    private fun startTimerTickIfRunning() {
+        timerHandler.removeCallbacks(timerTick)
+        if (timerController?.snapshot()?.state == TimerRunState.RUNNING && activityStarted && !isFinishing) {
+            timerHandler.postDelayed(timerTick, 1_000L)
+        }
+    }
+
+    private fun showTimerDialog() {
+        val controller = timerController ?: return
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.timer_title)
+            .setView(ScrollView(this).apply { addView(content) })
+            .setNegativeButton(R.string.timer_close, null)
+            .create()
+        timerDialog = dialog
+        timerControls = content
+
+        fun spacer() = View(this).apply { layoutParams = LinearLayout.LayoutParams(1, dp(8)) }
+        fun fullButton(label: String, action: () -> Unit) = actionButton(label, action).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+        fun styleField(field: EditText) {
+            field.setTextColor(Color.WHITE)
+            field.setHintTextColor(0xFF9E9E9E.toInt())
+        }
+        fun render(snapshot: TimerSnapshot) {
+            renderedTimerState = snapshot.state
+            content.removeAllViews()
+            timerRemainingView = null
+            timerLabelView = null
+            when (snapshot.state) {
+                TimerRunState.IDLE -> {
+                    val presets = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+                    listOf(5, 10, 25, 60).forEach { minutes ->
+                        val button = actionButton("$minutes min") { controller.start(minutes * 60_000L) }
+                        presets.addView(button, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                    }
+                    val custom = EditText(this).apply {
+                        inputType = InputType.TYPE_CLASS_NUMBER
+                        hint = getString(R.string.timer_custom_minutes)
+                        styleField(this)
+                    }
+                    val label = EditText(this).apply {
+                        hint = getString(R.string.timer_label)
+                        styleField(this)
+                    }
+                    content.addView(sectionLabel(getString(R.string.timer_title)))
+                    content.addView(presets)
+                    content.addView(spacer())
+                    content.addView(custom)
+                    content.addView(spacer())
+                    content.addView(label)
+                    content.addView(spacer())
+                    content.addView(fullButton(getString(R.string.timer_start)) {
+                        val minutes = custom.text.toString().toIntOrNull()
+                        if (minutes == null || minutes <= 0) {
+                            Toast.makeText(this, getString(R.string.timer_custom_minutes), Toast.LENGTH_SHORT).show()
+                        } else {
+                            controller.start(minutes * 60_000L, label.text.toString().trim().ifEmpty { null })
+                        }
+                    })
+                }
+                TimerRunState.RUNNING, TimerRunState.PAUSED -> {
+                    val remaining = TextView(this).apply {
+                        text = TimerEngine.formatRemaining(snapshot.remainingMs)
+                        textSize = 34f
+                        gravity = android.view.Gravity.CENTER
+                        setTextColor(if (snapshot.state == TimerRunState.RUNNING) Color.WHITE else 0xFF9E9E9E.toInt())
+                        setPadding(0, dp(12), 0, dp(8))
+                    }
+                    timerRemainingView = remaining
+                    content.addView(remaining)
+                    snapshot.label?.takeIf { it.isNotBlank() }?.let { text ->
+                        val label = TextView(this).apply {
+                            this.text = text
+                            gravity = android.view.Gravity.CENTER
+                            setTextColor(0xFF9E9E9E.toInt())
+                        }
+                        timerLabelView = label
+                        content.addView(label)
+                    }
+                    content.addView(spacer())
+                    content.addView(fullButton(getString(if (snapshot.state == TimerRunState.RUNNING) R.string.timer_pause else R.string.timer_resume)) {
+                        if (snapshot.state == TimerRunState.RUNNING) controller.pause() else controller.resume()
+                    })
+                    content.addView(fullButton(getString(R.string.timer_add_five)) { controller.addMinutes(5) })
+                    content.addView(fullButton(getString(R.string.timer_cancel)) { controller.cancel() })
+                }
+                TimerRunState.FINISHED -> {
+                    content.addView(TextView(this).apply {
+                        text = getString(R.string.timer_finished)
+                        textSize = 22f
+                        gravity = android.view.Gravity.CENTER
+                        setTextColor(Color.WHITE)
+                        setPadding(0, dp(20), 0, dp(12))
+                    })
+                    snapshot.label?.takeIf { it.isNotBlank() }?.let { text ->
+                        content.addView(TextView(this).apply {
+                            this.text = text
+                            gravity = android.view.Gravity.CENTER
+                            setTextColor(0xFF9E9E9E.toInt())
+                        })
+                    }
+                    content.addView(spacer())
+                    content.addView(fullButton(getString(R.string.timer_dismiss)) { controller.dismissFinished() })
+                }
+            }
+        }
+
+        val listener: (TimerSnapshot) -> Unit = { snapshot ->
+            if (snapshot.state != renderedTimerState) render(snapshot)
+        }
+        timerDialogListener?.let { controller.removeListener(it) }
+        timerDialogListener = listener
+        controller.addListener(listener)
+        dialog.setOnDismissListener {
+            timerDialogListener?.let { controller.removeListener(it) }
+            timerDialogListener = null
+            timerDialog = null
+            timerRemainingView = null
+            timerLabelView = null
+            timerControls = null
+        }
+        render(controller.snapshot())
+        dialog.show()
+        startTimerTickIfRunning()
     }
 
     private fun requestNotificationPermission() {

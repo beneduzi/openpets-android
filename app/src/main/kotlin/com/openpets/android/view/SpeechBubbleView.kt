@@ -328,11 +328,11 @@ class SpeechBubbleView @JvmOverloads constructor(
     }
 
     private fun toneColor(tone: String?): Int = when (tone) {
-        "amber" -> 0xFFD97706.toInt()
-        "blue" -> 0xFF2563EB.toInt()
-        "green" -> 0xFF16A34A.toInt()
+        "amber", "warning" -> 0xFFD97706.toInt()
+        "blue", "info" -> 0xFF2563EB.toInt()
+        "green", "success" -> 0xFF16A34A.toInt()
         "pink" -> 0xFFDB2777.toInt()
-        "red" -> 0xFFDC2626.toInt()
+        "red", "error" -> 0xFFDC2626.toInt()
         else -> 0xFF475569.toInt()
     }
 

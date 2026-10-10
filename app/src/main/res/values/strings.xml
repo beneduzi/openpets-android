@@ -24,4 +24,16 @@
     <string name="events_channel_description">Reações e mensagens dos agentes.</string>
     <string name="reaction_label">Reação: %1$s</string>
     <string name="media_received">Imagem recebida</string>
+    <string name="timer_open">Timer…</string>
+    <string name="timer_title">Timer</string>
+    <string name="timer_custom_minutes">Custom (minutes)</string>
+    <string name="timer_label">Label</string>
+    <string name="timer_start">Start</string>
+    <string name="timer_pause">Pause</string>
+    <string name="timer_resume">Resume</string>
+    <string name="timer_add_five">+5 min</string>
+    <string name="timer_cancel">Cancel</string>
+    <string name="timer_dismiss">Dismiss</string>
+    <string name="timer_close">Close</string>
+    <string name="timer_finished">Timer finished</string>
 </resources>
