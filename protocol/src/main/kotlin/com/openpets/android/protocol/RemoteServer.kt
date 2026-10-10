@@ -28,6 +28,7 @@ class RemoteServer(
         maxMessageBytes = MAX_REMOTE_MESSAGE_BYTES,
         socketTimeoutMs = REMOTE_SOCKET_TIMEOUT_MS,
         maxConcurrent = REMOTE_MAX_CONCURRENT_SOCKETS,
+        connectionDeadlineMs = REMOTE_CONNECTION_DEADLINE_MS,
         handler = { raw, peer -> handle(raw, peer) },
     )
 
@@ -38,6 +39,9 @@ class RemoteServer(
     fun stop() = server.stop()
 
     private fun handle(raw: String, peer: InetAddress): String {
+        if (!isValidRemotePeerAddress(peer.hostAddress)) {
+            return errorRemoteResponse(bestEffortId(raw), "forbidden").toString()
+        }
         val request = try {
             parseRemoteControlRequest(raw)
         } catch (e: RemoteProtocolError) {

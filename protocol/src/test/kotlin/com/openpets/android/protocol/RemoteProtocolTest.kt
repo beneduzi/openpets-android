@@ -103,6 +103,15 @@ class RemoteProtocolTest {
         assertNull(normalizeRemoteIpv4Address("::ffff:not-an-ip"))
     }
 
+    @Test fun privatePeerAddressRules() {
+        assertTrue(isValidRemotePeerAddress("192.168.0.5"))
+        assertTrue(isValidRemotePeerAddress("10.0.0.7"))
+        assertTrue(isValidRemotePeerAddress("::ffff:192.168.1.2"))
+        assertFalse(isValidRemotePeerAddress("8.8.8.8"))
+        assertFalse(isValidRemotePeerAddress("0.0.0.0"))
+        assertFalse(isValidRemotePeerAddress(null))
+    }
+
     @Test fun errorResponseShape() {
         val resp = errorRemoteResponse("req-1", "invalid_request")
         assertEquals(false, resp.get("ok").asBoolean)

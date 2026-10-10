@@ -260,6 +260,32 @@ class IpcServerTest {
             server.stop()
         }
     }
+
+    @Test fun connectionDeadlineClosesSlowClient() {
+        val server = LineServer(
+            port = 0,
+            bindAddress = "127.0.0.1",
+            maxMessageBytes = 1024,
+            socketTimeoutMs = 5000,
+            maxConcurrent = 4,
+            connectionDeadlineMs = 300,
+            handler = { _, _ -> "ok" },
+        )
+        val port = server.start()
+        try {
+            Socket("127.0.0.1", port).use { s ->
+                s.soTimeout = 5000
+                val out = s.getOutputStream()
+                out.write("{\"partial\":".toByteArray(Charsets.UTF_8)); out.flush()
+                Thread.sleep(900)
+                out.write("1}".toByteArray(Charsets.UTF_8)); out.flush()
+                val line = BufferedReader(InputStreamReader(s.getInputStream(), Charsets.UTF_8)).readLine()
+                assertNull(line)
+            }
+        } finally {
+            server.stop()
+        }
+    }
 }
 
 class RemoteServerTest {

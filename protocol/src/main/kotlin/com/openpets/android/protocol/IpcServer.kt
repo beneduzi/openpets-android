@@ -30,6 +30,7 @@ class IpcServer(
         maxMessageBytes = MAX_MEDIA_REQUEST_BYTES,
         socketTimeoutMs = IPC_RESPONSE_TIMEOUT_MS,
         maxConcurrent = 16,
+        connectionDeadlineMs = IPC_CONNECTION_DEADLINE_MS,
         handler = { raw, _ -> handle(raw) },
     )
 

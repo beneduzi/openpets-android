@@ -132,3 +132,5 @@ Requests use `{ id, version:1, token, method, params }`. Success responses use `
 The lease TTL is 15 s; `lease.heartbeat` renews the TTL and `lease.release` deletes the lease.
 
 **Known limitation:** `pet.bubbleDismiss` is an accepted Android extension and is not present in upstream desktop IPC.
+
+The Remote server only accepts private/local IPv4 peers.

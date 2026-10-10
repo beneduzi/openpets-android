@@ -25,6 +25,7 @@ class LineServer(
     private val maxMessageBytes: Int,
     private val socketTimeoutMs: Int,
     private val maxConcurrent: Int,
+    private val connectionDeadlineMs: Long = 0L,
     private val handler: (String, InetAddress) -> String?,
 ) {
     private val running = AtomicBoolean(false)
@@ -86,7 +87,8 @@ class LineServer(
             s.soTimeout = socketTimeoutMs
             val input = s.getInputStream()
             val output: OutputStream = s.getOutputStream()
-            val line = readLine(input) ?: return
+            val deadline = if (connectionDeadlineMs > 0) System.currentTimeMillis() + connectionDeadlineMs else 0L
+            val line = readLine(input, deadline) ?: return
             if (line.isEmpty()) return
             val response = handler(String(line, Charsets.UTF_8), s.inetAddress)
             if (response != null) {
@@ -98,10 +100,11 @@ class LineServer(
     }
 
     /** Reads one newline-terminated line as bytes, enforcing the cap. Null if oversized/EOF. */
-    private fun readLine(input: InputStream): ByteArray? {
+    private fun readLine(input: InputStream, deadlineMs: Long): ByteArray? {
         val out = ByteArrayOutputStream()
         val buf = ByteArray(16 * 1024)
         while (true) {
+            if (deadlineMs > 0 && System.currentTimeMillis() > deadlineMs) return null
             val n = input.read(buf)
             if (n == -1) return if (out.size() == 0) null else out.toByteArray()
             var i = 0
