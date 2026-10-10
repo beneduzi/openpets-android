@@ -21,7 +21,7 @@ how to implement the rest natively.
 | Simple Timer | ✅ `0b4d0b5` `198045e` | device-local | native countdown + exact-alarm expiry |
 | Focus Buddy | ✅ `add66f4` `a8301b2` | device-local | native focus/break state machine + HUD |
 | Virtual Pet | ✅ `1e8808a` | device-local | native stats/decay + actions + HUD |
-| Launch Buddy | 🟡 (greeting ✅) | device-local | greeting shipped via **Fun**; a *checklist* flow + `launch.greet` assistant action are TODO |
+| Launch Buddy | ✅ checklist + greeting | device-local | native checklist (add/toggle/remove) + configurable/time-of-day greeting via `checklist.launch()` |
 | Daily Fortune Cookie | ✅ `a224402` | device-local | **Fun → Fortune** |
 | Magic 8-Ball | ✅ `a224402` | device-local | **Fun → 8-ball** |
 | Mood Check-in | ✅ `02670a4` | device-local | native log + nudge |
@@ -35,17 +35,17 @@ Separate repo (SDK v3 example, not in the 13):
 
 | Plugin | Status | Dependency | Android approach |
 | --- | --- | --- | --- |
-| Deadline Buddy (manual) | ⬜ | device-local | reuse `ReminderEngine`: pinned "nearest deadline" HUD + 1 day / 1 h / 15 min reminders |
+| Deadline Buddy (manual) | ✅ | device-local | native deadlines + pinned nearest HUD + 1 day / 1 h / 15 min reminders |
 
 ## Community plugins (5)
 
 | Plugin | Status | Dependency | Android approach |
 | --- | --- | --- | --- |
-| Vocabulary Drag & Drop | ⬜ | cloud (+ local Anki service) | accept shared/selected text -> define/translate (cloud) -> optional AnkiConnect (reachable local service) |
-| Higgsfield Watch | ⬜ | cloud | user token -> poll `fnf.higgsfield.ai` -> notify start/done/fail |
+| Vocabulary Drag & Drop | ✅ | cloud (+ local Anki service) | share text -> dictionaryapi.dev + MyMemory; optional AnkiConnect |
+| Higgsfield Watch | ❌ blocked | cloud | public API has no list-jobs endpoint (poll-by-request-id only); a phone watcher cannot discover jobs |
 | Spotify Buddy | ⬜ | desktop-runtime | possible only as a redesign: native Spotify OAuth + playback state (the documented version needs a desktop bridge + tunnel) |
-| Walkabout | 🟡 (idle wander ✅) | desktop-runtime | native reinterpretation: roam/patrol modes on the phone (idle wandering exists; add patrol/follow) |
-| Usage Buddy | ⬜ | host-data | needs a PC usage monitor; now feasible as a **WS host feed** (same pattern as `status.host`) |
+| Walkabout | ✅ native roam/patrol | desktop-runtime | native roam/patrol mode + speed + pause-when-busy |
+| Usage Buddy | ✅ host feed | host-data | WS `status.host` carries `usagePct`/`usageLabel`; PC sender optional `OPENPETS_USAGE_URL` |
 
 ## Implementation patterns
 
@@ -60,18 +60,18 @@ Separate repo (SDK v3 example, not in the 13):
 4. **Desktop-runtime** — reinterpret natively where it makes sense (screen
    roaming); otherwise skip (Spotify playback control).
 
-## Remaining work (prioritized)
+## Remaining work
 
-1. **Deadline Buddy** (native) — highest fit; reuses the reminder engine + a
-   pinned HUD.
-2. **Launch Buddy checklist** (native, small) + `launch.greet` assistant action.
-3. **Anxiety Aid Tools audio** (download + cache; needs media source).
-4. **Vocabulary Drag & Drop** (shared-text intake + cloud lookups).
-5. **Higgsfield Watch** (token + polling + notifications).
-6. **Walkabout** roam/patrol mode (native).
-7. **Generalized host feed** for host-data plugins (Usage Buddy; richer host
-   System Resources: GPU/battery/network).
-8. **Spotify Buddy** — redesign, optional/large.
+Built this session: **Deadline Buddy**, **Launch Buddy** checklist, **Walkabout**
+(roam/patrol), **Vocabulary Drag & Drop**, and the **host feed** (Usage Buddy
+usage metrics + host resources over WS).
+
+Still open:
+
+1. **Anxiety Aid Tools audio** (download + cache; needs a media source).
+2. **Higgsfield Watch** — blocked: no public list-jobs endpoint (poll-by-id only).
+3. **Spotify Buddy** — native redesign (OAuth), optional/large.
+4. Richer host resources (GPU) — best-effort only.
 
 ## Explicitly excluded
 
