@@ -53,6 +53,10 @@ import com.openpets.android.companion.level
 import com.openpets.android.companion.RoutineController
 import com.openpets.android.companion.RoutineSettings
 import com.openpets.android.companion.RoutineEngine
+import com.openpets.android.companion.BreathingController
+import com.openpets.android.companion.BreathSnapshot
+import com.openpets.android.companion.BreathPhase
+import com.openpets.android.companion.BreathingPattern
 import com.openpets.android.FeatureHud
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
@@ -112,6 +116,12 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     private var routineDialog: AlertDialog? = null
     private var routineDialogListener: ((RoutineSettings) -> Unit)? = null
     private var routineDialogRender: ((RoutineSettings) -> Unit)? = null
+    private var breathingController: BreathingController? = null
+    private var breathingDialog: AlertDialog? = null
+    private var breathingPhaseView: TextView? = null
+    private var breathingDialogListener: ((BreathSnapshot) -> Unit)? = null
+    private var breathingDialogRender: ((BreathSnapshot) -> Unit)? = null
+    private var renderedBreathingKey: String? = null
     private val timerHandler = Handler(Looper.getMainLooper())
     private var timerDialog: AlertDialog? = null
     private var timerRemainingView: TextView? = null
@@ -141,6 +151,18 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             val snapshot = controller.snapshot()
             if (snapshot.state == FocusState.FOCUS || snapshot.state == FocusState.BREAK) {
                 focusRemainingView?.text = TimerEngine.formatRemaining(snapshot.phaseRemainingMs)
+                timerHandler.postDelayed(this, 1_000L)
+            }
+        }
+    }
+    private val breathingTick = object : Runnable {
+        override fun run() {
+            if (isFinishing || isDestroyed || !activityStarted) return
+            val controller = breathingController ?: return
+            controller.refresh()
+            val snapshot = controller.snapshot()
+            if (snapshot.active) {
+                breathingPhaseView?.text = breathingPhaseText(snapshot)
                 timerHandler.postDelayed(this, 1_000L)
             }
         }
@@ -188,6 +210,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         waterController = WaterController(this)
         moodController = MoodController(this)
         routineController = RoutineController(this)
+        breathingController = BreathingController(this)
         reloadPet()
         applyAnimationConfig()
 
@@ -215,7 +238,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         moodController?.refresh()
         routineDialogListener?.let { routineController?.addListener(it) }
         routineController?.refresh()
+        breathingDialogListener?.let { breathingController?.addListener(it) }
+        breathingController?.refresh()
         startFocusTickIfRunning()
+        startBreathingTickIfActive()
         if (timerDialog?.isShowing == true) timerController?.snapshot()?.let { timerDialogRender?.invoke(it) }
         if (focusDialog?.isShowing == true) focusController?.snapshot()?.let { focusDialogRender?.invoke(it) }
         if (reminderDialog?.isShowing == true) reminderDialogRender?.invoke(reminderController?.snapshot().orEmpty())
@@ -223,6 +249,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         if (waterDialog?.isShowing == true) waterController?.settings()?.let { waterDialogRender?.invoke(it) }
         if (moodDialog?.isShowing == true) moodController?.recent()?.let { moodDialogRender?.invoke(it) }
         if (routineDialog?.isShowing == true) routineController?.settings()?.let { routineDialogRender?.invoke(it) }
+        if (breathingDialog?.isShowing == true) breathingController?.snapshot()?.let { breathingDialogRender?.invoke(it) }
         if (::stage.isInitialized) applyAnimationConfig()
     }
 
@@ -230,6 +257,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         activityStarted = false
         timerHandler.removeCallbacks(timerTick)
         timerHandler.removeCallbacks(focusTick)
+        timerHandler.removeCallbacks(breathingTick)
         timerDialogListener?.let { timerController?.removeListener(it) }
         reminderDialogListener?.let { reminderController?.removeListener(it) }
         focusDialogListener?.let { focusController?.removeListener(it) }
@@ -237,6 +265,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         waterDialogListener?.let { waterController?.removeListener(it) }
         moodDialogListener?.let { moodController?.removeListener(it) }
         routineDialogListener?.let { routineController?.removeListener(it) }
+        breathingDialogListener?.let { breathingController?.removeListener(it) }
         PetBus.unregister(this)
         AppState.foreground = false
         super.onStop()
@@ -574,6 +603,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(actionButton(getString(R.string.fun_open)) { showFunDialog() })
             addView(actionButton(getString(R.string.mood_open)) { showMoodDialog() })
             addView(actionButton(getString(R.string.routine_open)) { showRoutineDialog() })
+            addView(actionButton(getString(R.string.breathe_open)) { showBreathingDialog() })
             addView(sectionLabel(getString(R.string.settings_device_ip) + ": $deviceIp"))
             addView(ipcEnabled)
             addView(remoteEnabled)
@@ -765,6 +795,105 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         if ((state == FocusState.FOCUS || state == FocusState.BREAK) && activityStarted && !isFinishing) {
             timerHandler.postDelayed(focusTick, 1_000L)
         }
+    }
+
+    private fun startBreathingTickIfActive() {
+        timerHandler.removeCallbacks(breathingTick)
+        if (breathingController?.snapshot()?.active == true && activityStarted && !isFinishing) {
+            timerHandler.postDelayed(breathingTick, 1_000L)
+        }
+    }
+
+    private fun breathingPhaseText(snapshot: BreathSnapshot): String {
+        val label = when (snapshot.phase) {
+            BreathPhase.INHALE -> getString(R.string.breathe_in)
+            BreathPhase.HOLD_IN, BreathPhase.HOLD_OUT -> getString(R.string.breathe_hold)
+            BreathPhase.EXHALE -> getString(R.string.breathe_out)
+            BreathPhase.DONE -> getString(R.string.breathe_done)
+        }
+        return "$label · ${snapshot.phaseRemainingSec}s"
+    }
+
+    private fun showBreathingDialog() {
+        val controller = breathingController ?: return
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.breathe_title)
+            .setView(ScrollView(this).apply { addView(content) })
+            .setNegativeButton(R.string.dialog_close, null)
+            .create()
+        breathingDialog = dialog
+        fun fullButton(label: String, onClick: () -> Unit) = actionButton(label, onClick).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+        fun render(snapshot: BreathSnapshot) {
+            val key = "${snapshot.active}:${snapshot.patternId}:${snapshot.phase}"
+            renderedBreathingKey = key
+            content.removeAllViews()
+            breathingPhaseView = null
+            if (snapshot.active) {
+                val phase = TextView(this).apply {
+                    text = breathingPhaseText(snapshot)
+                    textSize = 30f
+                    gravity = android.view.Gravity.CENTER
+                    setTextColor(Color.WHITE)
+                    setPadding(0, dp(20), 0, dp(20))
+                }
+                breathingPhaseView = phase
+                content.addView(phase)
+                content.addView(fullButton(getString(R.string.breathe_stop)) { controller.stop() })
+            } else {
+                content.addView(sectionLabel(getString(R.string.breathe_title)))
+                val minutes = EditText(this).apply {
+                    inputType = InputType.TYPE_CLASS_NUMBER
+                    setText("3")
+                    hint = getString(R.string.breathe_minutes)
+                    setTextColor(Color.WHITE)
+                    setHintTextColor(0xFF9E9E9E.toInt())
+                }
+                content.addView(labelWithField(getString(R.string.breathe_minutes), minutes))
+                content.addView(fullButton(getString(R.string.breathe_box)) {
+                    val duration = minutes.text.toString().toIntOrNull()
+                    if (duration == null || duration <= 0) Toast.makeText(this, getString(R.string.breathe_invalid), Toast.LENGTH_SHORT).show()
+                    else {
+                        controller.start(BreathingPattern.BOX.id, duration)
+                        startBreathingTickIfActive()
+                    }
+                })
+                content.addView(fullButton(getString(R.string.breathe_478)) {
+                    val duration = minutes.text.toString().toIntOrNull()
+                    if (duration == null || duration <= 0) Toast.makeText(this, getString(R.string.breathe_invalid), Toast.LENGTH_SHORT).show()
+                    else {
+                        controller.start(BreathingPattern.RELAX_478.id, duration)
+                        startBreathingTickIfActive()
+                    }
+                })
+            }
+        }
+        val listener: (BreathSnapshot) -> Unit = { snapshot ->
+            val key = "${snapshot.active}:${snapshot.patternId}:${snapshot.phase}"
+            if (key != renderedBreathingKey) render(snapshot)
+            startBreathingTickIfActive()
+        }
+        breathingDialogListener?.let { controller.removeListener(it) }
+        breathingDialogListener = listener
+        breathingDialogRender = { render(it) }
+        controller.addListener(listener)
+        dialog.setOnDismissListener {
+            breathingDialogListener?.let { controller.removeListener(it) }
+            breathingDialogListener = null
+            breathingDialogRender = null
+            breathingDialog = null
+            breathingPhaseView = null
+            renderedBreathingKey = null
+        }
+        render(controller.snapshot())
+        dialog.show()
+        controller.refresh()
+        startBreathingTickIfActive()
     }
 
     private fun showFocusDialog() {

@@ -19,4 +19,5 @@ object CompanionRuntime {
     val water: WaterController by lazy { WaterController.createRuntime(ctx()) }
     val mood: MoodController by lazy { MoodController.createRuntime(ctx()) }
     val routine: RoutineController by lazy { RoutineController.createRuntime(ctx()) }
+    val breathing: BreathingController by lazy { BreathingController.createRuntime(ctx()) }
 }

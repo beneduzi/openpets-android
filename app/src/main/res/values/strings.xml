@@ -122,4 +122,16 @@
     <string name="routine_saved">Saved</string>
     <string name="routine_next">Next: %1$s</string>
     <string name="routine_invalid">Enter valid hours and minutes</string>
+    <string name="breathe_open">Breathe…</string>
+    <string name="breathe_title">Breathe</string>
+    <string name="breathe_box">Box breathing</string>
+    <string name="breathe_478">4-7-8</string>
+    <string name="breathe_minutes">Minutes</string>
+    <string name="breathe_start">Start</string>
+    <string name="breathe_stop">Stop</string>
+    <string name="breathe_in">In</string>
+    <string name="breathe_hold">Hold</string>
+    <string name="breathe_out">Out</string>
+    <string name="breathe_done">Done</string>
+    <string name="breathe_invalid">Enter a positive number of minutes</string>
 </resources>
