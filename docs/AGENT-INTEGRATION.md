@@ -91,6 +91,16 @@ export OPENPETS_REMOTE_CLIENT_ID="android-companion"   # optional
 
 The OpenCode plugin does **not** support remote mode. Remote constraints: raw TCP, one request per socket, 4 KB cap, private/local IPv4 only, token 43–256 base64url characters, and rate limited to 30 requests / 60 s.
 
+## Experimental WebSocket (`openpets-ws`, opt-in)
+
+An optional `ws://` endpoint (default port `18423`) that is **disabled by default** and marked **experimental**. Enable it in Settings → *WebSocket (experimental)*. It:
+
+- authenticates with the **IPC token** and only accepts **private/local IPv4** peers;
+- sends `hello` + `status` on connect, then streams pet/companion events as JSON frames;
+- accepts the same command surface as IPC: send `{ "id", "method", "params" }` and receive `{ "id", "ok", "result" }` or `{ "id", "ok", "error" }`.
+
+Connect with `ws://<device-ip>:18423/?token=<IPC_TOKEN>`. Because this is experimental, the message schema may change between versions.
+
 ## Diagnose your setup
 
 ```bash

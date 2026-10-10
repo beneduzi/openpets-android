@@ -140,6 +140,7 @@ The app is the OpenPets **target**: it listens for one-line JSON requests and va
 | --- | --- | --- |
 | IPC `openpets-ipc` v1 | TCP, line-delimited JSON | `hello`, `status`, `pets.list`, `pets.install`, `pets.install-local`, `lease.acquire`, `lease.heartbeat`, `lease.release`, `pet.react`, `pet.say`, `pet.showMedia`, `pet.bubbleDismiss` |
 | Remote `openpets-remote` v1 | Raw TCP, one request per socket | `status`, `pet.react`, `pet.say` |
+| WebSocket `openpets-ws` v1 *(experimental)* | `ws://` LAN, opt-in (disabled by default) | streams pet/companion events; accepts the IPC command surface |
 
 - **Request** `{ id, version:1, token, method, params }` · **success** `{ id, ok:true, result }` · **error** `{ id, ok:false, error:{code,message} }`
 - Leases have a 15-second TTL. Remote is capped at 4 KB per request and rate-limited to 30 requests per minute.
