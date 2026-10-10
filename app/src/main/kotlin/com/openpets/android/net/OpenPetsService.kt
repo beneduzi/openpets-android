@@ -92,6 +92,10 @@ class OpenPetsService : Service() {
         }
 
         override fun onInputText(text: String) { /* No service-side action needed. */ }
+        override fun onMove(request: com.openpets.android.protocol.MoveRequest) {}
+        override fun onScale(scale: Float) {}
+        override fun onVisibility(visible: Boolean) {}
+        override fun onPointer(kind: String, x: Float, y: Float) {}
 
         override fun onMedia(request: MediaRequest) {
             if (settings.soundEnabled) sound.play()

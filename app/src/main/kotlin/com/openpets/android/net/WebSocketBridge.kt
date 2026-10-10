@@ -15,6 +15,7 @@ import com.openpets.android.protocol.isValidRemotePeerAddress
 import com.openpets.android.companion.HostStatusController
 import com.openpets.android.protocol.SayRequest
 import com.openpets.android.protocol.MediaRequest
+import com.openpets.android.protocol.MoveRequest
 import java.util.concurrent.ConcurrentHashMap
 
 class WebSocketBridge(
@@ -34,6 +35,10 @@ class WebSocketBridge(
         override fun onHud(hud: FeatureHud) = broadcast(WsMessages.eventFromHud(JsonParser.parseString(gson.toJson(hud))))
         override fun onAction(event: PetActionEvent) = broadcast(WsMessages.eventFromAction(event))
         override fun onInputText(text: String) = broadcast(WsMessages.eventFromInputText(text))
+        override fun onMove(request: MoveRequest) = broadcast(WsMessages.eventMove(request))
+        override fun onScale(scale: Float) = broadcast(WsMessages.eventScale(scale))
+        override fun onVisibility(visible: Boolean) = broadcast(WsMessages.eventVisibility(visible))
+        override fun onPointer(kind: String, x: Float, y: Float) = broadcast(WsMessages.eventPointer(kind, x, y))
     }
     @Volatile private var server: WebSocketServer? = null
     val isRunning: Boolean get() = server?.isRunning == true

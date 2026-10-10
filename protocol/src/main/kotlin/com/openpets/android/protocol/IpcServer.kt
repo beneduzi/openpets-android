@@ -111,6 +111,16 @@ class IpcDispatcher(
             sink.onReact(reaction, source)
             okResponse(request.id, okOnly())
         }
+        "pet.move" -> {
+            sink.onMove(MoveRequest(validateMoveX(request.params.float("x")), validateMoveY(request.params.float("y")), validateMoveDuration(request.params.int("durationMs"))))
+            okResponse(request.id, okOnly())
+        }
+        "pet.setScale" -> {
+            sink.onScale(validateScale(request.params.float("scale")))
+            okResponse(request.id, okOnly())
+        }
+        "pet.hide" -> { sink.onVisibility(false); okResponse(request.id, okOnly()) }
+        "pet.show" -> { sink.onVisibility(true); okResponse(request.id, okOnly()) }
         "pet.say" -> {
             requireLeaseIfNeeded(request.params)
             val message = validateSayMessage(request.params.str("message"))
@@ -280,3 +290,6 @@ internal fun JsonElement?.str(key: String): String? {
     val el = this.asJsonObject.get(key) ?: return null
     return if (el.isJsonPrimitive && el.asJsonPrimitive.isString) el.asJsonPrimitive.asString else null
 }
+
+internal fun JsonElement?.float(key: String): Float? = this?.takeIf { it.isJsonObject }?.asJsonObject?.floatOrNull(key)
+internal fun JsonElement?.int(key: String): Int? = this?.takeIf { it.isJsonObject }?.asJsonObject?.intOrNull(key)

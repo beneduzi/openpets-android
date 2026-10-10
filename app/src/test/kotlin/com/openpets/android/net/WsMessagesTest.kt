@@ -14,6 +14,13 @@ class WsMessagesTest {
         assertEquals("input.text", event.get("event").asString)
         assertEquals("hello agent", event.get("text").asString)
     }
+    @Test fun buildsPointerEvent() {
+        val event = JsonParser.parseString(WsMessages.eventPointer("tap", 0.25f, 0.75f)).asJsonObject
+        assertEquals("pointer", event.get("event").asString)
+        assertEquals("tap", event.get("kind").asString)
+        assertEquals(0.25f, event.get("x").asFloat)
+        assertEquals(0.75f, event.get("y").asFloat)
+    }
     @Test fun buildsActionEvent() {
         val event = JsonParser.parseString(WsMessages.eventFromAction(PetActionEvent("bubble-1", "approve"))).asJsonObject
         assertEquals("event", event.get("type").asString)

@@ -86,6 +86,9 @@ class IpcLeaseTest {
             override fun onSay(request: SayRequest) = Unit
             override fun onMedia(request: MediaRequest) = Unit
             override fun onDismissBubble(id: String?) = Unit
+            override fun onMove(request: MoveRequest) = Unit
+            override fun onScale(scale: Float) = Unit
+            override fun onVisibility(visible: Boolean) = Unit
         }
         val dispatcher = IpcDispatcher(sink, "0.1.0", StaticPetCatalogProvider(), null, false, { now })
         fun request(id: String, method: String, params: String) = IpcRequest(

@@ -5,6 +5,7 @@ import com.google.gson.JsonParser
 import com.google.gson.JsonObject
 import com.openpets.android.PetActionEvent
 import com.openpets.android.companion.HostStatus
+import com.openpets.android.protocol.MoveRequest
 
 data class WsCommand(val id: String, val method: String, val params: JsonElement?)
 
@@ -38,6 +39,15 @@ object WsMessages {
     fun eventFromInputText(text: String): String = JsonObject().apply {
         addProperty("type", "event"); addProperty("event", "input.text"); addProperty("text", text)
     }.toString()
+
+    fun eventPointer(kind: String, x: Float, y: Float): String = JsonObject().apply {
+        addProperty("type", "event"); addProperty("event", "pointer"); addProperty("kind", kind); addProperty("x", x); addProperty("y", y)
+    }.toString()
+    fun eventMove(request: MoveRequest): String = JsonObject().apply {
+        addProperty("type", "event"); addProperty("event", "move"); addProperty("x", request.x); request.y?.let { addProperty("y", it) }; addProperty("durationMs", request.durationMs)
+    }.toString()
+    fun eventScale(scale: Float): String = JsonObject().apply { addProperty("type", "event"); addProperty("event", "scale"); addProperty("scale", scale) }.toString()
+    fun eventVisibility(visible: Boolean): String = JsonObject().apply { addProperty("type", "event"); addProperty("event", "visibility"); addProperty("visible", visible) }.toString()
 
     fun parseCommand(text: String): WsCommand {
         val obj = JsonParser.parseString(text).asJsonObject

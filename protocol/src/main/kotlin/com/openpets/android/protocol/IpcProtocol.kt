@@ -30,7 +30,7 @@ val REACTIONS: List<String> = listOf(
 val IPC_METHODS: List<String> = listOf(
     "hello", "status", "pets.list", "pets.install", "pets.install-local",
     "lease.acquire", "lease.heartbeat", "lease.release",
-    "pet.react", "pet.say", "pet.showMedia", "pet.bubbleDismiss",
+    "pet.react", "pet.say", "pet.showMedia", "pet.bubbleDismiss", "pet.move", "pet.setScale", "pet.hide", "pet.show",
 )
 
 /** Protocol violation carrying the machine-readable error code used on the wire. */
@@ -131,6 +131,22 @@ fun validateReaction(value: String?): String {
     if (value == null || value !in REACTIONS) {
         throw IpcProtocolError("invalid_params", "Invalid pet reaction.")
     }
+    return value
+}
+
+fun validateMoveX(value: Float?): Float = validateFraction(value, "Move x")
+fun validateMoveY(value: Float?): Float? = value?.let { validateFraction(it, "Move y") }
+private fun validateFraction(value: Float?, label: String): Float {
+    if (value == null || !value.isFinite() || value !in 0f..1f) throw IpcProtocolError("invalid_params", "$label must be between 0 and 1.")
+    return value
+}
+fun validateMoveDuration(value: Int?): Int {
+    if (value == null) return 300
+    if (value !in 0..10_000) throw IpcProtocolError("invalid_params", "Move duration is out of range.")
+    return value
+}
+fun validateScale(value: Float?): Float {
+    if (value == null || !value.isFinite() || value !in 0.25f..3f) throw IpcProtocolError("invalid_params", "Scale must be between 0.25 and 3.")
     return value
 }
 

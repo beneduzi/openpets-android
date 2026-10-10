@@ -25,6 +25,7 @@ import com.openpets.android.protocol.BUSY_REACTIONS
 import com.openpets.android.protocol.BubbleInput
 import com.openpets.android.protocol.DEFAULT_WAITING_ANIMATION_MS
 import com.openpets.android.protocol.MediaRequest
+import com.openpets.android.protocol.MoveRequest
 import com.openpets.android.protocol.PetAction
 import com.openpets.android.protocol.PetReactionStateMachine
 import com.openpets.android.protocol.ProjectColorStore
@@ -95,7 +96,7 @@ class PetStageView @JvmOverloads constructor(
     /** Fraction of stage width the pet occupies. */
     var petScale: Float = 0.7f
         set(value) {
-            val clamped = value.coerceIn(0.2f, 1.0f)
+            val clamped = value.coerceIn(0.25f, 3.0f)
             if (field != clamped) {
                 field = clamped
                 requestLayout()
@@ -103,6 +104,19 @@ class PetStageView @JvmOverloads constructor(
         }
 
     val currentReaction: String get() = machine.currentReaction
+
+    fun movePet(request: MoveRequest) {
+        val maxOffset = maxHorizontalOffset()
+        val targetX = (request.x * width - petView.measuredWidth / 2f - (width - petView.measuredWidth) / 2f).coerceIn(-maxOffset, maxOffset)
+        movePetTo(targetX, request.durationMs.toLong())
+        request.y?.let { fraction ->
+            val top = (fraction * height - petView.measuredHeight / 2f).coerceIn(0f, (height - petView.measuredHeight).coerceAtLeast(0).toFloat())
+            petView.translationY = top - ((height - petView.measuredHeight).coerceAtLeast(0) / 2f)
+        }
+    }
+
+    fun applyPetScale(scale: Float) { petScale = scale.coerceIn(0.25f, 3f); requestLayout(); invalidate() }
+    fun setPetVisible(visible: Boolean) { petView.visibility = if (visible) VISIBLE else GONE }
 
     init {
         addView(mediaView)
@@ -537,7 +551,7 @@ class PetStageView @JvmOverloads constructor(
             resolveSize(height, heightMeasureSpec),
         )
 
-        val petWidth = (minOf(width, height) * petScale).toInt()
+        val petWidth = (minOf(width, height) * petScale).toInt().coerceAtMost(width)
         val petHeight = petWidth * SPRITE_FRAME_HEIGHT / SPRITE_FRAME_WIDTH
         petView.measure(
             MeasureSpec.makeMeasureSpec(petWidth, MeasureSpec.EXACTLY),
@@ -660,6 +674,7 @@ class PetStageView @JvmOverloads constructor(
                 }
                 if (draggingPet) {
                     movePetToTouch(event.x)
+                    PetBus.pointer("drag", (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f), (event.y / height.coerceAtLeast(1)).coerceIn(0f, 1f))
                 }
                 return true
             }
@@ -670,6 +685,7 @@ class PetStageView @JvmOverloads constructor(
                         scheduleRoam(nextRoamDelay())
                     }
                 } else if (!longPressFired) {
+                    PetBus.pointer("tap", (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f), (event.y / height.coerceAtLeast(1)).coerceIn(0f, 1f))
                     onTap?.invoke()
                 }
                 draggingPet = false

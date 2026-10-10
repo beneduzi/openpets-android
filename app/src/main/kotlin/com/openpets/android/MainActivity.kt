@@ -82,6 +82,7 @@ import com.openpets.android.protocol.MediaRequest
 import com.openpets.android.protocol.REACTIONS
 import com.openpets.android.protocol.SELECTABLE_ANIMATIONS
 import com.openpets.android.protocol.SayRequest
+import com.openpets.android.protocol.MoveRequest
 import com.openpets.android.protocol.resolveReactionSpriteState
 import com.openpets.android.settings.AppSettings
 import com.openpets.android.vocab.VocabularyClient
@@ -352,6 +353,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
 
     override fun onAction(event: PetActionEvent) {}
     override fun onInputText(text: String) {}
+    override fun onMove(request: MoveRequest) { if (::stage.isInitialized) stage.movePet(request) }
+    override fun onScale(scale: Float) { if (::stage.isInitialized) stage.applyPetScale(scale) }
+    override fun onVisibility(visible: Boolean) { if (::stage.isInitialized) stage.setPetVisible(visible) }
+    override fun onPointer(kind: String, x: Float, y: Float) {}
 
     private fun speak(text: String) {
         if (!ttsReady) return

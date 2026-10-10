@@ -6,6 +6,7 @@ import com.openpets.android.protocol.MediaRequest
 import com.openpets.android.protocol.PetEventSink
 import com.openpets.android.protocol.SayRequest
 import com.openpets.android.protocol.HudItem
+import com.openpets.android.protocol.MoveRequest
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -33,6 +34,10 @@ object PetBus {
         fun onHud(hud: FeatureHud)
         fun onAction(event: PetActionEvent)
         fun onInputText(text: String)
+        fun onMove(request: MoveRequest)
+        fun onScale(scale: Float)
+        fun onVisibility(visible: Boolean)
+        fun onPointer(kind: String, x: Float, y: Float)
     }
 
     private val listeners = CopyOnWriteArrayList<Listener>()
@@ -74,11 +79,19 @@ object PetBus {
         main.post { listeners.forEach { it.onInputText(text) } }
     }
 
+    fun move(request: MoveRequest) { main.post { listeners.forEach { it.onMove(request) } } }
+    fun scale(value: Float) { main.post { listeners.forEach { it.onScale(value) } } }
+    fun visibility(value: Boolean) { main.post { listeners.forEach { it.onVisibility(value) } } }
+    fun pointer(kind: String, x: Float, y: Float) { main.post { listeners.forEach { it.onPointer(kind, x, y) } } }
+
     /** Sink handed to the IPC/remote servers. */
     val sink: PetEventSink = object : PetEventSink {
         override fun onReact(reaction: String, source: String?) = react(reaction, source)
         override fun onSay(request: SayRequest) = say(request)
         override fun onMedia(request: MediaRequest) = media(request)
         override fun onDismissBubble(id: String?) = dismissBubble(id)
+        override fun onMove(request: MoveRequest) = move(request)
+        override fun onScale(scale: Float) = scale(scale)
+        override fun onVisibility(visible: Boolean) = visibility(visible)
     }
 }

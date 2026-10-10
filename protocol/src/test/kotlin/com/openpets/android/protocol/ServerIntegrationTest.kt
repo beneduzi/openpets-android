@@ -33,6 +33,9 @@ private class FakeSink : PetEventSink {
     override fun onDismissBubble(id: String?) {
         dismissals.add(id)
     }
+    override fun onMove(request: MoveRequest) {}
+    override fun onScale(scale: Float) {}
+    override fun onVisibility(visible: Boolean) {}
 }
 
 private const val IPC_TOKEN = "0123456789abcdef0123456789abcdef"
