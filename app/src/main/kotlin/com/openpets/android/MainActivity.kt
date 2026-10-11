@@ -1,5 +1,5 @@
 package com.openpets.android
-
+  
 import android.Manifest
 import android.app.AlertDialog
 import android.app.DatePickerDialog
@@ -363,6 +363,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     override fun onPointer(kind: String, phase: String, x: Float, y: Float) {}
     override fun onNotify(request: com.openpets.android.protocol.NotificationRequest) {}
     override fun onStatus(text: String, tone: String?) {}
+    override fun onStatusClear() {}
     override fun onPower(plugged: Boolean, level: Int) {}
     override fun onCommandInvoked(event: CommandInvoked) {}
     override fun onFormSubmit(event: com.openpets.android.FormSubmit) {}

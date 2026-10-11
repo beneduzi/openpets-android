@@ -129,6 +129,11 @@ class IpcDispatcher(
             sink.onStatus(validateStatusText(request.params.str("text")), validateStatusTone(request.params.str("tone")))
             okResponse(request.id, okOnly())
         }
+        "status.clear" -> {
+            requireLeaseIfNeeded(request.params)
+            sink.onStatusClear()
+            okResponse(request.id, okOnly())
+        }
         "pet.say" -> {
             requireLeaseIfNeeded(request.params)
             val message = validateSayMessage(request.params.str("message"))
@@ -146,6 +151,8 @@ class IpcDispatcher(
                 bubbleId = validateBubbleId(obj?.stringOrNull("id")),
                 pinned = obj?.get("pinned")?.takeIf { it.isJsonPrimitive }?.asBoolean ?: false,
                 silent = obj?.get("silent")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isBoolean }?.asBoolean ?: false,
+                accentHex = validateAccentHex(obj?.stringOrNull("accent")),
+                label = sanitizeSource(obj?.stringOrNull("label")),
             )
             sink.onSay(say)
             okResponse(request.id, okOnly())

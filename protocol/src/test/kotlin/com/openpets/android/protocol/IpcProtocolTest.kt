@@ -103,6 +103,7 @@ class IpcLeaseTest {
             override fun onVisibility(visible: Boolean) = Unit
             override fun onNotify(request: NotificationRequest) = Unit
             override fun onStatus(text: String, tone: String?) = Unit
+            override fun onStatusClear() = Unit
         }
         val dispatcher = IpcDispatcher(sink, "0.1.0", StaticPetCatalogProvider(), null, false, { now })
         fun request(id: String, method: String, params: String) = IpcRequest(

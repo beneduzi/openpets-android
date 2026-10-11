@@ -51,11 +51,20 @@ class WsMessagesTest {
     @Test fun helloStatusAndEventMessagesRoundTrip() {
         assertEquals("hello", JsonParser.parseString(WsMessages.hello("1.2")).asJsonObject.get("type").asString)
         assertEquals("1.2", JsonParser.parseString(WsMessages.hello("1.2")).asJsonObject.get("appVersion").asString)
+        val hello = JsonParser.parseString(WsMessages.hello("1.2")).asJsonObject
+        assertTrue(hello.getAsJsonObject("capabilities").get("silentUpdates").asBoolean)
+        assertEquals(1048576, hello.getAsJsonObject("limits").get("maxFrameBytes").asInt)
         val value = JsonParser.parseString("{\"ok\":true,\"count\":2}")
         assertEquals(value.toString(), JsonParser.parseString(WsMessages.status(value)).asJsonObject.get("result").toString())
         val event = JsonParser.parseString(WsMessages.event("react", JsonParser.parseString("{\"reaction\":\"idle\"}"))).asJsonObject
         assertEquals("event", event.get("type").asString); assertEquals("react", event.get("event").asString)
         assertEquals("idle", event.getAsJsonObject("payload").get("reaction").asString)
+    }
+
+    @Test fun buildsStatusClearEvent() {
+        val event = JsonParser.parseString(WsMessages.eventFromStatusClear()).asJsonObject
+        assertTrue(event.get("clear").asBoolean)
+        assertEquals("status", event.get("event").asString)
     }
 
     @Test fun parsesCommandsAndBuildsResultsAndErrors() {

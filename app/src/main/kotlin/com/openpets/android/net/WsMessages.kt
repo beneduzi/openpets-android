@@ -25,8 +25,20 @@ object WsMessages {
         } catch (_: Exception) { null }
     }
 
-    fun hello(appVersion: String): String = JsonObject().apply { addProperty("type", "hello"); addProperty("appVersion", appVersion) }.toString()
-    fun status(resultJson: JsonElement): String = JsonObject().apply { addProperty("type", "status"); add("result", resultJson) }.toString()
+    private fun capabilities() = JsonObject().apply {
+        addProperty("actions", true); addProperty("commands", true); addProperty("hud", true); addProperty("media", true)
+        addProperty("silentUpdates", true); addProperty("formSubmit", true); addProperty("pointerPhases", true); addProperty("voiceCaptureId", true)
+    }
+    private fun limits() = JsonObject().apply {
+        addProperty("maxMessage", 140); addProperty("maxHudItems", 4); addProperty("maxBubbleActions", 4)
+        addProperty("maxInputs", 4); addProperty("maxHudLabel", 24); addProperty("maxFrameBytes", 1048576)
+    }
+    fun hello(appVersion: String): String = JsonObject().apply {
+        addProperty("type", "hello"); addProperty("appVersion", appVersion); add("capabilities", capabilities()); add("limits", limits())
+    }.toString()
+    fun status(resultJson: JsonElement): String = JsonObject().apply {
+        addProperty("type", "status"); add("result", resultJson); add("capabilities", capabilities()); add("limits", limits())
+    }.toString()
     fun event(kind: String, payloadJson: JsonElement): String = JsonObject().apply { addProperty("type", "event"); addProperty("event", kind); add("payload", payloadJson) }.toString()
     fun eventFromSay(payloadJson: JsonElement) = event("say", payloadJson)
     fun eventFromReact(payloadJson: JsonElement) = event("react", payloadJson)
@@ -49,6 +61,9 @@ object WsMessages {
     }.toString()
     fun eventFromStatus(text: String, tone: String?): String = JsonObject().apply {
         addProperty("type", "event"); addProperty("event", "status"); addProperty("text", text); tone?.let { addProperty("tone", it) }
+    }.toString()
+    fun eventFromStatusClear(): String = JsonObject().apply {
+        addProperty("type", "event"); addProperty("event", "status"); addProperty("clear", true)
     }.toString()
     fun eventFromPower(plugged: Boolean, level: Int): String = JsonObject().apply {
         addProperty("type", "event"); addProperty("event", "power"); addProperty("plugged", plugged); addProperty("level", level)

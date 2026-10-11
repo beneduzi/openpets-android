@@ -30,7 +30,7 @@ val REACTIONS: List<String> = listOf(
 val IPC_METHODS: List<String> = listOf(
     "hello", "status", "pets.list", "pets.install", "pets.install-local",
     "lease.acquire", "lease.heartbeat", "lease.release",
-    "pet.react", "pet.say", "pet.showMedia", "pet.bubbleDismiss", "pet.move", "pet.setScale", "pet.hide", "pet.show", "notify", "status.publish",
+    "pet.react", "pet.say", "pet.showMedia", "pet.bubbleDismiss", "pet.move", "pet.setScale", "pet.hide", "pet.show", "notify", "status.clear", "status.publish",
 )
 
 /** Protocol violation carrying the machine-readable error code used on the wire. */
@@ -130,6 +130,14 @@ fun errorResponse(id: String, error: Throwable): JsonObject {
 fun validateReaction(value: String?): String {
     if (value == null || value !in REACTIONS) {
         throw IpcProtocolError("invalid_params", "Invalid pet reaction.")
+    }
+    return value
+}
+
+fun validateAccentHex(value: String?): String? {
+    if (value == null || value.isBlank()) return null
+    if (!Regex("^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$").matches(value)) {
+        throw IpcProtocolError("invalid_params", "Accent is invalid.")
     }
     return value
 }

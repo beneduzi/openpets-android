@@ -45,6 +45,8 @@ data class SayRequest(
     /** Pinned bubbles do not auto-dismiss. */
     val pinned: Boolean = false,
     val silent: Boolean = false,
+    val accentHex: String? = null,
+    val label: String? = null,
 )
 
 /** A request to display an image/GIF on the pet (`pet.showMedia`). */
@@ -76,4 +78,5 @@ interface PetEventSink {
     fun onVisibility(visible: Boolean)
     fun onNotify(request: NotificationRequest)
     fun onStatus(text: String, tone: String?)
+    fun onStatusClear()
 }

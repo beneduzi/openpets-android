@@ -175,9 +175,13 @@ node tools/send-media.mjs    192.168.0.14 18420 <IPC_TOKEN> ./print.png "screens
 
 Requests use `{ id, version:1, token, method, params }`. Success responses use `{ id, ok:true, result }`; errors use `{ id, ok:false, error:{code,message} }`.
 
-**Accepted methods:** `hello`, `status`, `pets.list`, `pets.install`, `pets.install-local`, `lease.acquire`, `lease.heartbeat`, `lease.release`, `pet.react`, `pet.say`, `pet.showMedia`, `pet.bubbleDismiss`, `pet.move`, `pet.setScale`, `pet.hide`, `pet.show`, `notify`, `status.publish`.
+**Accepted methods:** `hello`, `status`, `pets.list`, `pets.install`, `pets.install-local`, `lease.acquire`, `lease.heartbeat`, `lease.release`, `pet.react`, `pet.say`, `pet.showMedia`, `pet.bubbleDismiss`, `pet.move`, `pet.setScale`, `pet.hide`, `pet.show`, `notify`, `status.clear`, `status.publish`.
 
-`pet.say` accepts optional `silent: true` to suppress sound, haptics, TTS, and notification (for mirrored HUD/state updates).
+`pet.say` accepts optional `silent: true` to suppress sound, haptics, TTS, and notification (for mirrored HUD/state updates). Optional `accent` accepts `#RRGGBB` or `#AARRGGBB`, and optional `label` overrides the bubble label.
+
+`status.clear` restores the app's default foreground notification status line after a `status.publish`.
+
+WebSocket `hello` and `status` frames advertise `capabilities` (`actions`, `commands`, `hud`, `media`, `silentUpdates`, `formSubmit`, `pointerPhases`, `voiceCaptureId`) and `limits` (`maxMessage:140`, `maxHudItems:4`, `maxBubbleActions:4`, `maxInputs:4`, `maxHudLabel:24`, `maxFrameBytes:1048576`). HUD items should send an explicit `max`; omitted `max` defaults to 1.
 
 Clients can call `notify` with a title and optional body to post a phone notification.
 

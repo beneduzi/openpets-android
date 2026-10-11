@@ -40,6 +40,8 @@ private class FakeSink : PetEventSink {
     override fun onVisibility(visible: Boolean) {}
     override fun onNotify(request: NotificationRequest) { notifications.add(request) }
     override fun onStatus(text: String, tone: String?) { statuses.add(text to tone) }
+    var statusClears = 0
+    override fun onStatusClear() { statusClears++ }
 }
 
 private const val IPC_TOKEN = "0123456789abcdef0123456789abcdef"
@@ -79,6 +81,15 @@ class IpcServerTest {
             assertEquals("On it", sink.says.first().message)
             assertEquals("editing", sink.says.first().reaction)
             assertEquals(false, sink.says.first().silent)
+
+            val styled = json(port, ipc("styled", "pet.say", """{"message":"x","accent":"#ff8800","label":"Build"}"""))
+            assertTrue(styled.get("ok").asBoolean)
+            assertEquals("#ff8800", sink.says.last().accentHex)
+            assertEquals("Build", sink.says.last().label)
+            val badAccent = json(port, ipc("bad-accent", "pet.say", """{"message":"x","accent":"#zz"}"""))
+            assertEquals("invalid_params", badAccent.getAsJsonObject("error").get("code").asString)
+            assertTrue(json(port, ipc("clear", "status.clear", "{}" )).get("ok").asBoolean)
+            assertEquals(1, sink.statusClears)
 
             val silentSay = json(port, ipc("silent", "pet.say", """{"message":"x","silent":true}"""))
             assertTrue(silentSay.get("ok").asBoolean)

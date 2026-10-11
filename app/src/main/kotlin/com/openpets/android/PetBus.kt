@@ -48,6 +48,7 @@ object PetBus {
         fun onCommandInvoked(event: CommandInvoked)
         fun onCommandsChanged()
         fun onStatus(text: String, tone: String?)
+        fun onStatusClear()
         fun onPower(plugged: Boolean, level: Int)
     }
 
@@ -106,6 +107,7 @@ object PetBus {
     fun invokeCommand(source: String, commandId: String) { val event = CommandInvoked(source, commandId); main.post { listeners.forEach { it.onCommandInvoked(event) } } }
     fun commandsChanged() { main.post { listeners.forEach { it.onCommandsChanged() } } }
     fun status(text: String, tone: String?) { main.post { listeners.forEach { it.onStatus(text, tone) } } }
+    fun statusClear() { main.post { listeners.forEach { it.onStatusClear() } } }
     fun power(plugged: Boolean, level: Int) { main.post { listeners.forEach { it.onPower(plugged, level) } } }
 
     /** Sink handed to the IPC/remote servers. */
@@ -119,5 +121,6 @@ object PetBus {
         override fun onVisibility(visible: Boolean) = visibility(visible)
         override fun onNotify(request: NotificationRequest) = notify(request)
         override fun onStatus(text: String, tone: String?) = status(text, tone)
+        override fun onStatusClear() = statusClear()
     }
 }

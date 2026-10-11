@@ -199,12 +199,13 @@ class PetStageView @JvmOverloads constructor(
         featureHudSource = null
         val reaction = request.reaction
         if (reaction != null) react(reaction, request.source)
-        val accent = colorStore.accentFor(request.source) ?: lastAccent
+        val accent = request.accentHex?.let { runCatching { android.graphics.Color.parseColor(it) }.getOrNull() }
+            ?: colorStore.accentFor(request.source) ?: lastAccent
         showForm(request)
         bubbleView.show(
             text = request.message,
             accent = accent,
-            label = sanitizeSource(request.source),
+            label = request.label ?: sanitizeSource(request.source),
             durationMs = if (request.pinned) 0L else TRANSIENT_DISPLAY_MS.toLong(),
             actions = request.actions,
             hud = request.hud,
