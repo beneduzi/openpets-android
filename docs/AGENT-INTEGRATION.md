@@ -124,6 +124,7 @@ Pointer events have `{ "type":"event", "event":"pointer", "kind": …, "phase": 
 An optional `ws://` endpoint (default port `18423`) that is **disabled by default** and marked **experimental**. Enable it in Settings → *WebSocket (experimental)*. It:
 
 - authenticates with the **IPC token** and only accepts **private/local IPv4** peers;
+- caps concurrent connections (32) and closes any that don't complete the WebSocket handshake within **10 seconds** (TCP keepalive enabled), so stalled or leaked clients cannot hold slots;
 - sends `hello` + `status` on connect, then streams pet/companion events as JSON frames;
 - accepts the same command surface as IPC: send `{ "id", "method", "params" }` and receive `{ "id", "ok", "result" }` or `{ "id", "ok", "error" }`.
 

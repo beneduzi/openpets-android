@@ -71,6 +71,33 @@ class WebSocketTest {
         } finally { server.stop() }
     }
 
+    @Test fun closesConnectionsThatNeverCompleteTheHandshake() {
+        val listener = object : WebSocketListener {
+            override fun onOpen(conn: WebSocketConnection) {}
+            override fun onMessage(conn: WebSocketConnection, text: String) {}
+            override fun onClose(conn: WebSocketConnection) {}
+        }
+        val server = WebSocketServer(0, "127.0.0.1", 2, handshakeTimeoutMs = 300, listener = listener)
+        try {
+            val port = server.start()
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 5000
+                val started = System.currentTimeMillis()
+                // Send nothing: the server must close the socket once the handshake deadline passes.
+                assertEquals(-1, socket.getInputStream().read())
+                val elapsed = System.currentTimeMillis() - started
+                assertTrue("handshake not bounded: ${elapsed}ms", elapsed < 4000)
+            }
+            // The freed slot is usable: a normal handshake still succeeds on the same server.
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 2000
+                socket.getOutputStream().write(request(includeKey = true).toByteArray(Charsets.US_ASCII))
+                socket.getOutputStream().flush()
+                assertTrue(readHeaders(socket.getInputStream()).startsWith("HTTP/1.1 101"))
+            }
+        } finally { server.stop() }
+    }
+
     private fun request(includeKey: Boolean): String = buildString {
         append("GET /?token=abc HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n")
         if (includeKey) append("Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n")

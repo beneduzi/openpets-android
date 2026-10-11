@@ -52,11 +52,14 @@ interface WebSocketConnection {
     val isOpen: Boolean
 }
 
+const val WS_HANDSHAKE_TIMEOUT_MS = 10_000
+
 class WebSocketServer(
     private val port: Int,
     private val bindAddress: String,
     private val maxConcurrent: Int,
     private val maxPayloadBytes: Int = 1024 * 1024,
+    private val handshakeTimeoutMs: Int = WS_HANDSHAKE_TIMEOUT_MS,
     private val authorize: (peer: InetAddress, path: String, query: Map<String, String>) -> Boolean = { _, _, _ -> true },
     private val listener: WebSocketListener
 ) {
@@ -87,6 +90,9 @@ class WebSocketServer(
 
     private fun handle(socket: Socket) {
         socket.use { s ->
+            // A client that connects but never completes the handshake must not hold a slot forever.
+            try { s.soTimeout = handshakeTimeoutMs } catch (_: Exception) {}
+            try { s.keepAlive = true } catch (_: Exception) {}
             val input = s.getInputStream(); val output = s.getOutputStream()
             val request = readHeader(input) ?: return
             val lines = request.split("\r\n")
@@ -104,6 +110,8 @@ class WebSocketServer(
             }
             if (!authorize(s.inetAddress, path, query)) { output.write("HTTP/1.1 403 Forbidden\r\n\r\n".toByteArray()); return }
             output.write(("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${computeAcceptKey(key)}\r\n\r\n").toByteArray(Charsets.US_ASCII)); output.flush()
+            // Established connections may legitimately sit idle; the handshake deadline no longer applies.
+            try { s.soTimeout = 0 } catch (_: Exception) {}
             val conn = Connection(s)
             listener.onOpen(conn)
             try {
