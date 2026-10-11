@@ -158,6 +158,23 @@ optional actions/click) — see `pet.showMedia` in the agent guide.
 cp openpets-media.ts ~/.config/opencode/plugins/openpets-media.ts
 ```
 
+## `openpets-move.ts` — puppet the pet (experimental)
+
+Registers two tools to control the pet's position and animation:
+
+- **`move`** `{ x, y?, durationMs? }` — walk the pet to a position (`x`/`y` are
+  fractions 0..1 of the screen). It plays the **directional walk animation** and
+  waits for the walk to finish, so chained moves play in order.
+- **`react`** `{ reaction }` — play any reaction animation.
+
+So a session can do *"move right, then left, then right, then idle, then
+celebrate."*
+
+```bash
+cp openpets-move.ts ~/.config/opencode/plugins/openpets-move.ts
+```
+
+
 
 ## How the round-trip works (server side)
 
