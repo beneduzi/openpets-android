@@ -537,15 +537,21 @@ class PetStageView @JvmOverloads constructor(
         val startOffset = petView.translationX
         val limit = maxHorizontalOffset()
         val target = targetOffset.coerceIn(-limit, limit)
+        if (kotlin.math.abs(target - startOffset) < 1f) return
+        // Play the directional walk sprite while moving, then restore the state sprite.
+        val goingRight = target > startOffset
+        petView.spriteState = spriteStateFor(if (goingRight) "running-right" else "running-left")
         val startAt = SystemClock.uptimeMillis()
+        val duration = durationMs.coerceAtLeast(1L)
         val step = object : Runnable {
             override fun run() {
-                val t = ((SystemClock.uptimeMillis() - startAt).toFloat() / durationMs).coerceIn(0f, 1f)
+                val t = ((SystemClock.uptimeMillis() - startAt).toFloat() / duration).coerceIn(0f, 1f)
                 setPetOffset(startOffset + (target - startOffset) * t)
                 if (t < 1f) {
                     petView.postOnAnimation(this)
                 } else {
                     activeWalk = null
+                    petView.spriteState = currentSprite()
                 }
             }
         }
