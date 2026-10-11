@@ -88,7 +88,7 @@ class FocusController private constructor(context: Context, runtimeInstance: Boo
         if (current.state != FocusState.FOCUS && current.state != FocusState.BREAK) return
         val key = key(current)
         val isBreak = current.state == FocusState.BREAK
-        val title = if (isBreak) "Break" else "Focus"
+        val title = if (isBreak) appContext.getString(com.openpets.android.R.string.settings_focus_break) else appContext.getString(com.openpets.android.R.string.settings_focus_title)
         PetBus.hud(
             FeatureHud(
                 bubbleId = "focus-buddy",
@@ -104,7 +104,7 @@ class FocusController private constructor(context: Context, runtimeInstance: Boo
 
     private fun announcePhase(snapshot: FocusSnapshot) {
         val isBreak = snapshot.state == FocusState.BREAK
-        val message = if (isBreak) "Break time" else "Focus session"
+        val message = if (isBreak) appContext.getString(com.openpets.android.R.string.settings_focus_break_time) else appContext.getString(com.openpets.android.R.string.settings_focus_session)
         lastHudKey = key(snapshot)
         NotificationHelper(appContext).notifyFocusFinished(message, message)
         PetBus.hud(
@@ -113,7 +113,7 @@ class FocusController private constructor(context: Context, runtimeInstance: Boo
                 source = "focus",
                 message = message,
                 subtext = TimerEngine.formatRemaining(snapshot.phaseRemainingMs),
-                hud = listOf(HudItem(if (isBreak) "Break" else "Focus", snapshot.phaseRemainingMs.toFloat(), snapshot.phaseTotalMs.toFloat().coerceAtLeast(1f), "info", "focus")),
+                hud = listOf(HudItem(if (isBreak) appContext.getString(com.openpets.android.R.string.settings_focus_break) else appContext.getString(com.openpets.android.R.string.settings_focus_title), snapshot.phaseRemainingMs.toFloat(), snapshot.phaseTotalMs.toFloat().coerceAtLeast(1f), "info", "focus")),
                 claim = true,
             ),
         )

@@ -13,7 +13,7 @@ import com.openpets.android.companion.SttState
 
 private const val VOICE_PERMISSION_REQUEST=1003
 class VoiceFragment:SettingsScreenFragment(),SettingsPermissionResultHandler{
-    override val screenTitle="Voice input"
+    override val screenTitle get()=getString(com.openpets.android.R.string.ui_voice)
     private var stt:SttController?=null
     private var state=SttState.IDLE
     private val callbackEpoch=CallbackEpoch()
@@ -21,8 +21,8 @@ class VoiceFragment:SettingsScreenFragment(),SettingsPermissionResultHandler{
     private var permissionDenied=false
     private var hasPermission=false
     override fun rows():List<SettingRow>{
-        val status=when{!hasPermission->if(permissionDenied)getString(R.string.voice_permission)else "Microphone permission required";else->when(state){SttState.IDLE->"Ready";SttState.LISTENING->getString(R.string.voice_listening);SttState.ERROR->getString(R.string.voice_error);SttState.UNAVAILABLE->getString(R.string.voice_unavailable)}}
-        return listOf(SettingRow.InfoRow("voiceStatus","Status",status),SettingRow.ActionRow("voiceListen",if(!hasPermission)"Grant microphone access" else if(state==SttState.LISTENING)"Stop" else getString(R.string.voice_speak),null))
+        val status=when{!hasPermission->if(permissionDenied)getString(R.string.voice_permission)else getString(com.openpets.android.R.string.ui_voice_permission_required);else->when(state){SttState.IDLE->getString(com.openpets.android.R.string.ui_voice_ready);SttState.LISTENING->getString(R.string.voice_listening);SttState.ERROR->getString(R.string.voice_error);SttState.UNAVAILABLE->getString(R.string.voice_unavailable)}}
+        return listOf(SettingRow.InfoRow("voiceStatus",getString(com.openpets.android.R.string.ui_voice_status),status),SettingRow.ActionRow("voiceListen",if(!hasPermission)getString(com.openpets.android.R.string.ui_grant_mic) else if(state==SttState.LISTENING)getString(com.openpets.android.R.string.ui_stop) else getString(R.string.voice_speak),null))
     }
     override fun onViewCreated(view:android.view.View,savedInstanceState:Bundle?){
         hasPermission=ContextCompat.checkSelfPermission(requireContext(),Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED
@@ -33,7 +33,7 @@ class VoiceFragment:SettingsScreenFragment(),SettingsPermissionResultHandler{
     private fun isCurrent(token:Long)=callbackEpoch.isCurrent(token)&&isAdded&&view!=null&&viewLifecycleOwner.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)
     override fun onRowClicked(row:SettingRow){if((row as? SettingRow.ActionRow)?.key!="voiceListen")return
         if(!hasPermission){AlertDialog.Builder(requireContext()).setTitle(R.string.voice_title).setMessage(R.string.voice_permission)
-            .setPositiveButton("Grant"){_,_->(requireActivity() as SettingsHost).requestSettingsPermission(Manifest.permission.RECORD_AUDIO,VOICE_PERMISSION_REQUEST)}
+            .setPositiveButton(com.openpets.android.R.string.ui_grant){_,_->(requireActivity() as SettingsHost).requestSettingsPermission(Manifest.permission.RECORD_AUDIO,VOICE_PERMISSION_REQUEST)}
             .setNegativeButton(R.string.dialog_close,null).show();return}
         val controller=stt?:return
         if(state==SttState.LISTENING){controller.stop();state=SttState.IDLE}

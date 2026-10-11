@@ -12,6 +12,7 @@ class MoodController private constructor(context: Context, runtimeInstance: Bool
     constructor(context: Context) : this(context, false)
 
     private val delegate: MoodController? = if (runtimeInstance) null else CompanionRuntime.run { init(context); mood }
+    private val appContext = context.applicationContext
     private val store = MoodStore(context.applicationContext)
     private val engine = MoodEngine()
     private val listeners = CopyOnWriteArrayList<(List<MoodEntry>) -> Unit>()
@@ -51,10 +52,10 @@ class MoodController private constructor(context: Context, runtimeInstance: Bool
         val entry = engine.latest() ?: return
         val average = engine.average(7)
         val levelText = when (entry.level()) {
-            MoodLevel.LOW -> "Low"
-            MoodLevel.OK -> "Okay"
-            MoodLevel.GOOD -> "Good"
-            MoodLevel.GREAT -> "Great"
+            MoodLevel.LOW -> appContext.getString(com.openpets.android.R.string.settings_mood_low)
+            MoodLevel.OK -> appContext.getString(com.openpets.android.R.string.settings_mood_okay)
+            MoodLevel.GOOD -> appContext.getString(com.openpets.android.R.string.settings_mood_good)
+            MoodLevel.GREAT -> appContext.getString(com.openpets.android.R.string.settings_mood_great)
         }
         PetBus.hud(
             FeatureHud(

@@ -50,6 +50,8 @@ class BreathingController private constructor(context: Context, runtimeInstance:
     fun addListener(l: (BreathSnapshot) -> Unit) { (delegate ?: this).listeners.addIfAbsent(l) }
     fun removeListener(l: (BreathSnapshot) -> Unit) { (delegate ?: this).listeners.remove(l) }
 
+    private val appContext = context.applicationContext
+
     @Synchronized fun showOnPet() {
         delegate?.let { it.showOnPet(); return }
         val current = engine.snapshot()
@@ -75,7 +77,7 @@ class BreathingController private constructor(context: Context, runtimeInstance:
                 source = SOURCE,
                 message = message,
                 subtext = "${current.phaseRemainingSec}s",
-                hud = listOf(HudItem("Breath", current.phaseRemainingSec.toFloat(), phaseSeconds.toFloat(), "blue", null)),
+                hud = listOf(HudItem(appContext.getString(com.openpets.android.R.string.settings_breathe_hud_breath), current.phaseRemainingSec.toFloat(), phaseSeconds.toFloat(), "blue", null)),
                 claim = key != lastHudKey,
             ),
         )

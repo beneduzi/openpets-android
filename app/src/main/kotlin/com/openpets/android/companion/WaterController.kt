@@ -64,10 +64,10 @@ class WaterController private constructor(context: Context, runtimeInstance: Boo
         }
         current = engine.onFired(now, current)
         scheduleAndPersist(now)
-        NotificationHelper(appContext).notifyWater("Water Reminder", "Time to drink water")
+        NotificationHelper(appContext).notifyWater(appContext.getString(com.openpets.android.R.string.settings_water_notify_title), appContext.getString(com.openpets.android.R.string.settings_water_notify_body))
         PetBus.sink.onSay(
             SayRequest(
-                message = "Time to drink water",
+                message = appContext.getString(com.openpets.android.R.string.settings_water_notify_body),
                 reaction = "waiting",
                 source = "water",
                 bubbleId = "water-reminder",

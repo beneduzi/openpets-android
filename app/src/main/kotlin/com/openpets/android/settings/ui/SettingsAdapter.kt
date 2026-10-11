@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 
 class SettingsAdapter(
     private var rows: List<Row>,
-    private val onSelect: (SettingsDestination) -> Unit,
+    private val onSelect: (Row.Navigation) -> Unit,
 ) : RecyclerView.Adapter<SettingsAdapter.Holder>() {
     fun replaceRows(newRows:List<Row>){ rows=newRows; notifyDataSetChanged() }
     init { setHasStableIds(true) }
@@ -31,15 +31,15 @@ class SettingsAdapter(
         text.gravity = Gravity.CENTER_VERTICAL
         text.setPadding(dp(context, 0), dp(context, if (row is Row.SectionHeader) 0 else 12), dp(context, 0), dp(context, 12))
         when (row) {
-            is Row.SectionHeader -> { text.text = row.title; text.textSize = 16f; text.contentDescription = row.title }
+            is Row.SectionHeader -> { text.text = context.getString(row.titleRes); text.textSize = 16f; text.contentDescription = text.text; androidx.core.view.ViewCompat.setAccessibilityHeading(text,true) }
             is Row.Navigation -> {
-                text.text = buildString { append(row.title); row.summary?.let { append("\n").append(it) }; append("     ›") }
+                text.text = buildString { row.breadcrumbRes?.let { append(context.getString(it)).append(" › ") };append(context.getString(row.titleRes)); (row.summaryRes?.let { context.getString(it) } ?: row.summaryValue)?.let { append("\n").append(it) }; append("     ›") }
                 text.textSize = 16f
-                row.summary?.let { text.setLineSpacing(dp(context, 4).toFloat(), 1f) }
+                row.summaryRes?.let { text.setLineSpacing(dp(context, 4).toFloat(), 1f) }
                 text.isClickable = true
-                text.setOnClickListener { onSelect(row.destination) }
+                text.setOnClickListener { onSelect(row) }
             }
-            is Row.Info -> { text.text = "${row.title}\n${row.value}"; text.textSize = 16f }
+            is Row.Info -> { text.text = "${context.getString(row.titleRes)}\n${row.value.ifEmpty { context.getString(com.openpets.android.R.string.ui_unavailable) }}"; text.textSize = 16f }
         }
         text.minimumHeight = dp(context, if (row is Row.SectionHeader) 32 else 64)
         text.isClickable = row is Row.Navigation

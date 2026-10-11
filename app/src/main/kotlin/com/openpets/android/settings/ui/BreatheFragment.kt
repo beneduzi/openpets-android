@@ -10,7 +10,7 @@ import com.openpets.android.MainActivity
 import com.openpets.android.companion.*
 
 class BreatheFragment:SettingsScreenFragment(){
-    override val screenTitle="Breathe"
+    override val screenTitle get()=getString(com.openpets.android.R.string.ui_breathe)
     private var controller:BreathingController?=null
     private var binding:ControllerBinding<BreathSnapshot>?=null
     private var observer:LifecycleEventObserver?=null
@@ -27,7 +27,7 @@ class BreatheFragment:SettingsScreenFragment(){
     private fun startTicker(){handler.removeCallbacks(ticker);if(shouldRunSessionTicker(controller?.snapshot()?.active==true))handler.post(ticker)}
     override fun onFieldChanged(key:String,value:String){if(key=="breatheMinutes"){minutes=value;(list?.adapter as? SettingsScreenAdapter)?.setFieldValue(key,value)}}
     override fun onRowClicked(row:SettingRow){val c=controller?:return;val key=(row as? SettingRow.ActionRow)?.key?:return;when(key){
-        "startBox","start478"->{val duration=minutes.toIntOrNull();if(duration==null||duration<=0)Toast.makeText(requireContext(),"Enter a positive duration",Toast.LENGTH_SHORT).show()else c.start(if(key=="startBox")BreathingPattern.BOX.id else BreathingPattern.RELAX_478.id,duration)}
+        "startBox","start478"->{val duration=minutes.toIntOrNull();if(duration==null||duration<=0)Toast.makeText(requireContext(),com.openpets.android.R.string.ui_breathe_duration_error,Toast.LENGTH_SHORT).show()else c.start(if(key=="startBox")BreathingPattern.BOX.id else BreathingPattern.RELAX_478.id,duration)}
         "stopBreathe"->c.stop()
     };renderSnapshot(c.snapshot());startTicker();(activity as? MainActivity)?.rearmSessionMaintenance()}
     override fun onStop(){handler.removeCallbacks(ticker);super.onStop()}
@@ -35,11 +35,11 @@ class BreatheFragment:SettingsScreenFragment(){
 }
 
 private fun breatheRows(s:BreathSnapshot,minutes:String,host:MainActivity?):List<SettingRow> = if(s.active)listOf(
-    SettingRow.InfoRow("breathPhase","Phase","${host?.breathingPhaseLabelForSettings(s.phase)?:s.phase.name} · ${s.phaseRemainingSec}s"),
-    SettingRow.InfoRow("breathCycles","Cycles completed",s.cyclesCompleted.toString()),
-    SettingRow.InfoRow("breathRemaining","Session remaining",TimerEngine.formatRemaining(s.sessionRemainingMs)),
-    SettingRow.ActionRow("stopBreathe","Stop",null),
+    SettingRow.InfoRow("breathPhase",host?.getString(com.openpets.android.R.string.ui_phase)?:"Phase","${host?.breathingPhaseLabelForSettings(s.phase)?:s.phase.name} · ${s.phaseRemainingSec}s"),
+    SettingRow.InfoRow("breathCycles",host?.getString(com.openpets.android.R.string.ui_cycles_completed)?:"Cycles completed",s.cyclesCompleted.toString()),
+    SettingRow.InfoRow("breathRemaining",host?.getString(com.openpets.android.R.string.ui_session_remaining)?:"Session remaining",TimerEngine.formatRemaining(s.sessionRemainingMs)),
+    SettingRow.ActionRow("stopBreathe",host?.getString(com.openpets.android.R.string.ui_stop)?:"Stop",null),
 ) else listOf(
-    SettingRow.TextFieldRow("breatheMinutes","Duration (minutes)",minutes,"Minutes",null,true),
-    SettingRow.ActionRow("startBox","Box",null),SettingRow.ActionRow("start478","4-7-8",null),
+    SettingRow.TextFieldRow("breatheMinutes",host?.getString(com.openpets.android.R.string.ui_duration_minutes)?:"Duration (minutes)",minutes,host?.getString(com.openpets.android.R.string.ui_minutes)?:"Minutes",null,true),
+    SettingRow.ActionRow("startBox",host?.getString(com.openpets.android.R.string.breathe_box)?:"Box",null),SettingRow.ActionRow("start478",host?.getString(com.openpets.android.R.string.breathe_478)?:"4-7-8",null),
 )

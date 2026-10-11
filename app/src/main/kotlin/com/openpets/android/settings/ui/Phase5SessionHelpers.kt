@@ -9,6 +9,8 @@ data class LookupKey(val word:String,val language:String)
 fun lookupKeyMatches(request:LookupKey,current:LookupKey)=request==current
 fun rejectedLookupBusy(busy:Boolean,latestRequest:Boolean)=busy&&latestRequest
 fun lookupRequestLanguage(persisted:String)=persisted
+fun savedLanguageChanged(previous:String,current:String)=previous!=current
+fun <T> discardThen(onDiscard:()->Unit,action:()->T):T { onDiscard();return action() }
 fun shouldApplyLookupResult(viewCurrent:Boolean,requestCurrent:Boolean,keyMatches:Boolean)=viewCurrent&&requestCurrent&&keyMatches
 data class LookupCompletion(val busy:Boolean,val result:String)
 fun reconcileLookupCompletion(completion:LookupCompletion,accepted:Boolean,value:String="",clearRejectedBusy:Boolean=true):LookupCompletion =

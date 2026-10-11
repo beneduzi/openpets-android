@@ -53,6 +53,12 @@ class AppSettings(context: Context) {
         prefs.edit().putString("reactionOverrides",obj.toString()).putInt("waitingDurationMs",waitingMs).apply()
     }
 
+    internal fun applyResetValues(values:Map<String,Any?>){
+        val editor=prefs.edit()
+        values.forEach{(key,value)->when(value){null->editor.remove(key);is Boolean->editor.putBoolean(key,value);is Int->editor.putInt(key,value);is Float->editor.putFloat(key,value);is String->editor.putString(key,value);else->error("Unsupported preference reset value for $key")}}
+        editor.apply()
+    }
+
     var ipcEnabled: Boolean
         get() = prefs.getBoolean("ipcEnabled", true)
         set(value) = prefs.edit().putBoolean("ipcEnabled", value).apply()

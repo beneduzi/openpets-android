@@ -52,7 +52,7 @@ class ConnectionsDraftViewModel: androidx.lifecycle.ViewModel() {
 class ConnectionsFragment: SettingsScreenFragment() {
     private val pendingFocusListeners=mutableListOf<Pair<android.view.ViewTreeObserver,android.view.ViewTreeObserver.OnPreDrawListener>>()
     private var showClearedTokenNotice=false
-    override val screenTitle="Connections & security"
+    override val screenTitle get()=getString(com.openpets.android.R.string.settings_connections_title)
     override val transactional=true
     private val state:ConnectionsDraftViewModel by viewModels()
     private lateinit var appSettings:AppSettings
@@ -62,7 +62,7 @@ class ConnectionsFragment: SettingsScreenFragment() {
     private val listener:(ServersStatus)->Unit={ status-> state.status=status; if(isAdded && view!=null && viewLifecycleOwner.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) activity?.runOnUiThread { statusChanged() } }
     override fun onCreate(savedInstanceState:Bundle?) { super.onCreate(savedInstanceState); appSettings=AppSettings(requireContext()); if(state.draft==null){ showClearedTokenNotice=savedInstanceState?.getBoolean(STATE_UNSAVED_TOKEN_EDITS)==true; loadDraft() } }
     override fun onSaveInstanceState(outState:Bundle) { outState.putBoolean(STATE_UNSAVED_TOKEN_EDITS,state.draft?.let { it.ipcTokenEdited || it.remoteTokenEdited }==true); super.onSaveInstanceState(outState) }
-    override fun onResume() { super.onResume(); if(showClearedTokenNotice){showClearedTokenNotice=false; Toast.makeText(requireContext(),"Unsaved token edits were cleared. Re-enter them to apply.",Toast.LENGTH_LONG).show()} }
+    override fun onResume() { super.onResume(); if(showClearedTokenNotice){showClearedTokenNotice=false; Toast.makeText(requireContext(),com.openpets.android.R.string.settings_connections_token_notice,Toast.LENGTH_LONG).show()} }
     private fun loadDraft() { state.draft=ConnectionDraft(appSettings.bindAddress,appSettings.ipcEnabled,appSettings.ipcPort.toString(),appSettings.remoteEnabled,appSettings.remotePort.toString(),appSettings.wsEnabled,appSettings.wsPort.toString(),appSettings.ipcToken,appSettings.remoteToken,appSettings.requireLease); state.errors=emptyMap() }
     override fun onStart() { super.onStart(); state.status=ConnectionStatus.current; statusChanged(); ConnectionStatus.addListener(listener) }
     override fun onStop() { ConnectionStatus.removeListener(listener); maskSecrets(); super.onStop() }
@@ -71,25 +71,28 @@ class ConnectionsFragment: SettingsScreenFragment() {
     override fun rows():List<SettingRow> {
         val d=state.draft ?: return emptyList()
         fun err(key:String)=state.errors[key]?.let(::errorText)
-        val statuses="IPC: ${stateText(state.status.ipc)}\nRemote: ${stateText(state.status.remote)}\nWebSocket: ${stateText(state.status.webSocket)}\nConfigured bind address: ${state.status.configuredBindAddress}"
+        val statuses=getString(com.openpets.android.R.string.settings_connections_status_block,stateText(state.status.ipc),stateText(state.status.remote),stateText(state.status.webSocket),state.status.configuredBindAddress)
         return listOf(
-            SettingRow.TextFieldRow("bind","Bind address",d.bind,"Empty means all network interfaces",err("bind"),false),
-            SettingRow.SectionHeader("Servers"),
-            SettingRow.SwitchDetailRow("ipcEnabled","IPC",null,d.ipcEnabled,"ipcPort"), SettingRow.TextFieldRow("ipcPort","IPC port",d.ipcPort,null,err("ipcPort"),true,d.ipcEnabled),
-            SettingRow.SwitchDetailRow("remoteEnabled","Remote",null,d.remoteEnabled,"remotePort"), SettingRow.TextFieldRow("remotePort","Remote port",d.remotePort,null,err("remotePort"),true,d.remoteEnabled),
-            SettingRow.SwitchDetailRow("wsEnabled","WebSocket","Experimental; uses the IPC token",d.wsEnabled,"wsPort"), SettingRow.TextFieldRow("wsPort","WebSocket port",d.wsPort,null,err("wsPort"),true,d.wsEnabled),
-            SettingRow.SectionHeader("Security"),
-            SettingRow.InfoRow("ipcTokenDisplay","IPC token","••••••••"),
-            SettingRow.ActionRow("editIpc","Edit IPC token",null),
-            SettingRow.InfoRow("remoteTokenDisplay","Remote token","••••••••"),
-            SettingRow.ActionRow("editRemote","Edit Remote token",null),
-            SettingRow.SwitchRow("requireLease","Require lease","Applies to IPC/WebSocket commands, not Remote",d.requireLease),
-            SettingRow.InfoRow("status","Effective server status",statuses),
-            SettingRow.InfoRow("remoteWarning","Remote token warning",if(!d.remoteTokenEdited && !com.openpets.android.protocol.isValidRemoteToken(d.remoteToken)) "The saved Remote token is incompatible; saving other fields will preserve it." else "No warning"),
-            SettingRow.ActionRow("copyIpc","Copy IPC token",null), SettingRow.ActionRow("copyRemote","Copy Remote token",null),
+            SettingRow.TextFieldRow("bind",getString(com.openpets.android.R.string.settings_connections_bind),d.bind,getString(com.openpets.android.R.string.ui_bind_hint),err("bind"),false),
+            SettingRow.SectionHeader(getString(com.openpets.android.R.string.ui_servers)),
+            SettingRow.SwitchDetailRow("ipcEnabled","IPC",null,d.ipcEnabled,"ipcPort"), SettingRow.TextFieldRow("ipcPort",getString(com.openpets.android.R.string.settings_ipc_port),d.ipcPort,null,err("ipcPort"),true,d.ipcEnabled),
+            SettingRow.SwitchDetailRow("remoteEnabled","Remote",null,d.remoteEnabled,"remotePort"), SettingRow.TextFieldRow("remotePort",getString(com.openpets.android.R.string.settings_remote_port),d.remotePort,null,err("remotePort"),true,d.remoteEnabled),
+            SettingRow.SwitchDetailRow("wsEnabled",getString(com.openpets.android.R.string.settings_ws),getString(com.openpets.android.R.string.settings_connections_experimental),d.wsEnabled,"wsPort"), SettingRow.TextFieldRow("wsPort",getString(com.openpets.android.R.string.settings_ws_port),d.wsPort,null,err("wsPort"),true,d.wsEnabled),
+            SettingRow.SectionHeader(getString(com.openpets.android.R.string.ui_security)),
+            SettingRow.InfoRow("ipcTokenDisplay",getString(com.openpets.android.R.string.settings_connections_ipc_token),"••••••••"),
+            SettingRow.ActionRow("editIpc",getString(com.openpets.android.R.string.settings_connections_edit_ipc),null),
+            SettingRow.InfoRow("remoteTokenDisplay",getString(com.openpets.android.R.string.settings_connections_remote_token),"••••••••"),
+            SettingRow.ActionRow("editRemote",getString(com.openpets.android.R.string.settings_connections_edit_remote),null),
+            SettingRow.SwitchRow("requireLease",getString(com.openpets.android.R.string.settings_connections_require_lease),getString(com.openpets.android.R.string.ui_require_lease_help),d.requireLease),
+            SettingRow.InfoRow("status",getString(com.openpets.android.R.string.settings_connections_status),statuses),
+            SettingRow.InfoRow("remoteWarning",getString(com.openpets.android.R.string.settings_connections_warning),if(!d.remoteTokenEdited && !com.openpets.android.protocol.isValidRemoteToken(d.remoteToken)) getString(com.openpets.android.R.string.settings_connections_remote_warning) else getString(com.openpets.android.R.string.settings_connections_none)),
+            SettingRow.ActionRow("copyIpc",getString(com.openpets.android.R.string.settings_connections_copy_ipc),null), SettingRow.ActionRow("copyRemote",getString(com.openpets.android.R.string.settings_connections_copy_remote),null),
+            sectionResetRow(),
         )
     }
     override fun onFieldChanged(key:String,value:String) { state.draft?.let { d-> when(key){"bind"->d.bind=value;"ipcPort"->d.ipcPort=value;"remotePort"->d.remotePort=value;"wsPort"->d.wsPort=value;"ipcToken"->{d.ipcToken=value;d.ipcTokenEdited=true};"remoteToken"->{d.remoteToken=value;d.remoteTokenEdited=true} }; (list!!.adapter as? SettingsScreenAdapter)?.setFieldValue(key,value) } }
+    override fun sectionResetDraft() { val d=state.draft?:return;d.ipcEnabled=com.openpets.android.settings.SettingsDefaults.IPC_ENABLED;d.remoteEnabled=com.openpets.android.settings.SettingsDefaults.REMOTE_ENABLED;d.wsEnabled=com.openpets.android.settings.SettingsDefaults.WS_ENABLED;d.bind=com.openpets.android.settings.SettingsDefaults.BIND_ADDRESS;d.ipcPort=com.openpets.android.settings.SettingsDefaults.IPC_PORT.toString();d.remotePort=com.openpets.android.settings.SettingsDefaults.REMOTE_PORT.toString();d.wsPort=com.openpets.android.settings.SettingsDefaults.WS_PORT.toString();d.requireLease=com.openpets.android.settings.SettingsDefaults.REQUIRE_LEASE;state.errors=emptyMap();forceRebindRows() }
+    override fun sectionResetMessage(): String? = getString(com.openpets.android.R.string.settings_reset_connections_detail)
     override fun onSwitchChanged(key:String,value:Boolean) { state.draft?.let { d-> when(key){"ipcEnabled"->d.ipcEnabled=value;"remoteEnabled"->d.remoteEnabled=value;"wsEnabled"->d.wsEnabled=value;"requireLease"->d.requireLease=value} }; (list!!.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),key); val port=when(key){"ipcEnabled"->"ipcPort";"remoteEnabled"->"remotePort";"wsEnabled"->"wsPort";else->null};port?.let{(list!!.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),it)} }
     private fun statusChanged() { val adapter=list!!.adapter as? SettingsScreenAdapter ?:return; val index=rows().indexOfFirst { it.id=="status".hashCode().toLong() }; if(index>=0) adapter.replaceStatus(index, rows()[index]) }
     override fun onRowClicked(row:SettingRow) {
@@ -97,8 +100,8 @@ class ConnectionsFragment: SettingsScreenFragment() {
         when((row as? SettingRow.ActionRow)?.id) {
         "editIpc".hashCode().toLong() -> editToken(true)
         "editRemote".hashCode().toLong() -> editToken(false)
-        "copyIpc".hashCode().toLong() -> copy("IPC token",state.draft!!.ipcToken)
-        "copyRemote".hashCode().toLong() -> copy("Remote token",state.draft!!.remoteToken)
+        "copyIpc".hashCode().toLong() -> copy(getString(com.openpets.android.R.string.settings_connections_ipc_token),state.draft!!.ipcToken)
+        "copyRemote".hashCode().toLong() -> copy(getString(com.openpets.android.R.string.settings_connections_remote_token),state.draft!!.remoteToken)
     } }
     override fun onSave() {
         val d=state.draft?:return
@@ -112,16 +115,16 @@ class ConnectionsFragment: SettingsScreenFragment() {
         val remoteToken=tokenForSave(d.remoteToken,d.remoteTokenEdited,false)
         appSettings.applyConnections(d.ipcEnabled,d.remoteEnabled,d.wsEnabled,bind,ipc,remote,ws,ipcToken,remoteToken,d.requireLease)
         OpenPetsService.reload(requireContext())
-        Toast.makeText(requireContext(),"Preferences saved; reload requested",Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(),com.openpets.android.R.string.settings_connections_saved,Toast.LENGTH_SHORT).show()
         parentFragmentManager.popBackStack()
     }
     private fun persistedDraft()=ConnectionDraft(appSettings.bindAddress,appSettings.ipcEnabled,appSettings.ipcPort.toString(),appSettings.remoteEnabled,appSettings.remotePort.toString(),appSettings.wsEnabled,appSettings.wsPort.toString(),appSettings.ipcToken,appSettings.remoteToken,appSettings.requireLease)
     override fun requestClose():Boolean {
         val d=state.draft?:return false
         if(d==persistedDraft() && !d.ipcTokenEdited && !d.remoteTokenEdited)return false
-        AlertDialog.Builder(requireContext()).setTitle("Discard changes?").setMessage("Unsaved connection settings will be discarded.")
-            .setPositiveButton("Discard") { _,_->onDiscard();parentFragmentManager.popBackStack() }
-            .setNegativeButton("Keep editing",null).show()
+        AlertDialog.Builder(requireContext()).setTitle(com.openpets.android.R.string.ui_discard_title).setMessage(com.openpets.android.R.string.ui_unsaved_connections)
+            .setPositiveButton(com.openpets.android.R.string.settings_discard) { _,_->onDiscard();parentFragmentManager.popBackStack() }
+            .setNegativeButton(com.openpets.android.R.string.ui_keep_editing,null).show()
         return true
     }
     override fun onDiscard() { val rv=list?:return;rv.post { if(!isAdded||view==null||rv!==list)return@post;rv.findFocus()?.clearFocus();loadDraft();maskSecrets();refreshRows() } }
@@ -154,15 +157,15 @@ class ConnectionsFragment: SettingsScreenFragment() {
         }
         val layout=com.google.android.material.textfield.TextInputLayout(requireContext()).apply { addView(input); setPadding(24,8,24,0) }
         var visible=false
-        val dialog=AlertDialog.Builder(requireContext()).setTitle(if(ipc)"Edit IPC token" else "Edit Remote token").setView(layout)
-            .setNeutralButton("Show token",null).setPositiveButton("Save",null).setNegativeButton("Cancel",null).create()
+        val dialog=AlertDialog.Builder(requireContext()).setTitle(getString(if(ipc)com.openpets.android.R.string.settings_connections_edit_ipc else com.openpets.android.R.string.settings_connections_edit_remote)).setView(layout)
+            .setNeutralButton(com.openpets.android.R.string.settings_connections_show_token,null).setPositiveButton(com.openpets.android.R.string.settings_save,null).setNegativeButton(com.openpets.android.R.string.settings_cancel,null).create()
         tokenDialog=dialog
         var dialogWasSecure=false
         dialog.setOnShowListener {
             dialogWasSecure=dialog.window?.let { it.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_SECURE!=0 } ?: false
             dialog.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
             val toggle=dialog.getButton(AlertDialog.BUTTON_NEUTRAL)
-            fun updateToggle(){ toggle.text=if(visible)"Hide" else "Show"; toggle.contentDescription="${if(visible)"Hide" else "Show"} ${if(ipc)"IPC" else "Remote"} token" }
+            fun updateToggle(){ toggle.text=getString(if(visible)com.openpets.android.R.string.settings_connections_hide else com.openpets.android.R.string.settings_connections_show); toggle.contentDescription=getString(if(visible)com.openpets.android.R.string.settings_connections_hide_token else com.openpets.android.R.string.settings_connections_show_token_for, getString(if(ipc)com.openpets.android.R.string.settings_connections_ipc_token else com.openpets.android.R.string.settings_connections_remote_token)) }
             updateToggle()
             toggle.setOnClickListener { visible=!visible;input.inputType=android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or if(visible)android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD else android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD;input.transformationMethod=if(visible)null else android.text.method.PasswordTransformationMethod.getInstance(); updateToggle() }
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -178,12 +181,12 @@ class ConnectionsFragment: SettingsScreenFragment() {
         dialog.setOnDismissListener { if(!dialogWasSecure)dialog.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE); tokenDialog=null; visible=false }
         dialog.show()
     }
-    private fun copy(label:String,value:String) { val cb=requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager; val clip=ClipData.newPlainText(label,value); if(android.os.Build.VERSION.SDK_INT>=33) clip.description.extras=android.os.PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE,true) }; cb.setPrimaryClip(clip); Toast.makeText(requireContext(),if(value!=persisted(label)) "Copied unsaved token. Save to activate it." else "Copied $label",Toast.LENGTH_SHORT).show() }
+    private fun copy(label:String,value:String) { val cb=requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager; val clip=ClipData.newPlainText(label,value); if(android.os.Build.VERSION.SDK_INT>=33) clip.description.extras=android.os.PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE,true) }; cb.setPrimaryClip(clip); Toast.makeText(requireContext(),if(value!=persisted(label)) getString(com.openpets.android.R.string.settings_connections_copied_unsaved) else getString(com.openpets.android.R.string.settings_connections_copied,label),Toast.LENGTH_SHORT).show() }
     private fun persisted(label:String)=if(label.startsWith("IPC"))appSettings.ipcToken else appSettings.remoteToken
     private fun setSecure(enabled:Boolean) { val w=requireActivity().window; if(enabled){priorSecure=w.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_SECURE!=0;w.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)}else if(!priorSecure)w.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) }
     private fun maskSecrets(){ revealed=false; tokenDialog?.dismiss() }
-    private fun errorText(error:SettingsValidators.Error)=when(error){SettingsValidators.Error.OUT_OF_RANGE->"Enter a port from 1 to 65535.";SettingsValidators.Error.CONFLICT->"Enabled servers must use different ports.";SettingsValidators.Error.TOO_SHORT->"Value is too short.";SettingsValidators.Error.TOO_LONG->"Value is too long.";SettingsValidators.Error.INVALID_CHARACTERS->"Value contains invalid characters.";else->"Enter a valid value."}
-    private fun stateText(s:ServerState)=when(s){ServerState.Disabled->"Disabled";ServerState.Applying->"Applying";ServerState.Stopped->"Stopped";is ServerState.Listening->"Listening on ${s.port}";is ServerState.Failed->"Failed: ${s.message}"}
+    private fun errorText(error:SettingsValidators.Error)=getString(when(error){SettingsValidators.Error.OUT_OF_RANGE->com.openpets.android.R.string.settings_error_port_range;SettingsValidators.Error.CONFLICT->com.openpets.android.R.string.settings_error_port_conflict;SettingsValidators.Error.TOO_SHORT->com.openpets.android.R.string.settings_error_too_short;SettingsValidators.Error.TOO_LONG->com.openpets.android.R.string.settings_error_too_long;SettingsValidators.Error.INVALID_CHARACTERS->com.openpets.android.R.string.settings_error_invalid_characters;else->com.openpets.android.R.string.settings_error_valid_value})
+    private fun stateText(s:ServerState)=when(s){ServerState.Disabled->getString(com.openpets.android.R.string.settings_server_disabled);ServerState.Applying->getString(com.openpets.android.R.string.settings_server_applying);ServerState.Stopped->getString(com.openpets.android.R.string.settings_server_stopped);is ServerState.Listening->getString(com.openpets.android.R.string.settings_server_listening,s.port);is ServerState.Failed->getString(com.openpets.android.R.string.settings_server_failed,s.message)}
 }
 
 private const val STATE_UNSAVED_TOKEN_EDITS="unsaved_connection_token_edits"

@@ -15,6 +15,7 @@ class VirtualPetController private constructor(context: Context, runtimeInstance
     constructor(context: Context) : this(context, false)
 
     private val delegate: VirtualPetController? = if (runtimeInstance) null else CompanionRuntime.run { init(context); virtualPet }
+    private val appContext = context.applicationContext
     private val store = VirtualPetStore(context.applicationContext)
     private val engine = VirtualPetEngine()
     private val listeners = CopyOnWriteArrayList<(PetStats) -> Unit>()
@@ -44,11 +45,11 @@ class VirtualPetController private constructor(context: Context, runtimeInstance
         delegate?.let { it.showOnPet(); return }
         val current = engine.snapshot()
         val message = when (moodFor(current)) {
-            PetMood.HAPPY -> "Happy"
-            PetMood.CONTENT -> "Content"
-            PetMood.TIRED -> "Tired"
-            PetMood.HUNGRY -> "Hungry"
-            PetMood.EXCITED -> "Excited"
+            PetMood.HAPPY -> appContext.getString(com.openpets.android.R.string.settings_pet_mood_happy)
+            PetMood.CONTENT -> appContext.getString(com.openpets.android.R.string.settings_pet_mood_content)
+            PetMood.TIRED -> appContext.getString(com.openpets.android.R.string.settings_pet_mood_tired)
+            PetMood.HUNGRY -> appContext.getString(com.openpets.android.R.string.settings_pet_mood_hungry)
+            PetMood.EXCITED -> appContext.getString(com.openpets.android.R.string.settings_pet_mood_excited)
         }
         PetBus.hud(
             FeatureHud(
@@ -57,9 +58,9 @@ class VirtualPetController private constructor(context: Context, runtimeInstance
                 message = message,
                 subtext = null,
                 hud = listOf(
-                    HudItem("Satiety", current.satiety.toFloat(), 100f, "green", null),
-                    HudItem("Happy", current.happiness.toFloat(), 100f, "pink", null),
-                    HudItem("Energy", current.energy.toFloat(), 100f, "blue", null),
+                    HudItem(appContext.getString(com.openpets.android.R.string.settings_pet_satiety), current.satiety.toFloat(), 100f, "green", null),
+                    HudItem(appContext.getString(com.openpets.android.R.string.settings_pet_mood_happy), current.happiness.toFloat(), 100f, "pink", null),
+                    HudItem(appContext.getString(com.openpets.android.R.string.settings_pet_energy), current.energy.toFloat(), 100f, "blue", null),
                 ),
                 claim = true,
             ),

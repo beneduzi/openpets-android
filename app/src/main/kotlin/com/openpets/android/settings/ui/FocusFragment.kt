@@ -12,7 +12,7 @@ import com.openpets.android.companion.*
 fun focusPreset(focusMinutes:Int,breakMinutes:Int)=focusMinutes to breakMinutes
 
 class FocusFragment:SettingsScreenFragment(){
-    override val screenTitle="Focus"
+    override val screenTitle get()=getString(com.openpets.android.R.string.ui_focus)
     private var controller:FocusController?=null
     private var binding:ControllerBinding<FocusSnapshot>?=null
     private var observer:LifecycleEventObserver?=null
@@ -30,14 +30,14 @@ class FocusFragment:SettingsScreenFragment(){
     override fun onFieldChanged(key:String,value:String){when(key){"focusMinutes"->focusMinutes=value;"breakMinutes"->breakMinutes=value};(list?.adapter as? SettingsScreenAdapter)?.setFieldValue(key,value)}
     override fun onRowClicked(row:SettingRow){val c=controller?:return;val key=(row as? SettingRow.ActionRow)?.key?:return;when(key){
         "preset25"->c.start(focusPreset(25,5).first,focusPreset(25,5).second);"preset50"->c.start(focusPreset(50,10).first,focusPreset(50,10).second)
-        "startFocus"->{val f=focusMinutes.toIntOrNull();val b=breakMinutes.toIntOrNull();if(f==null||f<=0||b==null||b<=0)Toast.makeText(requireContext(),"Enter positive focus and break durations",Toast.LENGTH_SHORT).show()else c.start(f,b)}
+        "startFocus"->{val f=focusMinutes.toIntOrNull();val b=breakMinutes.toIntOrNull();if(f==null||f<=0||b==null||b<=0)Toast.makeText(requireContext(),com.openpets.android.R.string.ui_focus_duration_error,Toast.LENGTH_SHORT).show()else c.start(f,b)}
         "pauseFocus"->c.pause();"resumeFocus"->c.resume();"skipFocus"->c.skip();"endFocus"->c.end()
     };renderSnapshot(c.snapshot());startTicker();(activity as? MainActivity)?.rearmSessionMaintenance()}
     override fun onStop(){handler.removeCallbacks(ticker);super.onStop()}
     override fun onDestroyView(){handler.removeCallbacksAndMessages(null);observer?.let{viewLifecycleOwner.lifecycle.removeObserver(it)};observer=null;binding?.releaseView();binding=null;controller=null;super.onDestroyView()}
 }
 
-private fun focusRows(s:FocusSnapshot,focus:String,breakTime:String,host:MainActivity?) = when(s.state){
-    FocusState.IDLE->listOf(SettingRow.ActionRow("preset25","25/5",null),SettingRow.ActionRow("preset50","50/10",null),SettingRow.TextFieldRow("focusMinutes","Focus minutes",focus,"Minutes",null,true),SettingRow.TextFieldRow("breakMinutes","Break minutes",breakTime,"Minutes",null,true),SettingRow.ActionRow("startFocus","Start",null))
-    FocusState.FOCUS,FocusState.BREAK,FocusState.PAUSED->{val label=host?.focusStatusLabelForSettings(s).orEmpty();buildList{add(SettingRow.InfoRow("focusRemaining","Remaining",TimerEngine.formatRemaining(s.phaseRemainingMs)));add(SettingRow.InfoRow("focusStatus","Status",label));if(s.state==FocusState.PAUSED)add(SettingRow.ActionRow("resumeFocus","Resume",null))else add(SettingRow.ActionRow("pauseFocus","Pause",null));if(s.state!=FocusState.PAUSED)add(SettingRow.ActionRow("skipFocus",host?.focusSkipLabelForSettings(s.state)?:if(s.state==FocusState.FOCUS)"Skip to break" else "Skip to focus",null));add(SettingRow.ActionRow("endFocus","End",null))}}
+private fun focusRows(s:FocusSnapshot,focus:String,breakTime:String,host:MainActivity?) :List<SettingRow> = when(s.state){
+    FocusState.IDLE->listOf(SettingRow.ActionRow("preset25","25/5",null),SettingRow.ActionRow("preset50","50/10",null),SettingRow.TextFieldRow("focusMinutes",host?.getString(com.openpets.android.R.string.ui_focus_minutes)?:"Focus minutes",focus,host?.getString(com.openpets.android.R.string.ui_minutes)?:"Minutes",null,true),SettingRow.TextFieldRow("breakMinutes",host?.getString(com.openpets.android.R.string.ui_break_minutes)?:"Break minutes",breakTime,host?.getString(com.openpets.android.R.string.ui_minutes)?:"Minutes",null,true),SettingRow.ActionRow("startFocus",host?.getString(com.openpets.android.R.string.ui_start_session)?:"Start",null))
+    FocusState.FOCUS,FocusState.BREAK,FocusState.PAUSED->{val label=host?.focusStatusLabelForSettings(s).orEmpty();buildList{add(SettingRow.InfoRow("focusRemaining",host?.getString(com.openpets.android.R.string.ui_remaining)?:"Remaining",TimerEngine.formatRemaining(s.phaseRemainingMs)));add(SettingRow.InfoRow("focusStatus",host?.getString(com.openpets.android.R.string.ui_state)?:"Status",label));if(s.state==FocusState.PAUSED)add(SettingRow.ActionRow("resumeFocus",host?.getString(com.openpets.android.R.string.ui_resume)?:"Resume",null))else add(SettingRow.ActionRow("pauseFocus",host?.getString(com.openpets.android.R.string.ui_pause)?:"Pause",null));if(s.state!=FocusState.PAUSED)add(SettingRow.ActionRow("skipFocus",host?.focusSkipLabelForSettings(s.state)?:if(s.state==FocusState.FOCUS)"Skip to break" else "Skip to focus",null));add(SettingRow.ActionRow("endFocus",host?.getString(com.openpets.android.R.string.ui_end_session)?:"End",null))}}
 }

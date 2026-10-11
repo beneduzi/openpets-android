@@ -14,7 +14,7 @@ import com.openpets.android.companion.DeviceEvent
 
 private const val CALENDAR_PERMISSION_REQUEST=1002
 class CalendarFragment:SettingsScreenFragment(),SettingsPermissionResultHandler{
-    override val screenTitle="Calendar"
+    override val screenTitle get()=getString(com.openpets.android.R.string.ui_calendar)
     private var controller:CalendarController?=null
     private var binding:ControllerBinding<List<DeviceEvent>>?=null
     private var observer:LifecycleEventObserver?=null
@@ -23,7 +23,7 @@ class CalendarFragment:SettingsScreenFragment(),SettingsPermissionResultHandler{
     override fun rows():List<SettingRow>{
         val c=controller
         val rows=mutableListOf<SettingRow>()
-        if(c?.hasPermission()!=true){rows+=SettingRow.InfoRow("calendarPermission","Calendar permission",if(permissionDenied)"Permission denied. Grant access to retry." else "Calendar access is required to read upcoming events.");rows+=SettingRow.ActionRow("requestCalendarPermission",getString(R.string.calendar_grant),null)}
+        if(c?.hasPermission()!=true){rows+=SettingRow.InfoRow("calendarPermission",getString(com.openpets.android.R.string.ui_calendar_permission),if(permissionDenied)getString(com.openpets.android.R.string.ui_calendar_retry) else getString(com.openpets.android.R.string.ui_calendar_required));rows+=SettingRow.ActionRow("requestCalendarPermission",getString(R.string.calendar_grant),null)}
         else if(events.isEmpty())rows+=SettingRow.InfoRow("calendarEmpty","Upcoming events",getString(R.string.calendar_empty))
         else events.forEachIndexed{index,event->rows+=SettingRow.InfoRow("event:$index",event.title,CalendarFormat.relativeTime(event.beginMs,System.currentTimeMillis()))}
         rows+=SettingRow.ActionRow("refreshCalendar",getString(R.string.calendar_refresh),null)

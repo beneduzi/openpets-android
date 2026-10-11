@@ -43,7 +43,7 @@ class ChecklistController private constructor(context: Context, runtimeInstance:
         val remaining = current.filterNot { it.done }.take(4).joinToString(" · ") { it.label }
         PetBus.sink.onSay(SayRequest(
             message = remaining.ifEmpty { greeting }, reaction = "waving", source = "launch",
-            hud = current.takeIf { it.isNotEmpty() }?.let { listOf(HudItem("Checklist", it.count { item -> item.done }.toFloat(), it.size.toFloat(), "green", null)) }.orEmpty(),
+            hud = current.takeIf { it.isNotEmpty() }?.let { listOf(HudItem(appContext.getString(com.openpets.android.R.string.settings_checklist_hud_label), it.count { item -> item.done }.toFloat(), it.size.toFloat(), "green", null)) }.orEmpty(),
             bubbleId = "launch-checklist", pinned = false,
         ))
     }

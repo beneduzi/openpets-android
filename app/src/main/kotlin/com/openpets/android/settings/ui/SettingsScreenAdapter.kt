@@ -67,12 +67,14 @@ class SettingsScreenAdapter(
             }
             val existing = (root.getChildAt(1) as? com.google.android.material.textfield.TextInputLayout)?.editText
             val label = (root.getChildAt(0) as? TextView) ?: TextView(root.context).also { root.addView(it,0) }
-            label.text = title; label.textSize = 16f
+            label.text = title; label.textSize = 16f; if(label.id==View.NO_ID)label.id=View.generateViewId()
             val field = if(existing==null) com.google.android.material.textfield.TextInputLayout(root.context).also { it.addView(com.google.android.material.textfield.TextInputEditText(root.context)); root.addView(it) } else root.getChildAt(1) as com.google.android.material.textfield.TextInputLayout
             val edit = field.editText!!
+            if(edit.id==View.NO_ID)edit.id=View.generateViewId()
+            label.labelFor=edit.id
             edit.tag = key
             edit.isEnabled=enabled
-            edit.hint = hint
+            edit.hint = hint ?: title
             val desiredInputType = if (secret) InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD else if (numeric) InputType.TYPE_CLASS_NUMBER else InputType.TYPE_CLASS_TEXT
             if (edit.inputType != desiredInputType) edit.inputType = desiredInputType
             edit.error = error
@@ -89,18 +91,18 @@ class SettingsScreenAdapter(
             holder.watcher=null
             root.removeAllViews()
             when (row) {
-                is SettingRow.SectionHeader -> TextView(root.context).apply { text=row.title; textSize=16f; root.addView(this); root.setPadding(0,dp(24),0,dp(8)) }
+                is SettingRow.SectionHeader -> TextView(root.context).apply { text=row.title; textSize=16f; androidx.core.view.ViewCompat.setAccessibilityHeading(this,true); root.addView(this); root.setPadding(0,dp(24),0,dp(8)) }
                 is SettingRow.SwitchRow -> addSwitch(root,row.title,row.summary,row.checked) { toggled(row.key,it) }
                 is SettingRow.SwitchDetailRow -> {
                     addSwitch(root,row.title,row.summary,row.checked) { toggled(row.key,it) }
-                    val detail=TextView(root.context).apply { text="Details  ›"; contentDescription="Open ${row.title} details"; isClickable=true; minimumHeight=dp(48); setOnClickListener { clicked(row) } }; root.addView(detail)
+                    val detail=TextView(root.context).apply { text=root.context.getString(com.openpets.android.R.string.settings_details_action)+"  ›"; contentDescription=root.context.getString(com.openpets.android.R.string.settings_open_details,row.title); isClickable=true; minimumHeight=dp(48); setOnClickListener { clicked(row) } }; root.addView(detail)
                 }
                 is SettingRow.InfoRow -> { addText(root,row.title + "\n" + row.value, false); row.actionLabel?.let { label-> root.addView(com.google.android.material.button.MaterialButton(root.context).apply { text=label; setOnClickListener { clicked(row) } }) } }
                 is SettingRow.ActionRow -> { addText(root, row.title + (row.summary?.let { "\n$it" } ?: ""), false); root.isEnabled=row.enabled; root.isClickable=row.enabled;root.setOnClickListener(if(row.enabled){{clicked(row)}}else null) }
                 is SettingRow.SliderRow -> {
                     val label=TextView(root.context).apply { text="${row.title}  ${row.valueLabel}"; tag="sliderLabel:${row.key}"; textSize=16f; labelFor=View.generateViewId() }
                     root.addView(label)
-                    val slider=com.google.android.material.slider.Slider(root.context).apply { id=View.generateViewId();tag=row.key; valueFrom=row.min; valueTo=row.max; stepSize=0f; value=row.value; contentDescription="${row.title}, ${row.valueLabel} of ${row.min}–${row.max}" }
+                    val slider=com.google.android.material.slider.Slider(root.context).apply { id=View.generateViewId();tag=row.key; valueFrom=row.min; valueTo=row.max; stepSize=0f; value=row.value; contentDescription=root.context.getString(com.openpets.android.R.string.settings_slider_a11y,row.title,row.valueLabel,row.min,row.max) }
                     holder.sliderListener=com.google.android.material.slider.Slider.OnChangeListener { _,v,fromUser->if(fromUser)sliderChanged(row.key,v) }.also(slider::addOnChangeListener)
                     holder.slider=slider
                     label.labelFor=slider.id

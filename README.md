@@ -266,7 +266,7 @@ The release APK is signed with the debug key so it can be sideloaded. CI builds 
 
 See [`docs/CAPABILITY-ROADMAP.md`](docs/CAPABILITY-ROADMAP.md) for the full gap analysis and phased plan.
 
-Known future work includes a **Settings UI rework**: the current screen is a single flat dialog with ~20 companion-feature buttons stacked above the connection ports and tokens, with no grouping/search and some hardcoded (untranslated) labels. It should be reorganised into grouped, localized, searchable sections. Details in §8 of the roadmap; this is UX/tech debt and changes no settings behaviour.
+Settings are organized into dedicated screens for pet, appearance, companion features, connections and startup. Use the settings search to find nested controls (for example, ports or reminders); selecting a result opens its screen and focuses the relevant row. The overview also offers scoped preference resets and an all-preferences reset confirmation. Resets preserve pairing tokens, imported pets, companion records and active sessions; resetting Connections or All enables IPC and Remote using their configured defaults, so review the confirmation before applying. Device acceptance screenshots remain deferred. See `docs/SETTINGS-UI-REFACTOR.md` for the navigation and reset policy.
 
 ## Contributing
 

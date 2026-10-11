@@ -141,23 +141,23 @@ class TimerController private constructor(context: Context, runtimeInstance: Boo
             FeatureHud(
                 bubbleId = "simple-timer",
                 source = "timer",
-                message = current.label ?: "Timer",
+                message = current.label ?: appContext.getString(com.openpets.android.R.string.settings_timer_hud_label),
                 subtext = TimerEngine.formatRemaining(current.remainingMs),
-                hud = listOf(HudItem("Timer", current.remainingMs.toFloat(), current.totalMs.toFloat().coerceAtLeast(1f), "info", "timer")),
+                hud = listOf(HudItem(appContext.getString(com.openpets.android.R.string.settings_timer_hud_label), current.remainingMs.toFloat(), current.totalMs.toFloat().coerceAtLeast(1f), "info", "timer")),
                 claim = claim,
             ),
         )
     }
 
     private fun announceFinished(snapshot: TimerSnapshot) {
-        NotificationHelper(appContext).notifyTimerFinished("Timer finished", snapshot.label ?: "Your timer is done.")
+        NotificationHelper(appContext).notifyTimerFinished(appContext.getString(com.openpets.android.R.string.settings_timer_finished), snapshot.label ?: appContext.getString(com.openpets.android.R.string.settings_timer_done))
         PetBus.hud(
             FeatureHud(
                 bubbleId = "simple-timer",
                 source = "timer",
-                message = "Timer finished",
+                message = appContext.getString(com.openpets.android.R.string.settings_timer_finished),
                 subtext = snapshot.label,
-                hud = listOf(HudItem(snapshot.label ?: "Timer", 0f, 1f, "success", "timer")),
+                hud = listOf(HudItem(snapshot.label ?: appContext.getString(com.openpets.android.R.string.settings_timer_hud_label), 0f, 1f, "success", "timer")),
                 claim = true,
             ),
         )

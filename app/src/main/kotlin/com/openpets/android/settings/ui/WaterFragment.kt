@@ -26,17 +26,18 @@ fun validateWaterDraft(d:WaterDraft):Map<String,SettingsValidators.Error>{
 class WaterDraftViewModel:ViewModel(){var draft:WaterDraft?=null;var errors:Map<String,SettingsValidators.Error> = emptyMap();var live:WaterSettings?=null}
 
 class WaterFragment:SettingsScreenFragment(){
-    override val screenTitle="Water reminder";override val transactional=true
+    override val screenTitle get()=getString(com.openpets.android.R.string.ui_water);override val transactional=true
     private val state:WaterDraftViewModel by viewModels()
     private var controller:WaterController?=null
     private var binding:ControllerBinding<WaterSettings>?=null
     private var observer:LifecycleEventObserver?=null
     override fun rows():List<SettingRow>{val d=state.draft?:return emptyList();val live=state.live?:return emptyList();val next=WaterEngine().nextFire(System.currentTimeMillis(),live)?.let{android.text.format.DateFormat.format("MMM d, HH:mm",it).toString()}?:"—";return listOf(
-        SettingRow.SwitchRow("enabled","Enabled",null,d.enabled),
-        SettingRow.TextFieldRow("interval","Interval (minutes)",d.interval,null,state.errors["interval"]?.let(::waterError),true),
-        SettingRow.TextFieldRow("fromHour","From hour",d.from,null,state.errors["fromHour"]?.let(::waterError),true),
-        SettingRow.TextFieldRow("toHour","To hour",d.to,null,state.errors["toHour"]?.let(::waterError),true),
-        SettingRow.InfoRow("nextFire","Next scheduled fire",next),
+        SettingRow.SwitchRow("enabled",getString(com.openpets.android.R.string.ui_enabled),null,d.enabled),
+        SettingRow.TextFieldRow("interval",getString(com.openpets.android.R.string.ui_interval),d.interval,null,state.errors["interval"]?.let{waterError(it,requireContext())},true),
+        SettingRow.TextFieldRow("fromHour",getString(com.openpets.android.R.string.ui_from_hour),d.from,null,state.errors["fromHour"]?.let{waterError(it,requireContext())},true),
+        SettingRow.TextFieldRow("toHour",getString(com.openpets.android.R.string.ui_to_hour),d.to,null,state.errors["toHour"]?.let{waterError(it,requireContext())},true),
+        SettingRow.InfoRow("nextFire",getString(com.openpets.android.R.string.ui_next_fire),next),
+        sectionResetRow(),
     )}
     override fun onViewCreated(view:android.view.View,stateBundle:Bundle?){super.onViewCreated(view,stateBundle);view.post{if(isAdded&&this.view===view)acquireForView()}}
     private fun acquireForView(){val c=reacquireViewDependency{(activity as? MainActivity)?.waterControllerForSettings()}?:return;controller=c;val settings=c.settings();if(state.draft==null)state.draft=settings.toDraft();state.live=settings;updateRowsIncrementally();binding?.releaseView();binding=ControllerBinding(viewLifecycleOwner.lifecycle,{c.settings()},{c.addListener(it)},{c.removeListener(it)},{c.refresh()},render={state.live=it;updateRowsIncrementally()});observer?.let{viewLifecycleOwner.lifecycle.removeObserver(it)};observer=LifecycleEventObserver{_,e->when(e){Lifecycle.Event.ON_START->binding?.start();Lifecycle.Event.ON_STOP->binding?.stop();else->Unit}};viewLifecycleOwner.lifecycle.addObserver(observer!!)}
@@ -44,7 +45,8 @@ class WaterFragment:SettingsScreenFragment(){
     override fun onSwitchChanged(key:String,value:Boolean){if(key!="enabled")return;state.draft?.enabled=value;(list?.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),key)}
     override fun onSave(){val d=state.draft?:return;state.errors=validateWaterDraft(d);refreshRows();if(state.errors.isNotEmpty()){focusFirstError();return};val interval=(SettingsValidators.waterInterval(d.interval) as SettingsValidators.Result.Ok).value;val from=(SettingsValidators.waterHour(d.from) as SettingsValidators.Result.Ok).value;val to=(SettingsValidators.waterHour(d.to) as SettingsValidators.Result.Ok).value;controller?.update(d.enabled,interval,from,to);parentFragmentManager.popBackStack()}
     override fun onDiscard(){state.draft=controller?.settings()?.toDraft();state.errors=emptyMap();forceRebindRows()}
-    override fun requestClose():Boolean{val d=state.draft?:return false;if(d==controller?.settings()?.toDraft())return false;androidx.appcompat.app.AlertDialog.Builder(requireContext()).setTitle("Discard changes?").setMessage("Unsaved Water reminder settings will be discarded.").setPositiveButton("Discard"){_,_->onDiscard();parentFragmentManager.popBackStack()}.setNegativeButton("Keep editing",null).show();return true}
+    override fun sectionResetDraft(){state.draft=WaterDraft(false,"60","9","21");state.errors=emptyMap();forceRebindRows()}
+    override fun requestClose():Boolean{val d=state.draft?:return false;if(d==controller?.settings()?.toDraft())return false;androidx.appcompat.app.AlertDialog.Builder(requireContext()).setTitle(com.openpets.android.R.string.ui_discard_title).setMessage(com.openpets.android.R.string.ui_unsaved_water).setPositiveButton(com.openpets.android.R.string.ui_discard){_,_->onDiscard();parentFragmentManager.popBackStack()}.setNegativeButton(com.openpets.android.R.string.ui_keep_editing,null).show();return true}
     private fun focusFirstError(){val key=state.errors.keys.firstOrNull()?:return;val rv=list?:return;val position=rows().indexOfFirst{it.id==key.hashCode().toLong()};if(position>=0)rv.post{if(!isAdded||view==null||rv!==list)return@post;rv.scrollToPosition(position);rv.postOnAnimation{if(!isAdded||view==null||rv!==list)return@postOnAnimation;rv.findViewHolderForAdapterPosition(position)?.itemView?.findViewWithTag<android.view.View>(key)?.requestFocus()}}}
     override fun onDestroyView(){observer?.let{viewLifecycleOwner.lifecycle.removeObserver(it)};observer=null;binding?.releaseView();binding=null;controller=null;super.onDestroyView()}
 }
@@ -52,4 +54,4 @@ class WaterFragment:SettingsScreenFragment(){
 fun waterDependenciesAvailable(controller:WaterController?):Boolean=controller!=null
 
 private fun WaterSettings.toDraft()=WaterDraft(enabled,intervalMinutes.toString(),fromHour.toString(),toHour.toString())
-private fun waterError(error:SettingsValidators.Error)=when(error){SettingsValidators.Error.REQUIRED->"Required";SettingsValidators.Error.NOT_A_NUMBER->"Enter a number";SettingsValidators.Error.OUT_OF_RANGE->"Value is outside the allowed range";SettingsValidators.Error.START_EQUALS_END->"From and to hours must differ";else->"Invalid value"}
+private fun waterError(error:SettingsValidators.Error,context:android.content.Context)=context.getString(when(error){SettingsValidators.Error.REQUIRED->com.openpets.android.R.string.settings_required;SettingsValidators.Error.NOT_A_NUMBER->com.openpets.android.R.string.settings_enter_number;SettingsValidators.Error.OUT_OF_RANGE->com.openpets.android.R.string.settings_range_error;SettingsValidators.Error.START_EQUALS_END->com.openpets.android.R.string.settings_hours_differ;else->com.openpets.android.R.string.settings_invalid_value})

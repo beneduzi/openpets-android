@@ -9,6 +9,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 class SystemResourcesController private constructor(context: Context, runtimeInstance: Boolean) {
     constructor(context: Context) : this(context, false)
     private val delegate: SystemResourcesController? = if (runtimeInstance) null else CompanionRuntime.run { init(context); resources }
+    private val appContext = context.applicationContext
     private val reader = SystemResourcesReader(context.applicationContext)
     private val listeners = CopyOnWriteArrayList<(DeviceResources) -> Unit>()
     private var current = DeviceResources(null, null, null, null, null, null, null, null)
@@ -27,11 +28,12 @@ class SystemResourcesController private constructor(context: Context, runtimeIns
     @Synchronized fun showOnPet() {
         delegate?.let { it.showOnPet(); return }
         val bars = buildList {
-            current.batteryPercent?.let { add(HudItem("Battery", it.toFloat(), 100f, "green", null)) }
-            current.memoryUsedMb?.let { used -> current.memoryTotalMb?.takeIf { it > 0 }?.let { total -> add(HudItem("Memory", used.toFloat(), total.toFloat(), "blue", null)) } }
-            current.storageUsedMb?.let { used -> current.storageTotalMb?.takeIf { it > 0 }?.let { total -> add(HudItem("Storage", used.toFloat(), total.toFloat(), "amber", null)) } }
+            val ctx=appContext
+            current.batteryPercent?.let { add(HudItem(ctx.getString(com.openpets.android.R.string.settings_resources_battery), it.toFloat(), 100f, "green", null)) }
+            current.memoryUsedMb?.let { used -> current.memoryTotalMb?.takeIf { it > 0 }?.let { total -> add(HudItem(ctx.getString(com.openpets.android.R.string.settings_resources_memory), used.toFloat(), total.toFloat(), "blue", null)) } }
+            current.storageUsedMb?.let { used -> current.storageTotalMb?.takeIf { it > 0 }?.let { total -> add(HudItem(ctx.getString(com.openpets.android.R.string.settings_resources_storage), used.toFloat(), total.toFloat(), "amber", null)) } }
         }.take(4)
-        PetBus.hud(FeatureHud("system-resources", "resources", "Device", null, bars, claim = true))
+        PetBus.hud(FeatureHud("system-resources", "resources", appContext.getString(com.openpets.android.R.string.settings_resources_device), null, bars, claim = true))
     }
 
     companion object {
