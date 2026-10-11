@@ -638,7 +638,7 @@ class PetStageView @JvmOverloads constructor(
 
         val overlayWidth = hostMetricsView.measuredWidth
         val overlayHeight = hostMetricsView.measuredHeight
-        hostMetricsView.layout(width - dp(12f) - overlayWidth, dp(12f), width - dp(12f), dp(12f) + overlayHeight)
+        hostMetricsView.layout(dp(12f), dp(12f), dp(12f) + overlayWidth, dp(12f) + overlayHeight)
 
         val petWidth = petView.measuredWidth
         val petHeight = petView.measuredHeight
