@@ -141,6 +141,24 @@ and a discovery file. Awaits the tap with a timeout (default 60 s;
 cp openpets-interact.ts ~/.config/opencode/plugins/openpets-interact.ts
 ```
 
+## `openpets-media.ts` — display images on the pet (experimental)
+
+Registers the **`media`** tool so the agent can put an image on the pet from a
+session — just say *"show it on the pet"*:
+
+- `media { path }` — a **local file** (png/jpg/jpeg/webp/gif); read on the host and
+  sent inline as base64 (no network on the device).
+- `media { url }` — an **http(s) image URL** the device fetches.
+- optional `caption`, `durationMs` (1–30 s).
+
+The app caps media at 10 MB and shows it in a transient bubble (with the caption,
+optional actions/click) — see `pet.showMedia` in the agent guide.
+
+```bash
+cp openpets-media.ts ~/.config/opencode/plugins/openpets-media.ts
+```
+
+
 ## How the round-trip works (server side)
 
 ```
