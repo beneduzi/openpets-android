@@ -2,8 +2,6 @@
 
 # OpenPets Android
 
-Vocabulary: share text to OpenPets to look up a definition or translation and show it on the pet.
-
 **Turn an old phone or tablet into an always-on OpenPets companion.**
 
 A community Android companion for [OpenPets](https://github.com/OpenPetsHQ/openpets) that shows your pet on screen and reacts — in real time — to what your coding agents are doing.
@@ -52,7 +50,11 @@ It speaks the OpenPets protocol directly, so it works with the OpenCode plugin, 
 | 🎨 **Per-project identity** | The agent's `source` gives each project its own accent color and label. |
 | 🔔 **Sound, haptics & voice** | Beep or a custom sound, vibration, text-to-speech, and system notifications — each independently toggleable. |
 | 🧩 **Pets** | Five built-in pets (Professor Hoot, Tux, Melon Capybara, Lazy Raccoon, Mellow Duck), import from `.zip`/folder, or browse the online catalog. Supports `pets.install` / `pets.install-local`. |
-| 🤝 **Optional leases** | A single-owner lease (`status.leases`) keeps multiple agents from fighting over the pet. |
+| 🧭 **Companion features** | 15 built-in features that work with or without a PC: timer, reminders, deadlines, focus, virtual pet, water, fun, mood, routine, breathe, system resources, calendar, checklist, walkabout, and vocabulary. |
+| 🤖 **Host control & two-way** | OpenCode plugin + MCP tools (`say`/`react`/`ask`/`confirm`/`media`/`move`), plus an opt-in experimental **WebSocket** for events (actions, form submits, pointer, dictation, commands). |
+| 📊 **Host status overlay** | Optional ambient PC metrics (CPU/RAM/disk/network) drawn on the pet, fed by the bundled host-status sender. |
+| ✅ **Silent updates** | `pet.say` with `silent: true` renders without sound, haptics, TTS, or notification — for non-interrupting HUD/state ticks. |
+| 🤝 **Optional leases** | `lease.acquire`/`heartbeat`/`release` (15 s TTL) coordinates multiple agents; `status` reports the active lease count. |
 | 📺 **Always-on ready** | Foreground service, keep-screen-on, immersive mode, start on boot, and the official OpenPets icon. |
 
 ## Quick start
@@ -126,12 +128,12 @@ opencode service restart   # or restart OpenCode
 
 What they add:
 
-| Tool / behavior | What it does |
+| Plugin | Adds |
 | --- | --- |
-| `ask` | multiple-choice question answered by **tapping the pet** |
-| `confirm` | yes/no approval on the pet |
-| `media` | show an **image** on the pet (local path or URL) |
 | `openpets.ts` | reactions/speech driven by OpenCode activity |
+| `openpets-interact.ts` | `ask` (multiple-choice answered by **tapping the pet**) and `confirm` (yes/no approval) |
+| `openpets-media.ts` | `media` — show an **image** on the pet (local path or URL) |
+| `openpets-move.ts` | `move` / `react` — walk the pet to a position and trigger reactions |
 | `openpets-approvals.ts` | permission prompts shown on the pet |
 | `openpets-voice.ts` | dictate on the phone → text reaches the session |
 
@@ -151,8 +153,10 @@ node tools/send-media.mjs    <host> <port> <ipcToken> ./print.png "build finishe
 ┌───────────────────────────────┐                         ┌──────────────────────────────┐
 │  Agent                        │      TCP over LAN       │  OpenPets Android            │
 │  • OpenCode plugin            │  IPC 18420 / Remote 18421│  foreground service          │
-│  • OpenPets MCP server        │ ──────────────────────▶ │  pet · bubbles · media       │
-│  • @open-pets/cli             │  react · say · media     │  always-on · keep screen on  │
+│  • OpenPets MCP server        │  WS 18423 (opt-in)       │  pet · bubbles · media       │
+│  • @open-pets/cli             │  react · say · media     │  companion features          │
+│                               │ ──────────────────────▶ │  always-on · keep screen on  │
+│                               │ ◀──── events · commands ─│                              │
 └───────────────────────────────┘                         └──────────────────────────────┘
 ```
 
@@ -162,9 +166,9 @@ The app is the OpenPets **target**: it listens for one-line JSON requests and va
 
 | Protocol | Transport | Methods |
 | --- | --- | --- |
-| IPC `openpets-ipc` v1 | TCP, line-delimited JSON | `hello`, `status`, `pets.list`, `pets.install`, `pets.install-local`, `lease.acquire`, `lease.heartbeat`, `lease.release`, `pet.react`, `pet.say`, `pet.showMedia`, `pet.bubbleDismiss`, `pet.move`, `pet.setScale`, `pet.hide`, `pet.show`, `notify`, `status.publish` |
-| Remote `openpets-remote` v1 | Raw TCP, one request per socket | `status`, `pet.react`, `pet.say` |
-| WebSocket `openpets-ws` v1 *(experimental)* | `ws://` LAN, opt-in (disabled by default) | streams pet/companion events; accepts the IPC command surface |
+| IPC `openpets-ipc` v1 | TCP, line-delimited JSON | `hello`, `status`, `pets.list`, `pets.install`, `pets.install-local`, `lease.acquire`, `lease.heartbeat`, `lease.release`, `pet.react`, `pet.say`, `pet.showMedia`, `pet.bubbleDismiss`, `pet.move`, `pet.setScale`, `pet.hide`, `pet.show`, `notify`, `status.clear`, `status.publish` |
+| Remote `openpets-remote` v1 | Raw TCP, one request per socket, private peers only | `status`, `pet.react`, `pet.say` |
+| WebSocket `openpets-ws` v1 *(experimental)* | `ws://` LAN, opt-in (disabled by default), private peers + token | streams pet/companion events; accepts the IPC command surface. `hello`/`status` advertise `capabilities` and `limits`. |
 
 - **Request** `{ id, version:1, token, method, params }` · **success** `{ id, ok:true, result }` · **error** `{ id, ok:false, error:{code,message} }`
 - Leases have a 15-second TTL. Remote is capped at 4 KB per request and rate-limited to 30 requests per minute.
@@ -207,7 +211,7 @@ No. The companion implements the OpenPets protocol directly, so agents connect s
 <details>
 <summary><strong>Is it secure?</strong></summary>
 
-Traffic is **unencrypted**, and IPC only accepts private/local IPv4 addresses. Use it on a trusted LAN or VPN, and treat the per-protocol tokens as secrets. Remote mode is a fallback for MCP/CLI and is disabled-by-default in upstream tooling.
+Traffic is **unencrypted** and authenticated by per-protocol tokens. Remote mode and the opt-in WebSocket additionally accept only private/local peers; IPC relies on the token alone, so keep the ports on a trusted LAN or VPN and treat the tokens as secrets. Remote is a fallback for MCP/CLI and is disabled by default in upstream tooling.
 </details>
 
 <details>
@@ -250,11 +254,11 @@ The release APK is signed with the debug key so it can be sideloaded. CI builds 
 
 | Path | Contents |
 | --- | --- |
-| `app/` | UI (Canvas pet, rich bubbles, media/forms), network service, settings, always-on behaviour. |
-| `protocol/` | Pure Kotlin (JVM-testable): IPC/remote protocol, validators, TCP servers, reaction mapping. |
-| `tools/` | Helper scripts for discovery and sending reactions/media. |
-| `docs/` | Installation and agent-integration guides. |
-| `integrations/` | Host-side integrations: the OpenCode plugin, a host-plugin client + template (`host-plugins/`), and the host-status sender. |
+| `app/` | UI (Canvas pet, rich bubbles, media/forms), the native companion features, network service, settings, always-on behaviour. |
+| `protocol/` | Pure Kotlin (JVM-testable): IPC/remote protocol, validators, TCP servers, the experimental WebSocket server, reaction mapping. |
+| `tools/` | Helper scripts: discovery file, sending reactions/media, and installing the OpenCode host plugins. |
+| `docs/` | Installation, agent integration, the capability roadmap, and upstream/parity notes. |
+| `integrations/` | Host-side integrations: the OpenCode plugins (`opencode-plugin/`), a host-plugin client + template (`host-plugins/`), and the host-status sender (`host-status/`). |
 
 ## Roadmap
 
