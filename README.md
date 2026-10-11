@@ -183,15 +183,18 @@ The app is the OpenPets **target**: it listens for one-line JSON requests and va
 
 ## OpenPets Desktop vs OpenPets Android
 
-The Android app is a **companion**, not a port of the desktop app. It focuses on presence and glanceability.
+The Android app is a **companion**, not a port of the desktop app: it pairs the desktop's presence and glanceability with on-device features that keep working without a PC.
 
 | Capability | OpenPets Desktop | OpenPets Android |
 | --- | :-: | :-: |
 | Always-on pet display | ✅ (on your PC) | ✅ (on a spare device) |
-| Reactions, speech, rich bubbles, forms, media | ✅ | ✅ |
+| Reactions, speech, rich bubbles (HUD/actions/forms), media | ✅ | ✅ |
+| Companion features — timer, reminders, deadlines, focus, virtual pet, water, fun, mood, routine, breathe, system resources, calendar, checklist, walkabout, vocabulary | ✅ (via plugins) | ✅ (built-in, no plugin runtime) |
+| Pet movement (walk / roam / patrol) | ✅ | ✅ |
+| Speech-to-text (dictation) | ✅ | ✅ (opt-in) |
 | Runs without a PC | ❌ | ✅ |
-| Native plugins (e.g. Reminders, Water Reminder) | ✅ | ❌ |
-| Pet movement/physics, panels, speech-to-text | ✅ | ❌ |
+| JS plugin runtime / plugin store | ✅ | ❌ (features are compiled in) |
+| Panels, deliveries, sessions, assistant/AI | ✅ | ❌ |
 
 ## FAQ
 
