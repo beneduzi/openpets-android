@@ -198,7 +198,9 @@ The Android app is a **companion**, not a port of the desktop app: it pairs the 
 | Speech-to-text (dictation) | ✅ | ✅ (opt-in) |
 | Runs without a PC | ❌ | ✅ |
 | JS plugin runtime / plugin store | ✅ | ❌ (features are compiled in) |
-| Panels, deliveries, sessions, assistant/AI | ✅ | ❌ |
+| Plugin-SDK surfaces — panels (sandboxed plugin webviews), deliveries (queued cursor-display items), sessions (host-rendered practice overlays), assistant capabilities & host AI | ✅ | ❌ |
+
+> The app is a protocol **target**, not a plugin host: it has no `ctx.*` runtime, so desktop plugin-only surfaces — panels, deliveries, sessions, assistant capabilities, host AI, and the plugin bus — have no direct equivalent. A couple overlap in *user value* with built-in features (**sessions** ≈ the native Breathe/guided flows; **deliveries** ≈ `notify` + reminders), but none is a plugin-addressable surface.
 
 ## FAQ
 
