@@ -71,15 +71,36 @@ Set `OPENPETS_DISCOVERY_FILE`; it covers both the OpenCode plugin and MCP.
 | `openpets_react` | Plays a reaction animation. |
 | `openpets_say` | Shows a short speech bubble. |
 
-## OpenCode plugin
+## OpenCode integration
 
-The plugin runs inside the OpenCode process and uses the same discovery file. Export `OPENPETS_DISCOVERY_FILE` before starting OpenCode:
+There are two ways to drive the device from OpenCode:
 
-```bash
-export OPENPETS_DISCOVERY_FILE="$HOME/.config/opencode/openpets-discovery.json"
-```
+1. **MCP (one-way, recommended first step).** The `openpets` MCP server
+   (`npx @open-pets/cli mcp`) exposes `openpets_status` / `openpets_react` /
+   `openpets_say`. It uses the discovery file; `export
+   OPENPETS_DISCOVERY_FILE="$HOME/.config/opencode/openpets-discovery.json"`
+   before starting OpenCode. Local/discovery mode only (no remote push).
 
-The OpenPets plugin uses discovery/local mode only (no remote push).
+2. **Host plugins (two-way).** Copy the plugins bundled in this repo to your
+   OpenCode plugins dir and restart:
+
+   ```bash
+   mkdir -p ~/.config/opencode/plugins
+   cp integrations/opencode-plugin/*.ts ~/.config/opencode/plugins/
+   opencode service restart
+   ```
+
+   | Plugin | Adds |
+   | --- | --- |
+   | `openpets.ts` | reactions/speech from OpenCode activity; input-needed notices |
+   | `openpets-interact.ts` | `ask` / `confirm` tools — answered **on the pet** |
+   | `openpets-media.ts` | `media` tool — show an image on the pet |
+   | `openpets-approvals.ts` | permission approvals on the pet |
+   | `openpets-voice.ts` | on-device speech → session text |
+
+   Two-way features require the app's **WebSocket (experimental)** endpoint.
+   Full details: [`integrations/opencode-plugin/README.md`](../integrations/opencode-plugin/README.md)
+   and [`integrations/host-plugins/README.md`](../integrations/host-plugins/README.md).
 
 ## Remote mode (MCP / CLI)
 

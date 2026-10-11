@@ -115,6 +115,29 @@ The MCP server exposes `openpets_status`, `openpets_react`, and `openpets_say`. 
 
 > **Remote fallback (MCP / CLI only):** set `OPENPETS_REMOTE_ENDPOINT` (e.g. `tcp://192.168.0.14:18421`) and `OPENPETS_REMOTE_TOKEN`. The OpenCode plugin does **not** support Remote.
 
+### 3. (Optional) Enable the two-way host tools
+
+The MCP gives one-way control (`say` / `react` / `status`). For **two-way** interactions — the pet asking *you* a question, getting an approval, showing an image, and more — install the host plugins bundled in this repo:
+
+```bash
+mkdir -p ~/.config/opencode/plugins
+cp integrations/opencode-plugin/*.ts ~/.config/opencode/plugins/
+opencode service restart   # or restart OpenCode
+```
+
+What they add:
+
+| Tool / behavior | What it does |
+| --- | --- |
+| `ask` | multiple-choice question answered by **tapping the pet** |
+| `confirm` | yes/no approval on the pet |
+| `media` | show an **image** on the pet (local path or URL) |
+| `openpets.ts` | reactions/speech driven by OpenCode activity |
+| `openpets-approvals.ts` | permission prompts shown on the pet |
+| `openpets-voice.ts` | dictate on the phone → text reaches the session |
+
+See [`integrations/opencode-plugin/README.md`](integrations/opencode-plugin/README.md). The two-way features need the app's **WebSocket (experimental)** endpoint enabled in Settings.
+
 ### Verify it works
 
 ```bash
