@@ -85,8 +85,7 @@ There are two ways to drive the device from OpenCode:
    OpenCode plugins dir and restart:
 
    ```bash
-   mkdir -p ~/.config/opencode/plugins
-   cp integrations/opencode-plugin/*.ts ~/.config/opencode/plugins/
+   tools/install-opencode-plugins.sh
    opencode service restart
    ```
 

@@ -120,8 +120,7 @@ The MCP server exposes `openpets_status`, `openpets_react`, and `openpets_say`. 
 The MCP gives one-way control (`say` / `react` / `status`). For **two-way** interactions — the pet asking *you* a question, getting an approval, showing an image, and more — install the host plugins bundled in this repo:
 
 ```bash
-mkdir -p ~/.config/opencode/plugins
-cp integrations/opencode-plugin/*.ts ~/.config/opencode/plugins/
+tools/install-opencode-plugins.sh
 opencode service restart   # or restart OpenCode
 ```
 
