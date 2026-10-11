@@ -383,7 +383,9 @@ class SpeechBubbleView @JvmOverloads constructor(
             MotionEvent.ACTION_UP -> {
                 for ((rect, action) in buttonRects) {
                     if (rect.contains(event.x, event.y)) {
+                        performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                         onAction?.invoke(action)
+                        dismiss()
                         return true
                     }
                 }

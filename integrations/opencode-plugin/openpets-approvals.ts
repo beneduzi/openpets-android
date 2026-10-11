@@ -90,7 +90,7 @@ function ensureWs(discovery: { host: string; token: string }): void {
           actionId === "approve" ? "once" : actionId === "always" ? "always" : actionId === "deny" ? "reject" : undefined;
         if (!reply) return;
         pending.delete(bubbleId);
-        void onReply(request.sessionID, request.requestID, reply, reply === "reject" ? "error" : "success");
+        void onReply(bubbleId, request.sessionID, request.requestID, reply, reply === "reject" ? "error" : "success");
       } catch {
         /* ignore malformed frames */
       }
@@ -102,7 +102,7 @@ function ensureWs(discovery: { host: string; token: string }): void {
   }
 }
 
-async function onReply(sessionID: string, requestID: string, reply: Reply, reaction: string): Promise<void> {
+async function onReply(bubbleId: string, sessionID: string, requestID: string, reply: Reply, reaction: string): Promise<void> {
   // Best-effort: resolve the permission request through the plugin context.
   try {
     await (globalThis as { __openpetsCtx?: { permission?: { reply?: (input: unknown) => Promise<void> } } })
@@ -110,7 +110,12 @@ async function onReply(sessionID: string, requestID: string, reply: Reply, react
   } catch {
     /* fall through to IPC feedback only */
   }
-  sendIpc(readDiscovery() ?? { host: "", port: 0, token: "" }, "pet.react", { reaction });
+  const disc = readDiscovery();
+  if (disc) {
+    // Close the approval bubble now that the decision is received, then signal.
+    sendIpc(disc, "pet.bubbleDismiss", { id: bubbleId });
+    sendIpc(disc, "pet.react", { reaction });
+  }
 }
 
 /** Defensively pull {sessionID, requestID} out of an unknown event payload. */
