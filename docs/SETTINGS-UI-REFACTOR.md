@@ -232,6 +232,16 @@ Voice is an exception: create a view-scoped `SttController`, cancel on leaving a
 
 ### Apply semantics
 
+> **Superseded (2026-10).** The user froze the **current** apply semantics: the
+> toggles/ports/tokens stay **staged** (they take effect only on an explicit Save), and
+> only `customSoundUri` and `selectedPetId` remain **immediate**. Staged controls are
+> grouped into **transactional sections with their own Save/Discard** — so in the table
+> below, rows listed as "Immediate" for the toggles / host-status display / start-on-boot
+> are instead **staged within their section**. Per-section Save/Discard changes the
+> transaction *granularity*, not staged-vs-immediate behavior.
+> `SETTINGS-REACHABILITY.md` is the authoritative per-control mapping (including an
+> action-level appendix).
+
 | Settings/workflow | Semantics |
 |---|---|
 | Sound, haptics, TTS, agent notifications, host-status display, start on boot | Immediate |

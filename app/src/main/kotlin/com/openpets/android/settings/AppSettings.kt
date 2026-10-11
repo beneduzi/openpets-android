@@ -15,6 +15,25 @@ class AppSettings(context: Context) {
 
     private val prefs = context.getSharedPreferences("openpets", Context.MODE_PRIVATE)
 
+    fun applyConnections(
+        ipcEnabled: Boolean, remoteEnabled: Boolean, wsEnabled: Boolean,
+        bindAddress: String, ipcPort: Int, remotePort: Int, wsPort: Int,
+        ipcToken: String, remoteToken: String, requireLease: Boolean,
+    ) {
+        prefs.edit()
+            .putBoolean("ipcEnabled", ipcEnabled)
+            .putBoolean("remoteEnabled", remoteEnabled)
+            .putBoolean("wsEnabled", wsEnabled)
+            .putString("bindAddress", bindAddress)
+            .putInt("ipcPort", ipcPort)
+            .putInt("remotePort", remotePort)
+            .putInt("wsPort", wsPort)
+            .putString("ipcToken", ipcToken)
+            .putString("remoteToken", remoteToken)
+            .putBoolean("requireLease", requireLease)
+            .apply()
+    }
+
     var ipcEnabled: Boolean
         get() = prefs.getBoolean("ipcEnabled", true)
         set(value) = prefs.edit().putBoolean("ipcEnabled", value).apply()
