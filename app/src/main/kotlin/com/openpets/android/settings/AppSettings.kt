@@ -34,6 +34,25 @@ class AppSettings(context: Context) {
             .apply()
     }
 
+    fun applyAppearance(sound: Boolean, haptics: Boolean, tts: Boolean, notify: Boolean, hostStatus: Boolean) {
+        prefs.edit()
+            .putBoolean("soundEnabled", sound)
+            .putBoolean("hapticsEnabled", haptics)
+            .putBoolean("ttsEnabled", tts)
+            .putBoolean("notifyEnabled", notify)
+            .putBoolean("hostStatusEnabled", hostStatus)
+            .apply()
+    }
+
+    fun applyWalkabout(mode:String,speed:Float) {
+        prefs.edit().putString("walkaboutMode",mode).putFloat("walkaboutSpeed",speed).apply()
+    }
+
+    fun applyAnimations(overrides:Map<String,String>,waitingMs:Int) {
+        val obj=org.json.JSONObject(); overrides.forEach { (key,value)->obj.put(key,value) }
+        prefs.edit().putString("reactionOverrides",obj.toString()).putInt("waitingDurationMs",waitingMs).apply()
+    }
+
     var ipcEnabled: Boolean
         get() = prefs.getBoolean("ipcEnabled", true)
         set(value) = prefs.edit().putBoolean("ipcEnabled", value).apply()

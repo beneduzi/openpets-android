@@ -96,6 +96,11 @@ import com.openpets.android.settings.ui.SettingsDestination
 import com.openpets.android.settings.ui.SettingsHost
 import com.openpets.android.settings.ui.SettingsOverviewFragment
 import com.openpets.android.settings.ui.ConnectionsFragment
+import com.openpets.android.settings.ui.AppearanceFragment
+import com.openpets.android.settings.ui.AdvancedFragment
+import com.openpets.android.settings.ui.AnimationsFragment
+import com.openpets.android.settings.ui.WalkaboutFragment
+import com.openpets.android.settings.ui.PetsFragment
 import com.openpets.android.vocab.VocabularyClient
 import com.openpets.android.vocab.VocabDefinition
 import com.openpets.android.view.PetStageView
@@ -215,17 +220,26 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
         }
     }
 
+    private var pendingPetImportCallback:(()->Unit)?=null
     private val importZipLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { importPet { repository.importZip(it) } }
+        if(uri==null)finishPetImport(false) else importPet({ repository.importZip(uri) }) { finishPetImport(true) }
     }
     private val importFolderLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        uri?.let { importPet { repository.importFolder(it) } }
+        if(uri==null)finishPetImport(false) else importPet({ repository.importFolder(uri) }) { finishPetImport(true) }
     }
+    private fun finishPetImport(success:Boolean){val callback=pendingPetImportCallback;pendingPetImportCallback=null;if(success)callback?.invoke()}
     private val customSoundLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            settings.customSoundUri = uri.toString()
-            OpenPetsService.reload(this)
-            Toast.makeText(this, "Custom sound set", Toast.LENGTH_SHORT).show()
+            try {
+                contentResolver.openInputStream(uri)?.use { } ?: throw IllegalStateException("The selected sound file is not readable.")
+                contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                settings.customSoundUri = uri.toString()
+                OpenPetsService.reload(this)
+                Toast.makeText(this, "Custom sound set", Toast.LENGTH_SHORT).show()
+                (supportFragmentManager.findFragmentById(SETTINGS_CONTAINER_ID) as? AppearanceFragment)?.refreshSoundRow()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Unable to use sound file: ${e.message ?: "file is not readable"}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -310,12 +324,31 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
     }
 
     fun selectedPetName(): String = currentPetLabel()
+    fun chooseCustomSound() { customSoundLauncher.launch(arrayOf("audio/*")) }
+    fun chooseDefaultSound() { settings.customSoundUri=null; OpenPetsService.reload(this);(supportFragmentManager.findFragmentById(SETTINGS_CONTAINER_ID) as? AppearanceFragment)?.refreshSoundRow() }
+    fun refreshWalkabout(mode:String,speed:Float){ stage.applyWalkabout(mode,speed) }
+    fun refreshAnimationConfig(){ applyAnimationConfig() }
+    fun availablePets():List<PetDescriptor> = repository.listPets().sortedWith(compareByDescending<PetDescriptor>{it.builtIn}.thenBy{it.displayName.lowercase(Locale.ROOT)})
+    fun selectedPetId():String=settings.selectedPetId
+    fun isImportedPet(id:String)=repository.isImported(id)
+    fun selectPetById(id:String){ availablePets().firstOrNull{it.id==id}?.let(::selectPet) }
+    fun openOnlinePetCatalog(onComplete:()->Unit){ showCatalogBrowser(onComplete) }
+    fun launchPetZipImport(onComplete:()->Unit={}){ pendingPetImportCallback=onComplete;try{importZipLauncher.launch(arrayOf("application/zip","application/octet-stream","*/*"))}catch(e:Exception){pendingPetImportCallback=null;Toast.makeText(this,"Unable to open pet importer: ${e.message}",Toast.LENGTH_LONG).show()} }
+    fun launchPetFolderImport(onComplete:()->Unit={}){ pendingPetImportCallback=onComplete;try{importFolderLauncher.launch(null)}catch(e:Exception){pendingPetImportCallback=null;Toast.makeText(this,"Unable to open folder picker: ${e.message}",Toast.LENGTH_LONG).show()} }
+    fun deleteSelectedImportedPet(onComplete:()->Unit):Boolean {
+        val id=settings.selectedPetId
+        if(!repository.isImported(id) || !repository.deleteImported(id))return false
+        settings.selectedPetId="tux";reloadPet();OpenPetsService.reload(this);Toast.makeText(this,"Imported pet removed",Toast.LENGTH_SHORT).show();onComplete();return true
+    }
 
     override fun openSettingsDestination(destination: SettingsDestination) {
         when (destination) {
-            SettingsDestination.PETS -> showPetPicker()
-            SettingsDestination.ANIMATIONS -> showAnimationSettings()
-            SettingsDestination.WALKABOUT -> showWalkaboutDialog()
+            SettingsDestination.PETS -> supportFragmentManager.beginTransaction()
+                .replace(SETTINGS_CONTAINER_ID, PetsFragment()).addToBackStack("pets").commit()
+            SettingsDestination.ANIMATIONS -> supportFragmentManager.beginTransaction()
+                .replace(SETTINGS_CONTAINER_ID, AnimationsFragment()).addToBackStack("animations").commit()
+            SettingsDestination.WALKABOUT -> supportFragmentManager.beginTransaction()
+                .replace(SETTINGS_CONTAINER_ID, WalkaboutFragment()).addToBackStack("walkabout").commit()
             SettingsDestination.TIMER -> showTimerDialog()
             SettingsDestination.REMINDERS -> showRemindersDialog()
             SettingsDestination.DEADLINES -> showDeadlineDialog()
@@ -334,8 +367,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
             SettingsDestination.COMMANDS -> showCommandsDialog()
             SettingsDestination.SERVER_SETTINGS -> supportFragmentManager.beginTransaction()
                 .replace(SETTINGS_CONTAINER_ID, ConnectionsFragment()).addToBackStack("connections").commit()
-            SettingsDestination.SOUND_OUTPUT,
-            SettingsDestination.START_ON_BOOT, SettingsDestination.HOST_STATUS_PENDING -> showLegacySettingsDialog()
+            SettingsDestination.SOUND_OUTPUT, SettingsDestination.HOST_STATUS_PENDING -> supportFragmentManager.beginTransaction()
+                .replace(SETTINGS_CONTAINER_ID, AppearanceFragment()).addToBackStack("appearance").commit()
+            SettingsDestination.START_ON_BOOT -> supportFragmentManager.beginTransaction()
+                .replace(SETTINGS_CONTAINER_ID, AdvancedFragment()).addToBackStack("startup").commit()
             SettingsDestination.ABOUT -> AlertDialog.Builder(this).setTitle("About OpenPets")
                 .setMessage(
                     "Version ${BuildConfig.VERSION_NAME}\n\n" +
@@ -618,7 +653,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
         Toast.makeText(this, "Pet: ${pet.displayName}", Toast.LENGTH_SHORT).show()
     }
 
-    private fun importPet(block: () -> PetDescriptor) {
+    private fun importPet(block: () -> PetDescriptor, onComplete:()->Unit = {}) {
         Toast.makeText(this, "Importando pet…", Toast.LENGTH_SHORT).show()
         Thread {
             try {
@@ -628,10 +663,12 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
                     reloadPet()
                     OpenPetsService.reload(this)
                     Toast.makeText(this, "Pet imported: ${descriptor.displayName}", Toast.LENGTH_SHORT).show()
+                    onComplete()
                 }
             } catch (e: Exception) {
                 runOnUiThread {
                     Toast.makeText(this, "Import failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    finishPetImport(false)
                 }
             }
         }.start()
@@ -691,7 +728,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
         dialog.show()
     }
 
-    private fun showCatalogBrowser() {
+    fun showCatalogBrowser(onComplete:()->Unit = {}) {
         val dialogRef = arrayOfNulls<AlertDialog>(1)
         val search = EditText(this).apply { hint = "Buscar pet (nome/tag)" }
         val searchButton = actionButton("Buscar") { }
@@ -742,7 +779,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
                         }
                         result.pets.forEach { pet ->
                             listContainer.addView(actionButton("${pet.displayName}  ·  ${pet.author}") {
-                                downloadAndImport(pet) { dialogRef[0]?.dismiss() }
+                                 downloadAndImport(pet) { dialogRef[0]?.dismiss(); onComplete() }
                             })
                         }
                     }

@@ -60,9 +60,12 @@ abstract class SettingsScreenFragment : Fragment() {
     protected open fun onRowClicked(row: SettingRow) {}
     open fun requestClose():Boolean = false
     protected fun refreshRows() { (list.adapter as? SettingsScreenAdapter)?.replaceRows(rows()) }
-    private fun createAdapter() = SettingsScreenAdapter(rows(), { key,value->onFieldChanged(key,value) }, {key,value->onSwitchChanged(key,value)}, {onRowClicked(it)})
+    protected fun forceRebindRows() { list.findFocus()?.clearFocus(); (list.adapter as? SettingsScreenAdapter)?.replaceRows(rows()); (list.adapter as? SettingsScreenAdapter)?.rebindAllIgnoringFocus() }
+    private fun createAdapter() = SettingsScreenAdapter(rows(), { key,value->onFieldChanged(key,value) }, {key,value->onSwitchChanged(key,value)}, {onRowClicked(it)}, {key,value->onSliderChanged(key,value)}, {key,value->onChoiceChanged(key,value)})
     protected open fun onFieldChanged(key:String,value:String) {}
     protected open fun onSwitchChanged(key:String,value:Boolean) {}
+    protected open fun onSliderChanged(key:String,value:Float) {}
+    protected open fun onChoiceChanged(key:String,value:String) {}
     override fun onDestroyView() { list.adapter=null; super.onDestroyView() }
     private fun dp(value:Int)=(value*resources.displayMetrics.density).toInt()
 }

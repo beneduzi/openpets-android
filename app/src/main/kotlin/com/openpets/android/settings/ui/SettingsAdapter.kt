@@ -7,9 +7,10 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 class SettingsAdapter(
-    private val rows: List<Row>,
+    private var rows: List<Row>,
     private val onSelect: (SettingsDestination) -> Unit,
 ) : RecyclerView.Adapter<SettingsAdapter.Holder>() {
+    fun replaceRows(newRows:List<Row>){ rows=newRows; notifyDataSetChanged() }
     init { setHasStableIds(true) }
     override fun getItemId(position: Int) = rows[position].id
     override fun getItemViewType(position: Int) = when (rows[position]) {
