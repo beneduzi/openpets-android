@@ -20,6 +20,7 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.StaticLayout
 import android.text.TextPaint
+import android.text.TextUtils
 import android.text.style.BackgroundColorSpan
 import android.text.style.StyleSpan
 import android.text.style.TypefaceSpan
@@ -315,11 +316,26 @@ class SpeechBubbleView @JvmOverloads constructor(
             val barRight = contentRight
             for (item in hud) {
                 smallBoldPaint.color = 0xFF334155.toInt()
-                canvas.drawText(item.label, barLeft, y + smallBoldPaint.textSize, smallBoldPaint)
+                val icon = item.icon?.takeIf { it.isNotBlank() }
+                val labelX = if (icon == null) {
+                    barLeft
+                } else {
+                    canvas.drawText(icon, barLeft, y + smallBoldPaint.textSize, smallBoldPaint)
+                    barLeft + smallBoldPaint.measureText(icon) + dp(3f)
+                }
                 val valueText = formatValue(item)
                 smallPaint.color = 0xFF475569.toInt()
                 val vw = smallPaint.measureText(valueText)
                 canvas.drawText(valueText, barRight - vw, y + smallPaint.textSize, smallPaint)
+                if (icon == null) {
+                    canvas.drawText(item.label, labelX, y + smallBoldPaint.textSize, smallBoldPaint)
+                } else {
+                    val available = (barRight - vw - dp(6f)) - labelX
+                    if (available > 0f) {
+                        val label = TextUtils.ellipsize(item.label, smallBoldPaint, available, TextUtils.TruncateAt.END)
+                        canvas.drawText(label.toString(), labelX, y + smallBoldPaint.textSize, smallBoldPaint)
+                    }
+                }
                 val barTop = y + hudRowHeight - dp(6f)
                 val barRect = RectF(barLeft, barTop, barRight, barTop + dp(4f))
                 barBgPaint.color = 0x26475569
