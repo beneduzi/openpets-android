@@ -17,8 +17,8 @@ import androidx.recyclerview.widget.RecyclerView
 abstract class SettingsScreenFragment : Fragment() {
     protected abstract val screenTitle: String
     protected open val transactional: Boolean = false
-    protected lateinit var list: RecyclerView
-    protected lateinit var content: LinearLayout
+    protected var list: RecyclerView? = null
+    protected var content: LinearLayout? = null
     protected abstract fun rows(): List<SettingRow>
     protected open fun onSave() {}
     protected open fun onDiscard() {}
@@ -31,7 +31,7 @@ abstract class SettingsScreenFragment : Fragment() {
         val back=TextView(ctx).apply { text="‹"; textSize=28f; gravity=Gravity.CENTER; contentDescription="Back"; setOnClickListener { if(!requestClose()) parentFragmentManager.popBackStack() } }
         bar.addView(back,LinearLayout.LayoutParams(dp(48),dp(48)))
         bar.addView(TextView(ctx).apply { text=screenTitle; textSize=20f; gravity=Gravity.CENTER_VERTICAL },LinearLayout.LayoutParams(0,dp(56),1f))
-        content.addView(bar)
+        content!!.addView(bar)
         val frame=FrameLayout(ctx)
         list=RecyclerView(ctx).apply {
             layoutManager=LinearLayoutManager(ctx)
@@ -43,29 +43,30 @@ abstract class SettingsScreenFragment : Fragment() {
         wrapper.addOnLayoutChangeListener { parent,_,_,_,_,_,_,_,_->
             val maxWidth=(600*ctx.resources.displayMetrics.density).toInt()
             val desired=parent.width.coerceAtMost(maxWidth)
-            val params=list.layoutParams
-            if(params.width!=desired){ params.width=desired; list.layoutParams=params; (params as? FrameLayout.LayoutParams)?.gravity=Gravity.CENTER }
+            val current=list?:return@addOnLayoutChangeListener
+            val params=current.layoutParams
+            if(params.width!=desired){ params.width=desired; current.layoutParams=params; (params as? FrameLayout.LayoutParams)?.gravity=Gravity.CENTER }
         }
         frame.addView(wrapper,FrameLayout.LayoutParams(-1,-1))
-        content.addView(frame,LinearLayout.LayoutParams(-1,0,1f))
+        content!!.addView(frame,LinearLayout.LayoutParams(-1,0,1f))
         if(transactional) {
             val footer=LinearLayout(ctx).apply { setPadding(dp(16),dp(8),dp(16),dp(8)) }
             footer.orientation=LinearLayout.VERTICAL
             footer.addView(com.google.android.material.button.MaterialButton(ctx).apply { text="Discard"; setOnClickListener { onDiscard() } },LinearLayout.LayoutParams(-1,dp(48)))
             footer.addView(com.google.android.material.button.MaterialButton(ctx).apply { text="Save"; setOnClickListener { onSave() } },LinearLayout.LayoutParams(-1,dp(48)))
-            content.addView(footer)
+            content!!.addView(footer)
         }
-        return content
+        return content!!
     }
     protected open fun onRowClicked(row: SettingRow) {}
     open fun requestClose():Boolean = false
-    protected fun refreshRows() { (list.adapter as? SettingsScreenAdapter)?.replaceRows(rows()) }
-    protected fun forceRebindRows() { list.findFocus()?.clearFocus(); (list.adapter as? SettingsScreenAdapter)?.replaceRows(rows()); (list.adapter as? SettingsScreenAdapter)?.rebindAllIgnoringFocus() }
+    protected fun refreshRows() { (list?.adapter as? SettingsScreenAdapter)?.replaceRows(rows()) }
+    protected fun forceRebindRows() { list?.findFocus()?.clearFocus(); (list?.adapter as? SettingsScreenAdapter)?.replaceRows(rows()); (list?.adapter as? SettingsScreenAdapter)?.rebindAllIgnoringFocus() }
     private fun createAdapter() = SettingsScreenAdapter(rows(), { key,value->onFieldChanged(key,value) }, {key,value->onSwitchChanged(key,value)}, {onRowClicked(it)}, {key,value->onSliderChanged(key,value)}, {key,value->onChoiceChanged(key,value)})
     protected open fun onFieldChanged(key:String,value:String) {}
     protected open fun onSwitchChanged(key:String,value:Boolean) {}
     protected open fun onSliderChanged(key:String,value:Float) {}
     protected open fun onChoiceChanged(key:String,value:String) {}
-    override fun onDestroyView() { list.adapter=null; super.onDestroyView() }
+    override fun onDestroyView() { list?.adapter=null;list=null;content=null;super.onDestroyView() }
     private fun dp(value:Int)=(value*resources.displayMetrics.density).toInt()
 }

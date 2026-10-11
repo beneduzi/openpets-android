@@ -18,7 +18,7 @@ class PetsFragment:SettingsScreenFragment(){
             SettingRow.ActionRow("deleteImported","Delete imported pet",null,host.isImportedPet(host.selectedPetId())),
         )
     }
-    override fun onChoiceChanged(key:String,value:String){if(key!="selectedPet")return;host.selectPetById(value);(list.adapter as? SettingsScreenAdapter)?.setChoiceValue(key,value);(list.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),"deleteImported")}
+    override fun onChoiceChanged(key:String,value:String){if(key!="selectedPet")return;host.selectPetById(value);(list!!.adapter as? SettingsScreenAdapter)?.setChoiceValue(key,value);(list!!.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),"deleteImported")}
     override fun onRowClicked(row:SettingRow){when((row as? SettingRow.ActionRow)?.key){
         "onlineCatalog"->host.openOnlinePetCatalog { if(isAdded&&view!=null)refreshRows() }
         "importZip"->host.launchPetZipImport { if(isAdded&&view!=null)refreshRows() }

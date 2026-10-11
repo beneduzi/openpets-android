@@ -15,6 +15,7 @@ import com.openpets.android.MainActivity
 interface SettingsHost {
     fun openSettingsDestination(destination: SettingsDestination)
     fun closeSettings()
+    fun revealStage()
 }
 
 class SettingsOverviewFragment : Fragment() {
@@ -48,7 +49,9 @@ class SettingsOverviewFragment : Fragment() {
                 (requireActivity() as SettingsHost).openSettingsDestination(it)
             }
         }
-        recyclerState?.let { recycler?.post { recycler?.layoutManager?.onRestoreInstanceState(it) } }
+        val restore=recyclerState
+        val rv=recycler
+        if(restore!=null&&rv!=null)rv.post{if(!isAdded||view!==root||rv!==recycler)return@post;rv.layoutManager?.onRestoreInstanceState(restore)}
         val centered = FrameLayout(context)
         centered.addView(recycler, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER))
         root.addView(centered, LinearLayout.LayoutParams(-1, 0, 1f))

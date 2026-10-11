@@ -89,9 +89,9 @@ class ConnectionsFragment: SettingsScreenFragment() {
             SettingRow.ActionRow("copyIpc","Copy IPC token",null), SettingRow.ActionRow("copyRemote","Copy Remote token",null),
         )
     }
-    override fun onFieldChanged(key:String,value:String) { state.draft?.let { d-> when(key){"bind"->d.bind=value;"ipcPort"->d.ipcPort=value;"remotePort"->d.remotePort=value;"wsPort"->d.wsPort=value;"ipcToken"->{d.ipcToken=value;d.ipcTokenEdited=true};"remoteToken"->{d.remoteToken=value;d.remoteTokenEdited=true} }; (list.adapter as? SettingsScreenAdapter)?.setFieldValue(key,value) } }
-    override fun onSwitchChanged(key:String,value:Boolean) { state.draft?.let { d-> when(key){"ipcEnabled"->d.ipcEnabled=value;"remoteEnabled"->d.remoteEnabled=value;"wsEnabled"->d.wsEnabled=value;"requireLease"->d.requireLease=value} }; (list.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),key); val port=when(key){"ipcEnabled"->"ipcPort";"remoteEnabled"->"remotePort";"wsEnabled"->"wsPort";else->null};port?.let{(list.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),it)} }
-    private fun statusChanged() { val adapter=list.adapter as? SettingsScreenAdapter ?:return; val index=rows().indexOfFirst { it.id=="status".hashCode().toLong() }; if(index>=0) adapter.replaceStatus(index, rows()[index]) }
+    override fun onFieldChanged(key:String,value:String) { state.draft?.let { d-> when(key){"bind"->d.bind=value;"ipcPort"->d.ipcPort=value;"remotePort"->d.remotePort=value;"wsPort"->d.wsPort=value;"ipcToken"->{d.ipcToken=value;d.ipcTokenEdited=true};"remoteToken"->{d.remoteToken=value;d.remoteTokenEdited=true} }; (list!!.adapter as? SettingsScreenAdapter)?.setFieldValue(key,value) } }
+    override fun onSwitchChanged(key:String,value:Boolean) { state.draft?.let { d-> when(key){"ipcEnabled"->d.ipcEnabled=value;"remoteEnabled"->d.remoteEnabled=value;"wsEnabled"->d.wsEnabled=value;"requireLease"->d.requireLease=value} }; (list!!.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),key); val port=when(key){"ipcEnabled"->"ipcPort";"remoteEnabled"->"remotePort";"wsEnabled"->"wsPort";else->null};port?.let{(list!!.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),it)} }
+    private fun statusChanged() { val adapter=list!!.adapter as? SettingsScreenAdapter ?:return; val index=rows().indexOfFirst { it.id=="status".hashCode().toLong() }; if(index>=0) adapter.replaceStatus(index, rows()[index]) }
     override fun onRowClicked(row:SettingRow) {
         if(row is SettingRow.SwitchDetailRow){ val index=rows().indexOfFirst { it.id==row.detailDestination.hashCode().toLong() }; if(index>=0)focusAfterLayout(index,row.detailDestination,null); return }
         when((row as? SettingRow.ActionRow)?.id) {
@@ -124,15 +124,16 @@ class ConnectionsFragment: SettingsScreenFragment() {
             .setNegativeButton("Keep editing",null).show()
         return true
     }
-    override fun onDiscard() { list.post { list.findFocus()?.clearFocus(); loadDraft(); maskSecrets(); refreshRows() } }
+    override fun onDiscard() { val rv=list?:return;rv.post { if(!isAdded||view==null||rv!==list)return@post;rv.findFocus()?.clearFocus();loadDraft();maskSecrets();refreshRows() } }
     private fun focusFirstError() { val key=state.errors.keys.firstOrNull() ?: return; val index=rows().indexOfFirst { it.id==key.hashCode().toLong() }; if(index>=0)focusAfterLayout(index,key,state.errors[key]?.let(::errorText)) }
     private fun focusAfterLayout(position:Int,tag:String,announce:String?) {
-        val rv=list
+        val rv=list?:return
         rv.scrollToPosition(position)
         val observer=rv.viewTreeObserver
         lateinit var listener:android.view.ViewTreeObserver.OnPreDrawListener
         listener=object:android.view.ViewTreeObserver.OnPreDrawListener {
             override fun onPreDraw():Boolean {
+                if(!isAdded||view==null||rv!==list){if(observer.isAlive)observer.removeOnPreDrawListener(this);pendingFocusListeners.removeAll{it.second===this};return true}
                 val holder=rv.findViewHolderForAdapterPosition(position) ?: return true
                 val target=holder.itemView.findViewWithTag<View>(tag) ?: holder.itemView
                 target.requestFocus(); announce?.let(target::announceForAccessibility)

@@ -38,8 +38,8 @@ class AppearanceFragment:SettingsScreenFragment(){
         )
     }
     override fun onResume(){super.onResume();refreshSoundRow()}
-    fun refreshSoundRow(){if(view==null)return;(list.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),"soundFile")}
-    override fun onSwitchChanged(key:String,value:Boolean){state.draft?.let{d->when(key){"soundEnabled"->d.sound=value;"hapticsEnabled"->d.haptics=value;"ttsEnabled"->d.tts=value;"notifyEnabled"->d.notify=value;"hostStatusEnabled"->d.hostStatus=value}};(list.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),key)}
+    fun refreshSoundRow(){if(view==null)return;(list!!.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),"soundFile")}
+    override fun onSwitchChanged(key:String,value:Boolean){state.draft?.let{d->when(key){"soundEnabled"->d.sound=value;"hapticsEnabled"->d.haptics=value;"ttsEnabled"->d.tts=value;"notifyEnabled"->d.notify=value;"hostStatusEnabled"->d.hostStatus=value}};(list!!.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),key)}
     override fun onRowClicked(row:SettingRow){when(row.id){"soundFile".hashCode().toLong()->showSoundChoices();"testSound".hashCode().toLong()->AlertDialog.Builder(requireContext()).setTitle("Test sound").setMessage("This test sets alarm volume to maximum for about 2.5 seconds.").setPositiveButton("Play") { _,_->SoundNotifier(requireContext()).playTest() }.setNegativeButton("Cancel",null).show()}}
     private fun showSoundChoices(){AlertDialog.Builder(requireContext()).setTitle("Sound file").setItems(arrayOf("Default sound","Choose audio file…")){_,which->if(which==0)(requireActivity() as MainActivity).chooseDefaultSound() else (requireActivity() as MainActivity).chooseCustomSound()}.show()}
     override fun onSave(){val d=state.draft?:return;val wasHost=settings.hostStatusEnabled;settings.applyAppearance(d.sound,d.haptics,d.tts,d.notify,d.hostStatus);OpenPetsService.reload(requireContext());if(wasHost&&!d.hostStatus)PetBus.hostMetrics(null);resetDraft();parentFragmentManager.popBackStack()}

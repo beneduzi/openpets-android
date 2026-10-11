@@ -101,6 +101,11 @@ import com.openpets.android.settings.ui.AdvancedFragment
 import com.openpets.android.settings.ui.AnimationsFragment
 import com.openpets.android.settings.ui.WalkaboutFragment
 import com.openpets.android.settings.ui.PetsFragment
+import com.openpets.android.settings.ui.ResourcesFragment
+import com.openpets.android.settings.ui.CommandsFragment
+import com.openpets.android.settings.ui.VirtualPetFragment
+import com.openpets.android.settings.ui.FunFragment
+import com.openpets.android.settings.ui.MoodFragment
 import com.openpets.android.vocab.VocabularyClient
 import com.openpets.android.vocab.VocabDefinition
 import com.openpets.android.view.PetStageView
@@ -356,15 +361,17 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
             SettingsDestination.CALENDAR -> showCalendarDialog()
             SettingsDestination.CHECKLIST -> showChecklistDialog()
             SettingsDestination.WATER -> showWaterDialog()
-            SettingsDestination.MOOD -> showMoodDialog()
+            SettingsDestination.MOOD -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, MoodFragment()).addToBackStack("mood").commit()
             SettingsDestination.ROUTINE -> showRoutineDialog()
             SettingsDestination.BREATHE -> showBreathingDialog()
-            SettingsDestination.VIRTUAL_PET -> showVirtualPetDialog()
-            SettingsDestination.FUN -> showFunDialog()
+            SettingsDestination.VIRTUAL_PET -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, VirtualPetFragment()).addToBackStack("virtual-pet").commit()
+            SettingsDestination.FUN -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, FunFragment()).addToBackStack("fun").commit()
             SettingsDestination.VOCABULARY -> showVocabSettingsDialog()
             SettingsDestination.VOICE -> showVoiceDialog()
-            SettingsDestination.RESOURCES -> showResourcesDialog()
-            SettingsDestination.COMMANDS -> showCommandsDialog()
+            SettingsDestination.RESOURCES -> supportFragmentManager.beginTransaction()
+                .replace(SETTINGS_CONTAINER_ID, ResourcesFragment()).addToBackStack("resources").commit()
+            SettingsDestination.COMMANDS -> supportFragmentManager.beginTransaction()
+                .replace(SETTINGS_CONTAINER_ID, CommandsFragment()).addToBackStack("commands").commit()
             SettingsDestination.SERVER_SETTINGS -> supportFragmentManager.beginTransaction()
                 .replace(SETTINGS_CONTAINER_ID, ConnectionsFragment()).addToBackStack("connections").commit()
             SettingsDestination.SOUND_OUTPUT, SettingsDestination.HOST_STATUS_PENDING -> supportFragmentManager.beginTransaction()
@@ -402,6 +409,24 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
         applyImmersive(true)
         stage.requestFocus()
         stage.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED)
+    }
+
+    override fun revealStage() = closeSettings()
+
+    fun resourcesControllerForSettings(): SystemResourcesController? = resourcesController
+    fun pluginCommandsForSettings() = CommandRegistry.list()
+    fun virtualPetControllerForSettings(): VirtualPetController? = virtualPetController
+    fun moodControllerForSettings(): MoodController? = moodController
+    fun moodRatingLabelForSettings(value:Int):String = getString(when(value){1->R.string.mood_level_1;2->R.string.mood_level_2;3->R.string.mood_level_3;4->R.string.mood_level_4;else->R.string.mood_level_5})
+    fun funGreetingForSettings() = greetingForNow()
+    fun funFortuneForSettings() = resources.getStringArray(R.array.fortunes).random()
+    fun funEightBallAnswerForSettings() = "${getString(R.string.eightball_answer_title)} ${resources.getStringArray(R.array.eightball_answers).random()}"
+    fun sayFunMessageForSettings(message:String,source:String,reaction:String) = sayFunMessage(message,source,reaction)
+    fun showEightBallForSettings(onAnswer:()->Unit) {
+        val question=EditText(this).apply { hint=getString(R.string.eightball_question_hint);setTextColor(Color.WHITE);setHintTextColor(0xFF9E9E9E.toInt());setPadding(dp(20),dp(8),dp(20),dp(8)) }
+        AlertDialog.Builder(this).setTitle(R.string.fun_eightball).setView(question)
+            .setPositiveButton(android.R.string.ok){_,_->sayFunMessageForSettings(funEightBallAnswerForSettings(),"eightball","thinking");onAnswer()}
+            .setNegativeButton(R.string.dialog_close,null).show()
     }
 
     private fun showSettings() {

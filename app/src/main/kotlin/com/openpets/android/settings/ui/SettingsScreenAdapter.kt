@@ -36,7 +36,12 @@ class SettingsScreenAdapter(
         val layout = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(0), dp(12), dp(0), dp(12)); gravity = Gravity.CENTER_VERTICAL }
         return Holder(layout)
     }
-    override fun onBindViewHolder(holder: Holder, position: Int) {
+    override fun onBindViewHolder(holder: Holder, position: Int) = bind(holder,position)
+    override fun onBindViewHolder(holder:Holder,position:Int,payloads:MutableList<Any>){
+        if(payloads.contains("info-in-place")){val row=rows[position] as? SettingRow.InfoRow;val text=(holder.itemView as? LinearLayout)?.getChildAt(0) as? TextView;if(row!=null&&text!=null){text.text=row.title+"\n"+row.value;return}}
+        bind(holder,position)
+    }
+    private fun bind(holder:Holder,position:Int) {
         val root = holder.itemView as LinearLayout
         root.setOnClickListener(null)
         root.isEnabled=true; root.isClickable=false
@@ -120,6 +125,17 @@ class SettingsScreenAdapter(
     fun updateRowsByKey(updated:List<SettingRow>,key:String) {
         val position=rows.indexOfFirst { it.id==key.hashCode().toLong() }
         if(position>=0 && position<updated.size){ rows=rows.toMutableList().also { it[position]=updated[position] }; notifyItemChanged(position) }
+    }
+    fun updateChangedRows(updated:List<SettingRow>) {
+        val working=rows.toMutableList()
+        val targetIds=updated.map{it.id}.toSet()
+        for(i in working.lastIndex downTo 0)if(working[i].id !in targetIds){working.removeAt(i);rows=working.toList();notifyItemRemoved(i)}
+        updated.forEachIndexed{index,row->
+            val at=working.indexOfFirst{it.id==row.id}
+            if(at<0){val insertAt=index.coerceAtMost(working.size);working.add(insertAt,row);rows=working.toList();notifyItemInserted(insertAt)}
+            else if(at!=index){val moved=working.removeAt(at);working.add(index,moved);rows=working.toList();notifyItemMoved(at,index)}
+            if(working[index]!=row){val previous=working[index];working[index]=row;rows=working.toList();if(previous is SettingRow.InfoRow&&row is SettingRow.InfoRow)notifyItemChanged(index,"info-in-place")else notifyItemChanged(index)}
+        }
     }
     fun setFieldValue(key:String,value:String) {
         rows=withTextFieldValue(rows,key,value)
