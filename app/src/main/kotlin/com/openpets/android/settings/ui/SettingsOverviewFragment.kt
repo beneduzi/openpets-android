@@ -79,10 +79,13 @@ class SettingsOverviewFragment : Fragment(),SettingsSearchBackHandler {
     private fun showSearchResults(){val rv=recycler?:return;if(!searching){(rv.adapter as? SettingsAdapter)?.replaceRows(overviewRows((requireActivity() as MainActivity).selectedPetName(),AppSettings.findLanIpv4()));return};val entries=searchSettings(query,resolve={getString(it)});searchEntries=entries.associateBy{it.hashCode().toLong()};(rv.adapter as? SettingsAdapter)?.replaceRows(entries.map{Row.Navigation(it.titleRes,it.summaryRes,it.destination,it.hashCode().toLong(),it.breadcrumbRes)})}
     override fun closeSearchOnBack():Boolean{if(!searching)return false;searching=false;query="";searchField?.let{(it.parent as? ViewGroup)?.removeView(it)};searchField=null;view?.findViewById<LinearLayout>(android.R.id.content)?.let{};showSearchResults();return true}
     private var lastRowPosition=-1
+    private var focusListener:android.view.ViewTreeObserver.OnPreDrawListener?=null
+    private var focusObserver:android.view.ViewTreeObserver?=null
+    private fun clearFocusListener(){val l=focusListener;val o=focusObserver;if(l!=null&&o!=null&&o.isAlive)o.removeOnPreDrawListener(l);focusListener=null;focusObserver=null}
     override fun onResume(){super.onResume();if(searching)showSearchResults()else{val rv=recycler?:return;(rv.adapter as? SettingsAdapter)?.replaceRows(overviewRows((requireActivity() as MainActivity).selectedPetName(),AppSettings.findLanIpv4()))};restoreRowFocus()}
-    private fun restoreRowFocus(){val rv=recycler?:return;rv.isFocusable=true;val pos=lastRowPosition;if(pos<0||pos>=(rv.adapter?.itemCount?:0)){rv.requestFocus();return};rv.post{if(!isAdded||view==null||rv!==recycler)return@post;rv.scrollToPosition(pos);val h=rv.findViewHolderForAdapterPosition(pos);if(h!=null){h.itemView.isFocusable=true;h.itemView.requestFocus()}else rv.requestFocus()}}
+    private fun restoreRowFocus(){val rv=recycler?:return;rv.isFocusable=true;clearFocusListener();val pos=lastRowPosition;if(pos<0||pos>=(rv.adapter?.itemCount?:0)){rv.requestFocus();return};rv.scrollToPosition(pos);var attempts=0;lateinit var listener:android.view.ViewTreeObserver.OnPreDrawListener;listener=android.view.ViewTreeObserver.OnPreDrawListener{if(!isAdded||rv!==recycler){clearFocusListener();true}else{val h=rv.findViewHolderForAdapterPosition(pos);if(h!=null){h.itemView.isFocusable=true;h.itemView.requestFocus();clearFocusListener()}else if(++attempts<8){rv.scrollToPosition(pos);rv.requestLayout()}else{rv.requestFocus();clearFocusListener()};true}};val o=rv.viewTreeObserver;focusListener=listener;focusObserver=o;o.addOnPreDrawListener(listener)}
     fun refreshOverview(){if(searching)showSearchResults()else{val rv=recycler?:return;(rv.adapter as? SettingsAdapter)?.replaceRows(overviewRows((requireActivity() as MainActivity).selectedPetName(),AppSettings.findLanIpv4()))}}
-    override fun onDestroyView(){recycler=null;searchField=null;super.onDestroyView()}
+    override fun onDestroyView(){clearFocusListener();recycler=null;searchField=null;super.onDestroyView()}
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 }
 

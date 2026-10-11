@@ -46,7 +46,7 @@ class CalendarController private constructor(context: Context, runtime: Boolean)
             notified += event.id.toString()
             prefs.edit().putStringSet(KEY_NOTIFIED, notified.toList().takeLast(256).toSet()).apply()
             NotificationHelper(appContext).notifyCalendar(event.title, appContext.getString(com.openpets.android.R.string.settings_calendar_starting_soon))
-            PetBus.sink.onSay(SayRequest(message = "Next: ${event.title}", reaction = "waiting", source = "calendar", bubbleId = "calendar", pinned = false))
+            PetBus.sink.onSay(SayRequest(message = appContext.getString(com.openpets.android.R.string.settings_calendar_next_title, event.title), reaction = "waiting", source = "calendar", bubbleId = "calendar", pinned = false))
         }
         refresh()
     }

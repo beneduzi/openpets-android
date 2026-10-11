@@ -29,6 +29,6 @@ class DeadlineController private constructor(context: Context, runtimeInstance: 
     private fun persist() { store.save(engine.all()); scheduler.cancel(); engine.nextReminderAt(System.currentTimeMillis())?.let(scheduler::schedule) }
     private fun reconcile() = persist()
     private fun notifyListeners() { val v=upcoming(); listeners.forEach { it(v) } }
-    private fun relative(time:Long):String { val delta=time-System.currentTimeMillis(); if(delta<0)return "overdue"; val min=delta/60000; return when { min>=1440 -> "${min/1440} day"; min>=60 -> "${min/60} h"; else -> "$min min" } }
+    private fun relative(time:Long):String { val delta=time-System.currentTimeMillis(); if(delta<0)return appContext.getString(com.openpets.android.R.string.settings_deadline_overdue); val min=delta/60000; return when { min>=1440 -> appContext.getString(com.openpets.android.R.string.settings_deadline_days,(min/1440).toInt()); min>=60 -> appContext.getString(com.openpets.android.R.string.settings_deadline_hours,(min/60).toInt()); else -> appContext.getString(com.openpets.android.R.string.settings_deadline_minutes,min.toInt()) } }
     companion object { internal fun createRuntime(context:Context)=DeadlineController(context,true) }
 }

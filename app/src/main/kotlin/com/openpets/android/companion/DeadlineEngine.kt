@@ -17,7 +17,7 @@ class DeadlineEngine(private val clock: () -> Long = System::currentTimeMillis) 
     fun upcoming(now: Long): List<Deadline> = deadlines.filterNot { it.completed }.sortedBy { it.dueAtMs }
     fun nearest(now: Long): Deadline? = upcoming(now).firstOrNull()
     fun nextReminderAt(now: Long): Long? = deadlines.filterNot { it.completed }.flatMap { d -> OFFSETS.map { d.dueAtMs - it } + d.dueAtMs }.filter { it > now }.minOrNull()
-    fun reminderOffsetFor(dueAtMs: Long, fireAtMs: Long): String? = when (dueAtMs - fireAtMs) { DAY -> "1 day"; HOUR -> "1 hour"; FIFTEEN_MIN -> "15 minutes"; 0L -> "now"; else -> null }
+    fun reminderOffsetFor(dueAtMs: Long, fireAtMs: Long): Int? = when (dueAtMs - fireAtMs) { DAY -> com.openpets.android.R.string.settings_deadline_offset_day; HOUR -> com.openpets.android.R.string.settings_deadline_offset_hour; FIFTEEN_MIN -> com.openpets.android.R.string.settings_deadline_offset_15min; 0L -> com.openpets.android.R.string.settings_deadline_offset_now; else -> null }
     fun all() = deadlines.toList()
     fun replaceAll(list: List<Deadline>) { deadlines.clear(); deadlines.addAll(list.filter { it.title.trim().length in 1..120 }) }
     private inline fun update(id: String, transform: (Deadline) -> Deadline): Boolean { val i=deadlines.indexOfFirst { it.id==id }; if(i<0)return false; deadlines[i]=transform(deadlines[i]); return true }

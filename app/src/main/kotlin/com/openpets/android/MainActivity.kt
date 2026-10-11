@@ -208,7 +208,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
     private val customSoundLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             try {
-                contentResolver.openInputStream(uri)?.use { } ?: throw IllegalStateException("The selected sound file is not readable.")
+                contentResolver.openInputStream(uri)?.use { } ?: throw IllegalStateException(getString(R.string.settings_sound_not_readable))
                 contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 settings.customSoundUri = uri.toString()
                 OpenPetsService.reload(this)
@@ -237,7 +237,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
 
         stage = PetStageView(this).apply {
             setBackgroundColor(Color.BLACK)
-            contentDescription = "Pet. Activate or long-press to open settings."
+            contentDescription = getString(R.string.settings_pet_a11y_description)
             isFocusable = true
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
             onTap = { react("waving") }
@@ -317,8 +317,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
     fun isImportedPet(id:String)=repository.isImported(id)
     fun selectPetById(id:String){ availablePets().firstOrNull{it.id==id}?.let(::selectPet) }
     fun openOnlinePetCatalog(onComplete:()->Unit){ showCatalogBrowser(onComplete) }
-    fun launchPetZipImport(onComplete:()->Unit={}){ pendingPetImportCallback=onComplete;try{importZipLauncher.launch(arrayOf("application/zip","application/octet-stream","*/*"))}catch(e:Exception){pendingPetImportCallback=null;Toast.makeText(this,"Unable to open pet importer: ${e.message}",Toast.LENGTH_LONG).show()} }
-    fun launchPetFolderImport(onComplete:()->Unit={}){ pendingPetImportCallback=onComplete;try{importFolderLauncher.launch(null)}catch(e:Exception){pendingPetImportCallback=null;Toast.makeText(this,"Unable to open folder picker: ${e.message}",Toast.LENGTH_LONG).show()} }
+    fun launchPetZipImport(onComplete:()->Unit={}){ pendingPetImportCallback=onComplete;try{importZipLauncher.launch(arrayOf("application/zip","application/octet-stream","*/*"))}catch(e:Exception){pendingPetImportCallback=null;Toast.makeText(this,getString(R.string.settings_pet_import_error,e.message?:""),Toast.LENGTH_LONG).show()} }
+    fun launchPetFolderImport(onComplete:()->Unit={}){ pendingPetImportCallback=onComplete;try{importFolderLauncher.launch(null)}catch(e:Exception){pendingPetImportCallback=null;Toast.makeText(this,getString(R.string.settings_pet_folder_error,e.message?:""),Toast.LENGTH_LONG).show()} }
     fun deleteSelectedImportedPet(onComplete:()->Unit):Boolean {
         val id=settings.selectedPetId
         if(!repository.isImported(id) || !repository.deleteImported(id))return false

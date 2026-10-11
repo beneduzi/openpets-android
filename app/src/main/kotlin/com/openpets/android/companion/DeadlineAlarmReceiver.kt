@@ -15,9 +15,9 @@ class DeadlineAlarmReceiver : BroadcastReceiver() {
         val now = System.currentTimeMillis()
         engine.all().filterNot { it.completed }.forEach { d ->
             val offset = listOf(DeadlineEngine.DAY, DeadlineEngine.HOUR, DeadlineEngine.FIFTEEN_MIN, 0L).firstOrNull { kotlin.math.abs((d.dueAtMs - it) - now) <= TOLERANCE } ?: return@forEach
-            val label = engine.reminderOffsetFor(d.dueAtMs, d.dueAtMs - offset) ?: return@forEach
-            NotificationHelper(context).notifyDeadline(d.title, "due in $label")
-            PetBus.sink.onSay(SayRequest(message = "Deadline: ${d.title}", reaction = "waiting", source = "deadline", bubbleId = "deadline", pinned = false))
+            val label = engine.reminderOffsetFor(d.dueAtMs, d.dueAtMs - offset)?.let(context::getString) ?: return@forEach
+            NotificationHelper(context).notifyDeadline(d.title, context.getString(com.openpets.android.R.string.settings_deadline_due_in, label))
+            PetBus.sink.onSay(SayRequest(message = context.getString(com.openpets.android.R.string.settings_deadline_title, d.title), reaction = "waiting", source = "deadline", bubbleId = "deadline", pinned = false))
         }
         DeadlineScheduler(context).also { it.cancel(); engine.nextReminderAt(now)?.let(it::schedule) }
     }
