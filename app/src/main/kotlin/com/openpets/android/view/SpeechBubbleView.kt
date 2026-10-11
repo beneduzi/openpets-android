@@ -9,8 +9,12 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
+import com.openpets.android.settings.AppSettings
 import android.text.Layout
 import android.text.SpannableStringBuilder
 import android.text.Spanned
@@ -77,6 +81,8 @@ class SpeechBubbleView @JvmOverloads constructor(
     private val barFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val buttonPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val tailPath = Path()
+    private val vibrator: Vibrator? =
+        @Suppress("DEPRECATION") (context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator)
 
     private val cornerRadius = dp(14f)
     private val padding = dp(12f)
@@ -383,7 +389,7 @@ class SpeechBubbleView @JvmOverloads constructor(
             MotionEvent.ACTION_UP -> {
                 for ((rect, action) in buttonRects) {
                     if (rect.contains(event.x, event.y)) {
-                        performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        tapFeedback()
                         onAction?.invoke(action)
                         dismiss()
                         return true
@@ -443,6 +449,22 @@ class SpeechBubbleView @JvmOverloads constructor(
             cursor = bestEnd
         }
         return out
+    }
+
+    /** Strong, amplitude-controlled buzz on a button press (respects the app's haptics toggle). */
+    private fun tapFeedback() {
+        try {
+            if (!AppSettings(context).hapticsEnabled) return
+            val v = vibrator ?: return
+            if (!v.hasVibrator()) return
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                v.vibrate(VibrationEffect.createOneShot(70L, 255))
+            } else {
+                @Suppress("DEPRECATION")
+                v.vibrate(70L)
+            }
+        } catch (_: Exception) {
+        }
     }
 
     private fun dp(value: Float): Float = value * density
