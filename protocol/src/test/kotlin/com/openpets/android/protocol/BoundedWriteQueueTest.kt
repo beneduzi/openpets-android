@@ -29,6 +29,7 @@ class BoundedWriteQueueTest {
 
         releaseWorker.countDown()
         queue.shutdown()
+        assertTrue(queue.awaitTermination(5, TimeUnit.SECONDS))
         assertFalse(queue.submit(Runnable { ran.incrementAndGet() }))
         assertEquals(2, ran.get())
     }

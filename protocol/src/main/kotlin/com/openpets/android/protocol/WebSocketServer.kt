@@ -34,6 +34,9 @@ internal class BoundedWriteQueue(capacity: Int, threadName: String) {
     }
 
     fun shutdown() = executor.shutdown()
+
+    /** Blocks until the worker has drained, or the timeout elapses. */
+    fun awaitTermination(timeout: Long, unit: TimeUnit): Boolean = executor.awaitTermination(timeout, unit)
 }
 
 interface WebSocketListener {
