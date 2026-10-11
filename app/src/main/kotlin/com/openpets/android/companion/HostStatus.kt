@@ -1,6 +1,7 @@
 package com.openpets.android.companion
 
 import android.content.Context
+import kotlin.math.roundToInt
 import android.os.Handler
 import android.os.Looper
 import com.openpets.android.FeatureHud
@@ -33,7 +34,7 @@ class HostStatusController(context: Context) {
         current = status
         val hud = buildList {
             status.cpuPct?.let { add(HudItem("CPU", it.toFloat(), 100f, "green", null)) }
-            if (status.ramUsedMb != null && status.ramTotalMb != null && status.ramTotalMb > 0) add(HudItem("RAM", status.ramUsedMb.toFloat(), status.ramTotalMb.toFloat(), "blue", null))
+            if (status.ramUsedMb != null && status.ramTotalMb != null && status.ramTotalMb > 0) add(HudItem("RAM", (100f * status.ramUsedMb / status.ramTotalMb).roundToInt().toFloat(), 100f, "blue", null))
             status.diskUsedPct?.let { add(HudItem("Disk", it.toFloat(), 100f, "amber", null)) }
             status.usagePct?.let { add(HudItem(status.usageLabel ?: "Usage", it.toFloat(), 100f, "pink", null)) }
         }
