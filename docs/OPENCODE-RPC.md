@@ -1,8 +1,21 @@
-# OpenCode RPC consolidation (plan)
+# OpenCode RPC consolidation (plan — NOT PURSUING)
 
-Status: **proposed host-side refactor** — not required for the upstream phone-target
-issue, and not a change to the Android wire protocol. Derived from the Oracle
-deep-dive of the OpenCode plugin **RPC** contract (`@opencode/plugin/rpc`).
+> **Status: parked / not pursuing (2026-10).** On review this is a large
+> host-side (OpenCode plugin) refactor with marginal benefit at the current scale
+> of six plugins — it would mainly pay off with many integrations, or if external
+> plugins/clients needed one shared contract. **Decision: keep the existing
+> standalone plugins**, and instead fix the concrete defects this analysis found
+> directly:
+>
+> - approval wire IDs no longer contain `:` (they were rejected by the app);
+> - `openpets-interact` registers its tap resolver *before* sending the bubble
+>   (no dropped fast taps);
+> - `openpets-client` no longer schedules a reconnect after an intentional close.
+>
+> Retained for reference in case the integration set grows. Not required for the
+> upstream phone-target issue and not a change to the Android wire protocol.
+> Derived from the Oracle deep-dive of the OpenCode plugin **RPC** contract
+> (`@opencode/plugin/rpc`).
 
 ## Recommendation: consolidate behind one RPC broker
 
@@ -46,7 +59,7 @@ independent of the OpenCode server is genuinely required.
 `ask`, `confirm`, `media`, `move`, `react` tools still need explicit registration
 and should proxy only approved RPC methods.
 
-## Defects consolidation should actually fix
+## Defects this analysis found — fixed directly (no RPC needed)
 
 Merely putting the current implementations behind RPC would preserve these:
 
