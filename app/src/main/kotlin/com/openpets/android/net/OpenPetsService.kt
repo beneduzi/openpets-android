@@ -15,6 +15,7 @@ import android.os.BatteryManager
 import android.util.Base64
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.openpets.android.BuildConfig
 import com.openpets.android.AppState
 import com.openpets.android.HapticsNotifier
 import com.openpets.android.companion.CompanionRuntime
@@ -207,7 +208,8 @@ class OpenPetsService : Service() {
                 return PetInstallResult(descriptor.id, descriptor.displayName)
             }
         }
-        val dispatcher = IpcDispatcher(PetBus.sink, "0.1.0", catalog, installer, settings.requireLease)
+        val appVersion = BuildConfig.VERSION_NAME
+        val dispatcher = IpcDispatcher(PetBus.sink, appVersion, catalog, installer, settings.requireLease)
         if (settings.ipcEnabled) {
             ipcServer = try {
                 IpcServer(
@@ -225,7 +227,7 @@ class OpenPetsService : Service() {
             }
         }
         if (settings.wsEnabled) {
-            wsBridge = WebSocketBridge(this, { settings.ipcToken }, dispatcher, "0.1.0").also {
+            wsBridge = WebSocketBridge(this, { settings.ipcToken }, dispatcher, appVersion).also {
                 it.start(settings.wsPort, settings.bindAddress)
             }
         }
