@@ -210,7 +210,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         if (uri != null) {
             settings.customSoundUri = uri.toString()
             OpenPetsService.reload(this)
-            Toast.makeText(this, "Som personalizado definido", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Custom sound set", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -415,9 +415,9 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             }
             refresh()
             row.setOnClickListener {
-                val options = listOf("Padrão") + SELECTABLE_ANIMATIONS
+                val options = listOf("Default") + SELECTABLE_ANIMATIONS
                 AlertDialog.Builder(this)
-                    .setTitle("Animação para $reaction")
+                    .setTitle("Animation for $reaction")
                     .setItems(options.toTypedArray()) { _, which ->
                         if (which == 0) overrides.remove(reaction) else overrides[reaction] = options[which]
                         refresh()
@@ -430,9 +430,9 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             inputType = InputType.TYPE_CLASS_NUMBER
             setText(settings.waitingDurationMs.toString())
         }
-        content.addView(labelWithField("Duração 'waiting' (ms)", waiting))
+        content.addView(labelWithField("'Waiting' duration (ms)", waiting))
         AlertDialog.Builder(this)
-            .setTitle("Animações")
+            .setTitle("Animations")
             .setView(ScrollView(this).apply { addView(content) })
             .setPositiveButton("Salvar") { _, _ ->
                 settings.reactionOverrides = overrides
@@ -452,7 +452,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             } catch (_: Exception) {
                 // nothing else to do
             }
-            Toast.makeText(this, "Falha ao carregar pet: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Failed to load pet: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -475,11 +475,11 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
                     settings.selectedPetId = descriptor.id
                     reloadPet()
                     OpenPetsService.reload(this)
-                    Toast.makeText(this, "Pet importado: ${descriptor.displayName}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Pet imported: ${descriptor.displayName}", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 runOnUiThread {
-                    Toast.makeText(this, "Falha ao importar: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "Import failed: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }.start()
@@ -496,8 +496,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             val label = buildString {
                 append(pet.displayName)
                 when {
-                    pet.builtIn -> append("  (embutido)")
-                    repository.isImported(pet.id) -> append("  (importado)")
+                    pet.builtIn -> append("  (built-in)")
+                    repository.isImported(pet.id) -> append("  (imported)")
                 }
                 if (pet.id == settings.selectedPetId) append("  ✓")
             }
@@ -506,26 +506,26 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
                 dialogRef[0]?.dismiss()
             })
         }
-        content.addView(actionButton("Catálogo online…") {
+        content.addView(actionButton("Online catalog…") {
             dialogRef[0]?.dismiss()
             showCatalogBrowser()
         })
-        content.addView(actionButton("Importar .zip…") {
+        content.addView(actionButton("Import .zip…") {
             dialogRef[0]?.dismiss()
             importZipLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
         })
-        content.addView(actionButton("Importar pasta…") {
+        content.addView(actionButton("Import folder…") {
             dialogRef[0]?.dismiss()
             importFolderLauncher.launch(null)
         })
         if (repository.isImported(settings.selectedPetId)) {
-            content.addView(actionButton("Excluir pet importado") {
+            content.addView(actionButton("Delete imported pet") {
                 val id = settings.selectedPetId
                 if (repository.deleteImported(id)) {
                     settings.selectedPetId = "tux"
                     reloadPet()
                     OpenPetsService.reload(this)
-                    Toast.makeText(this, "Pet importado removido", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Imported pet removed", Toast.LENGTH_SHORT).show()
                 }
                 dialogRef[0]?.dismiss()
             })
@@ -550,7 +550,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         }
         val listContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val prevButton = actionButton("◀ Anterior") { }
-        val nextButton = actionButton("Próxima ▶") { }
+        val nextButton = actionButton("Next ▶") { }
         val navRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             addView(prevButton)
@@ -583,10 +583,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
                     runOnUiThread {
                         page = result.page
                         totalPages = result.totalPages
-                        status.text = "Página $page/$totalPages · ${result.total} pets"
+                        status.text = "Page $page/$totalPages · ${result.total} pets"
                         listContainer.removeAllViews()
                         if (result.pets.isEmpty()) {
-                            listContainer.addView(sectionLabel("Nenhum pet encontrado."))
+                            listContainer.addView(sectionLabel("No pets found."))
                         }
                         result.pets.forEach { pet ->
                             listContainer.addView(actionButton("${pet.displayName}  ·  ${pet.author}") {
@@ -595,7 +595,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
                         }
                     }
                 } catch (e: Exception) {
-                    runOnUiThread { status.text = "Falha ao carregar: ${e.message}" }
+                    runOnUiThread { status.text = "Failed to load: ${e.message}" }
                 }
             }.start()
         }
@@ -608,7 +608,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         }
 
         val dialog = AlertDialog.Builder(this)
-            .setTitle("Catálogo · codex-pets.net")
+            .setTitle("Catalog · codex-pets.net")
             .setView(ScrollView(this).apply { addView(content) })
             .setNegativeButton("Fechar", null)
             .create()
@@ -633,7 +633,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
                     onDone()
                 }
             } catch (e: Exception) {
-                runOnUiThread { Toast.makeText(this, "Falha ao baixar: ${e.message}", Toast.LENGTH_LONG).show() }
+                runOnUiThread { Toast.makeText(this, "Download failed: ${e.message}", Toast.LENGTH_LONG).show() }
             }
         }.start()
     }
@@ -796,11 +796,11 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         val wsEnabled = CheckBox(this).apply { text = getString(R.string.settings_ws); isChecked = settings.wsEnabled }
         val hostStatus = CheckBox(this).apply { text = getString(R.string.settings_host_status); isChecked = settings.hostStatusEnabled }
         val autoStart = CheckBox(this).apply { text = getString(R.string.settings_autostart); isChecked = settings.autoStartOnBoot }
-        val soundToggle = CheckBox(this).apply { text = "Som de notificação"; isChecked = settings.soundEnabled }
+        val soundToggle = CheckBox(this).apply { text = "Notification sound"; isChecked = settings.soundEnabled }
         val hapticsToggle = CheckBox(this).apply { text = "Vibrar junto"; isChecked = settings.hapticsEnabled }
-        val ttsToggle = CheckBox(this).apply { text = "Falar o balão (voz)"; isChecked = settings.ttsEnabled }
-        val notifyToggle = CheckBox(this).apply { text = "Notificação do sistema"; isChecked = settings.notifyEnabled }
-        val requireLeaseToggle = CheckBox(this).apply { text = "Exigir lease (leaseId obrigatório)"; isChecked = settings.requireLease }
+        val ttsToggle = CheckBox(this).apply { text = "Speak bubble text (voice)"; isChecked = settings.ttsEnabled }
+        val notifyToggle = CheckBox(this).apply { text = "System notifications"; isChecked = settings.notifyEnabled }
+        val requireLeaseToggle = CheckBox(this).apply { text = "Require lease (leaseId required)"; isChecked = settings.requireLease }
         val bind = EditText(this).apply { setText(settings.bindAddress) }
         val ipcPort = EditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
@@ -819,9 +819,9 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(8), dp(20), dp(8))
-            addView(sectionLabel("Pet atual: ${currentPetLabel()}"))
-            addView(actionButton("Alterar pet…") { showPetPicker() })
-            addView(actionButton("Animações…") { showAnimationSettings() })
+            addView(sectionLabel("Current pet: ${currentPetLabel()}"))
+            addView(actionButton("Change pet…") { showPetPicker() })
+            addView(actionButton("Animations…") { showAnimationSettings() })
             addView(actionButton(getString(R.string.timer_open)) { showTimerDialog() })
             addView(actionButton(getString(R.string.reminders_open)) { showRemindersDialog() })
             addView(actionButton(getString(R.string.deadline_open)) { showDeadlineDialog() })
@@ -848,13 +848,13 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             addView(sectionLabel(getString(R.string.settings_ws_hint)))
             addView(autoStart)
             addView(soundToggle)
-            addView(actionButton("Testar som") { SoundNotifier(this@MainActivity).playTest() })
+            addView(actionButton("Test sound") { SoundNotifier(this@MainActivity).playTest() })
             addView(hapticsToggle)
             addView(ttsToggle)
             addView(notifyToggle)
             addView(requireLeaseToggle)
-            addView(actionButton("Som personalizado…") { customSoundLauncher.launch(arrayOf("audio/*")) })
-            addView(actionButton("Som padrão") {
+            addView(actionButton("Custom sound…") { customSoundLauncher.launch(arrayOf("audio/*")) })
+            addView(actionButton("Default sound") {
                 settings.customSoundUri = null
                 OpenPetsService.reload(this@MainActivity)
             })

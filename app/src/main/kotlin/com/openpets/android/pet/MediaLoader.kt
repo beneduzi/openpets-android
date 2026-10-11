@@ -22,10 +22,10 @@ object MediaLoader {
             val code = connection.responseCode
             if (code !in 200..299) throw IOException("HTTP $code")
             val bytes = connection.inputStream.use { it.readBytes() }
-            if (bytes.size > maxBytes) throw IOException("Imagem muito grande")
+            if (bytes.size > maxBytes) throw IOException("Image is too large")
             val options = BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }
             return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
-                ?: throw IOException("Formato de imagem não suportado")
+                ?: throw IOException("Unsupported image format")
         } finally {
             connection.disconnect()
         }

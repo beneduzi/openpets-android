@@ -190,6 +190,7 @@ class PetStageView @JvmOverloads constructor(
 
     /** Show a speech bubble, optionally applying a reaction first. */
     fun say(request: SayRequest) {
+        if (request.inputs.isEmpty()) hideForm()
         agentBubbleActive = true
         featureHudSource = null
         val reaction = request.reaction
@@ -259,7 +260,7 @@ class PetStageView @JvmOverloads constructor(
             )
         }
         val submit = android.widget.Button(context).apply {
-            text = "Enviar"
+            text = "Send"
             isAllCaps = false
             setOnClickListener { submitForm() }
         }
@@ -325,6 +326,7 @@ class PetStageView @JvmOverloads constructor(
 
     /** Download and display an image/GIF (pet.showMedia) above the pet. */
     fun showMedia(request: MediaRequest) {
+        hideForm()
         val reaction = request.reaction
         if (reaction != null) react(reaction)
         mediaActive = true

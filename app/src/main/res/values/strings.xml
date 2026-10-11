@@ -25,9 +25,9 @@
     <string name="settings_cancel">Cancel</string>
     <string name="settings_copied">Copied</string>
     <string name="events_channel_name">OpenPets events</string>
-    <string name="events_channel_description">Reações e mensagens dos agentes.</string>
-    <string name="reaction_label">Reação: %1$s</string>
-    <string name="media_received">Imagem recebida</string>
+    <string name="events_channel_description">Agent reactions and messages.</string>
+    <string name="reaction_label">Reaction: %1$s</string>
+    <string name="media_received">Image received</string>
     <string name="timer_open">Timer…</string>
     <string name="timer_title">Timer</string>
     <string name="timer_custom_minutes">Custom (minutes)</string>

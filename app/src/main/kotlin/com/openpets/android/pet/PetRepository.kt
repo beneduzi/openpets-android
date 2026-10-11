@@ -61,7 +61,7 @@ class PetRepository(private val context: Context) {
         try {
             context.contentResolver.openInputStream(uri)?.use { input ->
                 ZipInputStream(input).use { zip -> PetImportSupport.extractToDir(zip, temp) }
-            } ?: throw IOException("Não foi possível abrir o arquivo.")
+            } ?: throw IOException("Unable to open the file.")
             return finalizeImport(temp)
         } catch (e: Exception) {
             temp.deleteRecursively()
@@ -90,17 +90,17 @@ class PetRepository(private val context: Context) {
         val temp = newTempDir()
         try {
             val root = DocumentFile.fromTreeUri(context, uri)
-                ?: throw IOException("Não foi possível abrir a pasta.")
+                ?: throw IOException("Unable to open the folder.")
             val children = root.listFiles()
             val manifestDoc = children.firstOrNull { it.name?.equals("pet.json", true) == true }
-                ?: throw IOException("A pasta não contém pet.json.")
+                ?: throw IOException("The folder does not contain pet.json.")
             val manifestFile = File(temp, "pet.json")
             copyDoc(manifestDoc, manifestFile)
             val manifest = parsePetManifest(manifestFile.readText(Charsets.UTF_8))
             val sheetName = File(manifest.spritesheetPath).name
             val sheetDoc = children.firstOrNull { it.name == sheetName }
                 ?: children.firstOrNull { it.name?.endsWith(".webp", true) == true || it.name?.endsWith(".png", true) == true }
-                ?: throw IOException("A pasta não contém o spritesheet.")
+                ?: throw IOException("The folder does not contain the spritesheet.")
             copyDoc(sheetDoc, File(temp, sheetName))
             return finalizeImport(temp)
         } catch (e: Exception) {
@@ -112,7 +112,7 @@ class PetRepository(private val context: Context) {
     private fun finalizeImport(temp: File): PetDescriptor {
         val manifest = PetPackageLoader.readManifestFromDir(temp)
         val sheetName = File(manifest.spritesheetPath).name
-        if (!File(temp, sheetName).isFile) throw IOException("Spritesheet não encontrado no pacote.")
+        if (!File(temp, sheetName).isFile) throw IOException("Spritesheet not found in the package.")
         val target = File(importedRoot, manifest.id)
         PetImportSupport.publish(temp, target)
         return PetDescriptor(manifest.id, manifest.displayName, builtIn = false)
@@ -121,7 +121,7 @@ class PetRepository(private val context: Context) {
     private fun copyDoc(doc: DocumentFile, target: File) {
         context.contentResolver.openInputStream(doc.uri)?.use { input ->
             target.outputStream().use { output -> PetImportSupport.copyBounded(input, output, ImportLimits().maxEntryBytes) }
-        } ?: throw IOException("Não foi possível ler ${doc.name}.")
+        } ?: throw IOException("Unable to read ${doc.name}.")
     }
 
     private fun importedPetIds(): List<String> =

@@ -98,6 +98,7 @@ class SpeechBubbleView @JvmOverloads constructor(
     private var layout: StaticLayout? = null
     private var labelHeight = 0f
     private var buttonWidth = 0f
+    private var buttonRows = 0
     private val buttonRects = ArrayList<Pair<RectF, PetAction>>()
 
     var onDismissed: (() -> Unit)? = null
@@ -173,7 +174,8 @@ class SpeechBubbleView @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val available = MeasureSpec.getSize(widthMeasureSpec)
-        val maxContentWidth = (minOf(maxBubbleWidth, available.toFloat()) - 2 * padding).toInt().coerceAtLeast(24)
+        val maxBubble = minOf(maxBubbleWidth, (available - dp(16f)).coerceAtLeast(dp(72f)))
+        val maxContentWidth = (maxBubble - 2 * padding).toInt().coerceAtLeast(24)
 
         val msg = message
         var contentWidth = 0f
@@ -207,10 +209,23 @@ class SpeechBubbleView @JvmOverloads constructor(
         buttonWidth = 0f
         if (actionCount > 0) {
             val availableContent = maxContentWidth.toFloat()
-            buttonWidth = ((availableContent - (actionCount - 1) * buttonGap) / actionCount)
-                .coerceIn(dp(48f), dp(120f))
-            contentWidth = maxOf(contentWidth, actionCount * buttonWidth + (actionCount - 1) * buttonGap)
-            buttonsHeight = buttonHeight + dp(8f)
+            val naturalWidths = actions.map { (buttonTextPaint.measureText(it.label) + dp(24f)).coerceAtMost(dp(160f)) }
+            var rowWidth = 0f
+            var rows = 1
+            var maxRowWidth = 0f
+            for (natural in naturalWidths) {
+                val next = if (rowWidth == 0f) natural else rowWidth + buttonGap + natural
+                if (next > availableContent && rowWidth > 0f) {
+                    maxRowWidth = maxOf(maxRowWidth, rowWidth)
+                    rows++
+                    rowWidth = natural.coerceAtMost(availableContent)
+                } else rowWidth = next.coerceAtMost(availableContent)
+            }
+            maxRowWidth = maxOf(maxRowWidth, rowWidth)
+            buttonWidth = naturalWidths.maxOrNull()?.coerceAtMost(availableContent) ?: 0f
+            buttonRows = rows
+            contentWidth = maxOf(contentWidth, maxRowWidth)
+            buttonsHeight = rows * buttonHeight + (rows - 1) * buttonGap + dp(8f)
         }
 
         if (msg == null && lbl == null && actionCount == 0 && hud.isEmpty()) {
@@ -220,7 +235,7 @@ class SpeechBubbleView @JvmOverloads constructor(
 
         layout = textLayout
         val width = (contentWidth + 2 * padding).toInt()
-            .coerceAtMost(maxBubbleWidth.toInt())
+            .coerceAtMost(maxBubble.toInt())
             .coerceAtLeast(dp(72f).toInt())
         val gap = if (textLayout != null && lbl != null) dp(6f).toInt() else 0
         val hudHeight = if (hud.isNotEmpty()) (hud.size * hudRowHeight + dp(6f)).toInt() else 0
@@ -315,10 +330,18 @@ class SpeechBubbleView @JvmOverloads constructor(
 
         if (actions.isNotEmpty()) {
             buttonRects.clear()
-            val rowTop = y + dp(6f)
+            var rowTop = y + dp(6f)
             var x = padding
+            var rowCount = 0
             for (action in actions) {
-                val rect = RectF(x, rowTop, x + buttonWidth, rowTop + buttonHeight)
+                val naturalWidth = (buttonTextPaint.measureText(action.label) + dp(24f)).coerceAtMost(dp(160f))
+                val nextWidth = if (rowCount == 0) naturalWidth else x + naturalWidth - padding
+                if (rowCount > 0 && nextWidth > width - 2 * padding) {
+                    rowTop += buttonHeight + buttonGap
+                    x = padding
+                    rowCount = 0
+                }
+                val rect = RectF(x, rowTop, x + minOf(naturalWidth, width - 2 * padding), rowTop + buttonHeight)
                 buttonPaint.color = when (action.style) {
                     "primary" -> 0xFF2563EB.toInt()
                     "danger" -> 0xFFEF4444.toInt()
@@ -332,7 +355,8 @@ class SpeechBubbleView @JvmOverloads constructor(
                 val baseline = rect.centerY() - (buttonTextPaint.descent() + buttonTextPaint.ascent()) / 2f
                 canvas.drawText(action.label, rect.centerX(), baseline, buttonTextPaint)
                 buttonRects.add(rect to action)
-                x += buttonWidth + buttonGap
+                x = rect.right + buttonGap
+                rowCount++
             }
         }
     }
