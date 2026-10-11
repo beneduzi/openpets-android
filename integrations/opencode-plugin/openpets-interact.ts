@@ -97,9 +97,10 @@ function showChoices(disc: { host: string; port: number; token: string }, bubble
   });
 }
 
-function awaitTap(bubbleId: string): Promise<string | null> {
+function awaitTap(bubbleId: string, send: () => void): Promise<string | null> {
   return new Promise((resolve) => {
     pending.set(bubbleId, resolve);
+    send();
     setTimeout(() => {
       if (pending.delete(bubbleId)) resolve(null);
     }, WAIT_MS);
@@ -150,8 +151,7 @@ export default {
         execute: async (input: unknown) => {
           const { question, options } = input as { question: string; options: string[] };
           const bubbleId = `ask-${randomUUID()}`;
-          showChoices(disc, bubbleId, question, options.map((o, i) => ({ id: String(i), label: o })));
-          const actionId = await awaitTap(bubbleId);
+          const actionId = await awaitTap(bubbleId, () => showChoices(disc, bubbleId, question, options.map((o, i) => ({ id: String(i), label: o }))));
           if (actionId === null) return { content: "The user did not answer on the pet (timed out)." };
           const index = Number(actionId);
           const chosen = Number.isInteger(index) && options[index] !== undefined ? options[index] : actionId;
@@ -170,11 +170,10 @@ export default {
         execute: async (input: unknown) => {
           const { message } = input as { message: string };
           const bubbleId = `confirm-${randomUUID()}`;
-          showChoices(disc, bubbleId, message, [
+          const actionId = await awaitTap(bubbleId, () => showChoices(disc, bubbleId, message, [
             { id: "approve", label: "Approve" },
             { id: "deny", label: "Deny" },
-          ]);
-          const actionId = await awaitTap(bubbleId);
+          ]));
           if (actionId === null) return { content: "The user did not respond on the pet (timed out)." };
           return { content: actionId === "approve" ? "The user approved." : "The user denied." };
         },

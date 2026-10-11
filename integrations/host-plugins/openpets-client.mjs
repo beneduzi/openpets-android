@@ -131,7 +131,7 @@ export const showMedia = ({ url, data, message, reaction, durationMs, clickUrl }
 export const sendHostStatus = (
   { cpuPct, ramUsedMb, ramTotalMb, diskUsedPct, netRxKbps, netTxKbps, loadAvg, usagePct, usageLabel } = {},
 ) => {
-  const ws = connectWs({});
+  const ws = connectWs({ reconnect: false });
   const frame = JSON.stringify({
     type: "status.host",
     params: { cpuPct, ramUsedMb, ramTotalMb, diskUsedPct, netRxKbps, netTxKbps, loadAvg, usagePct, usageLabel, ts: Date.now() },
@@ -162,17 +162,20 @@ export const sendHostStatus = (
  * Requires the app's "WebSocket (experimental)" setting to be enabled.
  *
  *   const ws = connectWs({ onEvent: (e) => { if (e.event === "action") … } });
+ *   // Pass reconnect: false for one-shot sockets, or call ws.stopReconnect().
  *
  * Events: { type:"event", event:"react"|"say"|"media"|"dismiss"|"hud"|"action"|"input.text", ... }
  * Send commands with `ws.send(JSON.stringify({ id, method, params }))`.
  */
-export function connectWs({ onEvent, onOpen, onClose, onError } = {}) {
+export function connectWs({ onEvent, onOpen, onClose, onError, reconnect = true } = {}) {
   const disc = readDiscovery();
   const GlobalWebSocket = globalThis.WebSocket;
   if (!disc || !GlobalWebSocket) return undefined;
   const url = `ws://${disc.host}:${WS_PORT}/?token=${encodeURIComponent(disc.token)}`;
   let ws;
+  let stopped = false;
   const open = () => {
+    if (stopped) return;
     ws = new GlobalWebSocket(url);
     ws.addEventListener("open", () => onOpen?.(ws));
     ws.addEventListener("message", (event) => {
@@ -186,9 +189,10 @@ export function connectWs({ onEvent, onOpen, onClose, onError } = {}) {
     ws.addEventListener("error", () => onError?.());
     ws.addEventListener("close", () => {
       onClose?.();
-      setTimeout(open, 3000);
+      if (reconnect && !stopped) setTimeout(open, 3000);
     });
   };
   open();
+  if (ws) ws.stopReconnect = () => { stopped = true; };
   return ws;
 }

@@ -65,6 +65,9 @@ await sendHostStatus({ cpuPct: 42, ramUsedMb: 8192, ramTotalMb: 16384, usagePct:
 
 // Bidirectional: receive events (needs the app's WebSocket enabled).
 connectWs({ onEvent: (e) => console.log(e.event, e) });
+// Use reconnect: false for one-shot sockets, or stop a persistent socket with:
+const ws = connectWs({ onEvent: handleEvent });
+ws?.stopReconnect();
 ```
 
 ## What a plugin can do

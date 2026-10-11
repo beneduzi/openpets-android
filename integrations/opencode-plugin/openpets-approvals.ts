@@ -67,6 +67,7 @@ function sendIpc(discovery: { host: string; port: number; token: string }, metho
 }
 
 const WS_PORT = Number(process.env.OPENPETS_WS_PORT || 18423);
+const wireId = (prefix: string, raw: string) => `${prefix}_${raw.replace(/[^A-Za-z0-9_-]/g, "_")}`.slice(0, 64);
 
 // bubbleId -> pending approval
 const pending = new Map<string, { sessionID: string; requestID: string }>();
@@ -147,7 +148,7 @@ export default {
 
     // Publish an approval bubble on the pet for a request.
     const showBubble = (sessionID: string, requestID: string, action: string, resources: string[]) => {
-      const bubbleId = `perm:${requestID}`;
+      const bubbleId = wireId("perm", requestID);
       pending.set(bubbleId, { sessionID, requestID });
       ensureWs(discovery);
       sendIpc(discovery, "pet.say", {
@@ -169,7 +170,7 @@ export default {
         const e = event as { effect?: string; sessionID?: string; action?: string; resources?: string[] };
         if (e?.effect === "ask" && typeof e.sessionID === "string" && typeof e.action === "string") {
           // No request id here; publish a bubble once the request is known via the event stream.
-          void showBubble(e.sessionID, `pending:${Date.now()}`, e.action, e.resources ?? []);
+          void showBubble(e.sessionID, wireId("pending", String(Date.now())), e.action, e.resources ?? []);
         }
       });
     } catch {
