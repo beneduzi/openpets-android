@@ -341,29 +341,29 @@ renewal/release (P3) once the contract is settled.
 ## 8. Known future work — Settings UI rework (tech debt)
 
 The in-app Settings are functional but **chaotic**: `MainActivity.showSettings()`
-builds one flat `AlertDialog` — ~20 companion-feature buttons stacked directly
-above the connection toggles, ports and tokens — with no hierarchy, no search,
-and a mix of `strings.xml` labels and hardcoded ones (e.g. `Vibrar junto`,
-`Notification sound`, `Test sound`). This is UX/tech debt, **not** a capability
-gap: it blocks no protocol work and changes no settings behaviour.
+builds one flat `AlertDialog` — ~17 feature launchers stacked directly above the
+connection toggles, ports and tokens — with no hierarchy, no search, and a mix of
+`strings.xml` labels and hardcoded/mixed-language ones (e.g. `Vibrar junto`). This
+is UX/tech debt, **not** a capability gap: it blocks no protocol work and changes
+no settings behaviour.
 
-Planned rework:
+**Full plan: [`SETTINGS-UI-REFACTOR.md`](SETTINGS-UI-REFACTOR.md)** (produced with
+the Oracle from research + a code inventory). In short: a custom **RecyclerView
+settings shell** inside `MainActivity` (no Preference framework, no Compose), with
+a categorised overview, per-feature sub-screens on a shared scaffold, explicit
+Save/Discard for transactional sections and immediate apply for independent
+toggles, search, per-section reset, real validation (ports 1–65535, tokens
+preserving legacy formats), masked+copyable credentials, and effective
+(listening) server status rather than just "enabled". Migrated in six incremental
+phases that keep the app working throughout:
 
-1. **Group into a real settings screen** (`PreferenceFragmentCompat` or a small
-   tabbed/segmented layout) instead of a single scroll:
-   - **Connection** — bind address, IPC/Remote/WS ports, IPC/Remote tokens
-     (+ copy), enable toggles, LAN-IP/discovery hint.
-   - **Sound & presence** — pet picker, animations, sound/haptics/TTS/
-     notifications, custom sound, walkabout mode/speed.
-   - **Companion features** — the feature entry points, grouped and searchable.
-   - **Advanced** — host-status overlay, require-lease, diagnostics/about.
-2. **Localize everything** — move the remaining hardcoded labels into
-   `strings.xml` (several are currently mixed-language).
-3. **Safety rails** — a "Reset to defaults" action (global + per group) and
-   inline validation for ports/tokens; surface the effective LAN IP and the
-   discovery-file path.
-4. **Keep it simple** — do **not** build a schema-driven settings framework
-   (see the YAGNI guardrails in §9); hand-roll the sections.
+1. Freeze the contract (defaults/validation helpers + reachability checklist).
+2. Introduce the utility shell (stage + fragment container, grouped overview).
+3. Migrate core configuration (Connections, Sound, Pets, Animations, Walkabout).
+4. Establish the shared feature scaffold (Resources, Commands, Virtual pet, Fun, Mood).
+5. Migrate the workflow features (Timer, Focus, Breathe, Reminders, Deadlines,
+   Checklist, Water, Routine, Calendar, Voice, Vocabulary).
+6. Finish: search, reset, localization, accessibility; remove the old dialog.
 
 Deferred; pick this up once the always-on agent flows are stable.
 
