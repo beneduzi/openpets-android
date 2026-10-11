@@ -18,6 +18,11 @@ class IpcProtocolTest {
         assertCode("invalid_params") { validateNotifyTitle("line\nbreak") }
         assertEquals("Body", validateNotifyBody(" Body "))
     }
+    @Test fun validatesStatusText() {
+        assertEquals("Working", validateStatusText(" Working "))
+        assertCode("invalid_params") { validateStatusText("  ") }
+        assertCode("invalid_params") { validateStatusText("line\nbreak") }
+    }
 
     private fun req(id: String = "r1", version: Int = 1, tok: String = token, method: String = "pet.react", params: String = """{"reaction":"thinking"}"""): String =
         """{"id":"$id","version":$version,"token":"$tok","method":"$method","params":$params}"""
@@ -97,6 +102,7 @@ class IpcLeaseTest {
             override fun onScale(scale: Float) = Unit
             override fun onVisibility(visible: Boolean) = Unit
             override fun onNotify(request: NotificationRequest) = Unit
+            override fun onStatus(text: String, tone: String?) = Unit
         }
         val dispatcher = IpcDispatcher(sink, "0.1.0", StaticPetCatalogProvider(), null, false, { now })
         fun request(id: String, method: String, params: String) = IpcRequest(

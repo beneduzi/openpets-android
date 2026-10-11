@@ -19,6 +19,7 @@ private class FakeSink : PetEventSink {
     val media = CopyOnWriteArrayList<MediaRequest>()
     val dismissals = CopyOnWriteArrayList<String?>()
     val notifications = CopyOnWriteArrayList<NotificationRequest>()
+    val statuses = CopyOnWriteArrayList<Pair<String, String?>>()
     override fun onReact(reaction: String, source: String?) {
         reactions.add(reaction)
     }
@@ -38,6 +39,7 @@ private class FakeSink : PetEventSink {
     override fun onScale(scale: Float) {}
     override fun onVisibility(visible: Boolean) {}
     override fun onNotify(request: NotificationRequest) { notifications.add(request) }
+    override fun onStatus(text: String, tone: String?) { statuses.add(text to tone) }
 }
 
 private const val IPC_TOKEN = "0123456789abcdef0123456789abcdef"
@@ -79,6 +81,17 @@ class IpcServerTest {
         } finally {
             server.stop()
         }
+    }
+
+    @Test fun statusPublishReachesSink() {
+        val sink = FakeSink()
+        val server = IpcServer(sink, IPC_TOKEN, "127.0.0.1", 0)
+        val port = server.start()
+        try {
+            val resp = json(port, ipc("status-1", "status.publish", """{"text":"Working","tone":"success"}"""))
+            assertTrue(resp.get("ok").asBoolean)
+            assertEquals("Working" to "success", sink.statuses.first())
+        } finally { server.stop() }
     }
 
     @Test fun leaseAcquireReturnsLeaseId() {

@@ -30,7 +30,7 @@ val REACTIONS: List<String> = listOf(
 val IPC_METHODS: List<String> = listOf(
     "hello", "status", "pets.list", "pets.install", "pets.install-local",
     "lease.acquire", "lease.heartbeat", "lease.release",
-    "pet.react", "pet.say", "pet.showMedia", "pet.bubbleDismiss", "pet.move", "pet.setScale", "pet.hide", "pet.show", "notify",
+    "pet.react", "pet.say", "pet.showMedia", "pet.bubbleDismiss", "pet.move", "pet.setScale", "pet.hide", "pet.show", "notify", "status.publish",
 )
 
 /** Protocol violation carrying the machine-readable error code used on the wire. */
@@ -165,6 +165,22 @@ fun validateNotifyBody(value: String?): String? {
         throw IpcProtocolError("invalid_params", "Notification body is invalid.")
     }
     return body
+}
+
+fun validateStatusText(value: String?): String {
+    val text = value?.trim() ?: throw IpcProtocolError("invalid_params", "Status text is required.")
+    if (text.isEmpty() || text.length > 80 || Regex("[\\r\\n]").containsMatchIn(text)) {
+        throw IpcProtocolError("invalid_params", "Status text is invalid.")
+    }
+    return text
+}
+
+fun validateStatusTone(value: String?): String? {
+    if (value == null) return null
+    if (value !in setOf("default", "success", "warning", "error")) {
+        throw IpcProtocolError("invalid_params", "Status tone is invalid.")
+    }
+    return value
 }
 
 fun validateSayMessage(value: String?): String {

@@ -131,8 +131,8 @@ class AppSettings(context: Context) {
         set(value) = prefs.edit().putBoolean("launchChecklistEnabled", value).apply()
 
     var walkaboutMode: String
-        get() = prefs.getString("walkaboutMode", "roam")?.takeIf { it in setOf("off", "roam", "patrol") } ?: "roam"
-        set(value) = prefs.edit().putString("walkaboutMode", value.takeIf { it in setOf("off", "roam", "patrol") } ?: "roam").apply()
+        get() = prefs.getString("walkaboutMode", "roam")?.takeIf { it in setOf("off", "roam", "patrol", "follow") } ?: "roam"
+        set(value) = prefs.edit().putString("walkaboutMode", value.takeIf { it in setOf("off", "roam", "patrol", "follow") } ?: "roam").apply()
 
     var walkaboutSpeed: Float
         get() = prefs.getFloat("walkaboutSpeed", 1.0f).coerceIn(0.5f, 3.0f)

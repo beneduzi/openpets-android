@@ -43,6 +43,8 @@ object PetBus {
         fun onNotify(request: NotificationRequest)
         fun onCommandInvoked(event: CommandInvoked)
         fun onCommandsChanged()
+        fun onStatus(text: String, tone: String?)
+        fun onPower(plugged: Boolean, level: Int)
     }
 
     private val listeners = CopyOnWriteArrayList<Listener>()
@@ -91,6 +93,8 @@ object PetBus {
     fun notify(request: NotificationRequest) { main.post { listeners.forEach { it.onNotify(request) } } }
     fun invokeCommand(source: String, commandId: String) { val event = CommandInvoked(source, commandId); main.post { listeners.forEach { it.onCommandInvoked(event) } } }
     fun commandsChanged() { main.post { listeners.forEach { it.onCommandsChanged() } } }
+    fun status(text: String, tone: String?) { main.post { listeners.forEach { it.onStatus(text, tone) } } }
+    fun power(plugged: Boolean, level: Int) { main.post { listeners.forEach { it.onPower(plugged, level) } } }
 
     /** Sink handed to the IPC/remote servers. */
     val sink: PetEventSink = object : PetEventSink {
@@ -102,5 +106,6 @@ object PetBus {
         override fun onScale(scale: Float) = scale(scale)
         override fun onVisibility(visible: Boolean) = visibility(visible)
         override fun onNotify(request: NotificationRequest) = notify(request)
+        override fun onStatus(text: String, tone: String?) = status(text, tone)
     }
 }

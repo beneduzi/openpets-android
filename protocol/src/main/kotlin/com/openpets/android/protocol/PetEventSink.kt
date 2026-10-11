@@ -74,4 +74,5 @@ interface PetEventSink {
     fun onScale(scale: Float)
     fun onVisibility(visible: Boolean)
     fun onNotify(request: NotificationRequest)
+    fun onStatus(text: String, tone: String?)
 }

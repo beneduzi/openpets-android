@@ -6,9 +6,12 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.BroadcastReceiver
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.BatteryManager
 import android.util.Base64
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -99,6 +102,8 @@ class OpenPetsService : Service() {
         override fun onNotify(request: com.openpets.android.protocol.NotificationRequest) {
             notifier.notifyEvent(request.title, request.body ?: request.title)
         }
+        override fun onStatus(text: String, tone: String?) { updateNotification(text) }
+        override fun onPower(plugged: Boolean, level: Int) {}
         override fun onCommandInvoked(event: com.openpets.android.CommandInvoked) {}
         override fun onCommandsChanged() {}
 
@@ -108,6 +113,18 @@ class OpenPetsService : Service() {
             if (settings.notifyEnabled && !AppState.foreground) {
                 notifier.notifyEvent(null, request.message ?: this@OpenPetsService.getString(R.string.media_received))
             }
+        }
+    }
+
+    private val batteryReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val battery = intent ?: return
+            val status = battery.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+            val plugged = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL ||
+                battery.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
+            val level = battery.getIntExtra(BatteryManager.EXTRA_LEVEL, 0)
+            val scale = battery.getIntExtra(BatteryManager.EXTRA_SCALE, 100).coerceAtLeast(1)
+            PetBus.power(plugged, (level * 100 / scale).coerceIn(0, 100))
         }
     }
 
@@ -121,6 +138,7 @@ class OpenPetsService : Service() {
         notifier = NotificationHelper(this).apply { ensureChannel() }
         createNotificationChannel()
         PetBus.register(eventListener)
+        registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         // Reconcile a persisted running timer after reboot or process death: constructing the
         // controller reschedules the exact alarm. The HUD is re-shown when the activity opens.
         timerController = CompanionRuntime.timer.also { it.refresh() }
@@ -148,6 +166,7 @@ class OpenPetsService : Service() {
 
     override fun onDestroy() {
         PetBus.unregister(eventListener)
+        unregisterReceiver(batteryReceiver)
         stopServers()
         sound.release()
         super.onDestroy()
@@ -260,6 +279,17 @@ class OpenPetsService : Service() {
     private fun updateNotification() {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(NOTIFICATION_ID, buildNotification())
+    }
+
+    private fun updateNotification(statusText: String) {
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setContentTitle(getString(R.string.notification_title))
+            .setContentText(statusText)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(NOTIFICATION_ID, notification)
     }
 
     private fun createNotificationChannel() {

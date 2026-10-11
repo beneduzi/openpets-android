@@ -40,6 +40,12 @@ object WsMessages {
     fun eventFromInputText(text: String): String = JsonObject().apply {
         addProperty("type", "event"); addProperty("event", "input.text"); addProperty("text", text)
     }.toString()
+    fun eventFromStatus(text: String, tone: String?): String = JsonObject().apply {
+        addProperty("type", "event"); addProperty("event", "status"); addProperty("text", text); tone?.let { addProperty("tone", it) }
+    }.toString()
+    fun eventFromPower(plugged: Boolean, level: Int): String = JsonObject().apply {
+        addProperty("type", "event"); addProperty("event", "power"); addProperty("plugged", plugged); addProperty("level", level)
+    }.toString()
 
     fun eventPointer(kind: String, x: Float, y: Float): String = JsonObject().apply {
         addProperty("type", "event"); addProperty("event", "pointer"); addProperty("kind", kind); addProperty("x", x); addProperty("y", y)

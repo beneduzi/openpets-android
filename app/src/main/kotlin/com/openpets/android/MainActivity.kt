@@ -359,6 +359,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     override fun onVisibility(visible: Boolean) { if (::stage.isInitialized) stage.setPetVisible(visible) }
     override fun onPointer(kind: String, x: Float, y: Float) {}
     override fun onNotify(request: com.openpets.android.protocol.NotificationRequest) {}
+    override fun onStatus(text: String, tone: String?) {}
+    override fun onPower(plugged: Boolean, level: Int) {}
     override fun onCommandInvoked(event: CommandInvoked) {}
     override fun onCommandsChanged() {}
 
@@ -701,7 +703,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         root.addView(sectionLabel(getString(R.string.walkabout_title)))
         fun renderModes() {
             modes.removeAllViews()
-            listOf("off" to R.string.walkabout_off, "roam" to R.string.walkabout_roam, "patrol" to R.string.walkabout_patrol).forEach { (mode, label) ->
+            listOf("off" to R.string.walkabout_off, "roam" to R.string.walkabout_roam, "patrol" to R.string.walkabout_patrol, "follow" to R.string.walkabout_follow).forEach { (mode, label) ->
                 val text = getString(label) + if (selectedMode == mode) " ✓" else ""
                 modes.addView(actionButton(text) { selectedMode = mode; renderModes() })
             }

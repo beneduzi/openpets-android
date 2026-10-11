@@ -181,6 +181,7 @@
     <string name="walkabout_off">Off</string>
     <string name="walkabout_roam">Roam</string>
     <string name="walkabout_patrol">Patrol</string>
+    <string name="walkabout_follow">Follow</string>
     <string name="walkabout_speed">Speed</string>
     <string name="vocab_open">Vocabulary…</string>
     <string name="vocab_title">Vocabulary</string>

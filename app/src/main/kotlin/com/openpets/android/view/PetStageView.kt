@@ -77,6 +77,7 @@ class PetStageView @JvmOverloads constructor(
     private var waitingDurationMs: Int = DEFAULT_WAITING_ANIMATION_MS
     private var walkaboutMode: String = "roam"
     private var walkaboutSpeed: Float = 1f
+    private var lastPointerX: Float = 0.5f
 
     /** Tap on the empty area (wave); long-press (settings). */
     var onTap: (() -> Unit)? = null
@@ -159,7 +160,7 @@ class PetStageView @JvmOverloads constructor(
     }
 
     fun applyWalkabout(mode: String, speed: Float) {
-        walkaboutMode = mode.takeIf { it in setOf("off", "roam", "patrol") } ?: "roam"
+        walkaboutMode = mode.takeIf { it in setOf("off", "roam", "patrol", "follow") } ?: "roam"
         walkaboutSpeed = speed.coerceIn(0.5f, 3f)
         roamEnabled = walkaboutMode != "off"
         if (walkaboutMode == "off" || machine.currentReaction != "idle" || mediaActive) {
@@ -168,6 +169,9 @@ class PetStageView @JvmOverloads constructor(
         } else if (walkaboutMode == "patrol") {
             cancelRoam()
             if (activeWalk == null) startWalk()
+        } else if (walkaboutMode == "follow") {
+            cancelRoam()
+            followPointer()
         } else {
             cancelWalk()
             scheduleRoam(nextRoamDelay())
@@ -406,11 +410,20 @@ class PetStageView @JvmOverloads constructor(
         cancelWalk()
         petView.spriteState = currentSprite()
         scheduleBusyReset()
-        if (roamEnabled && !mediaActive && machine.currentReaction == "idle") {
+        if (walkaboutMode == "follow" && !mediaActive && machine.currentReaction == "idle") {
+            followPointer()
+        } else if (roamEnabled && !mediaActive && machine.currentReaction == "idle") {
             scheduleRoam(nextRoamDelay())
         } else {
             cancelRoam()
         }
+    }
+
+    private fun followPointer() {
+        if (walkaboutMode != "follow" || machine.currentReaction != "idle" || mediaActive || width == 0) return
+        val limit = maxHorizontalOffset()
+        val target = (lastPointerX * width - petView.measuredWidth / 2f - (width - petView.measuredWidth) / 2f).coerceIn(-limit, limit)
+        walkTo(target)
     }
 
     /** Busy reactions (thinking/editing/…) revert to idle if no update arrives. */
@@ -430,6 +443,7 @@ class PetStageView @JvmOverloads constructor(
     private fun nextRoamDelay(): Long = when {
         width == 0 -> 5_000L
         walkaboutMode == "patrol" -> 0L
+        walkaboutMode == "follow" -> 0L
         else -> Random.nextLong(6_000L, 18_000L)
     }
 
@@ -499,7 +513,8 @@ class PetStageView @JvmOverloads constructor(
     private fun finishWalk() {
         cancelWalk()
         petView.spriteState = currentSprite()
-        if (roamEnabled && machine.currentReaction == "idle" && !mediaActive) scheduleRoam(nextRoamDelay())
+        if (walkaboutMode == "follow" && machine.currentReaction == "idle" && !mediaActive) followPointer()
+        else if (roamEnabled && machine.currentReaction == "idle" && !mediaActive) scheduleRoam(nextRoamDelay())
     }
 
     private fun setPetOffset(offset: Float) {
@@ -673,6 +688,7 @@ class PetStageView @JvmOverloads constructor(
                     cancelWalk()
                 }
                 if (draggingPet) {
+                    lastPointerX = (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f)
                     movePetToTouch(event.x)
                     PetBus.pointer("drag", (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f), (event.y / height.coerceAtLeast(1)).coerceIn(0f, 1f))
                 }
@@ -685,6 +701,7 @@ class PetStageView @JvmOverloads constructor(
                         scheduleRoam(nextRoamDelay())
                     }
                 } else if (!longPressFired) {
+                    lastPointerX = (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f)
                     PetBus.pointer("tap", (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f), (event.y / height.coerceAtLeast(1)).coerceIn(0f, 1f))
                     onTap?.invoke()
                 }

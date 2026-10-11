@@ -140,7 +140,7 @@ The app is the OpenPets **target**: it listens for one-line JSON requests and va
 
 | Protocol | Transport | Methods |
 | --- | --- | --- |
-| IPC `openpets-ipc` v1 | TCP, line-delimited JSON | `hello`, `status`, `pets.list`, `pets.install`, `pets.install-local`, `lease.acquire`, `lease.heartbeat`, `lease.release`, `pet.react`, `pet.say`, `pet.showMedia`, `pet.bubbleDismiss`, `pet.move`, `pet.setScale`, `pet.hide`, `pet.show`, `notify` |
+| IPC `openpets-ipc` v1 | TCP, line-delimited JSON | `hello`, `status`, `pets.list`, `pets.install`, `pets.install-local`, `lease.acquire`, `lease.heartbeat`, `lease.release`, `pet.react`, `pet.say`, `pet.showMedia`, `pet.bubbleDismiss`, `pet.move`, `pet.setScale`, `pet.hide`, `pet.show`, `notify`, `status.publish` |
 | Remote `openpets-remote` v1 | Raw TCP, one request per socket | `status`, `pet.react`, `pet.say` |
 | WebSocket `openpets-ws` v1 *(experimental)* | `ws://` LAN, opt-in (disabled by default) | streams pet/companion events; accepts the IPC command surface |
 

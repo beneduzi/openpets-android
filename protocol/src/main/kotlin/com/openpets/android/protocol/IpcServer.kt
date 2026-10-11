@@ -125,6 +125,10 @@ class IpcDispatcher(
             sink.onNotify(NotificationRequest(validateNotifyTitle(request.params.str("title")), validateNotifyBody(request.params.str("body"))))
             okResponse(request.id, okOnly())
         }
+        "status.publish" -> {
+            sink.onStatus(validateStatusText(request.params.str("text")), validateStatusTone(request.params.str("tone")))
+            okResponse(request.id, okOnly())
+        }
         "pet.say" -> {
             requireLeaseIfNeeded(request.params)
             val message = validateSayMessage(request.params.str("message"))
