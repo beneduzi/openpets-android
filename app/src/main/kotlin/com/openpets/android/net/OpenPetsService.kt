@@ -74,7 +74,10 @@ class OpenPetsService : Service() {
         }
 
         override fun onSay(request: SayRequest) {
-            if (settings.soundEnabled) sound.play()
+            // Bubbles that need a tap/fill force a beep (never swallowed by the throttle),
+            // so you always hear when the agent needs you to interact.
+            val needsInteraction = request.actions.isNotEmpty() || request.inputs.isNotEmpty()
+            if (settings.soundEnabled) sound.play(force = needsInteraction)
             if (settings.hapticsEnabled) haptics.vibrate()
             // Companion sources already post dedicated notifications; avoid duplicating them.
             if (settings.notifyEnabled && !AppState.foreground && request.source !in CompanionSources.ALL) {

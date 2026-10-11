@@ -49,9 +49,9 @@ class SoundNotifier(private val context: Context) {
         }
     }
 
-    fun play() {
+    fun play(force: Boolean = false) {
         val now = SystemClock.uptimeMillis()
-        if (now - lastPlayedAt < MIN_INTERVAL_MS) return
+        if (!force && now - lastPlayedAt < MIN_INTERVAL_MS) return
         lastPlayedAt = now
         Thread {
             try {
