@@ -74,6 +74,7 @@ class OpenPetsService : Service() {
         }
 
         override fun onSay(request: SayRequest) {
+            if (request.silent) return
             // Bubbles that need a tap/fill force a beep (never swallowed by the throttle),
             // so you always hear when the agent needs you to interact.
             val needsInteraction = request.actions.isNotEmpty() || request.inputs.isNotEmpty()

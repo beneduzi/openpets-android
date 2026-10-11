@@ -338,7 +338,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
 
     override fun onSay(request: SayRequest) {
         stage.say(request)
-        if (settings.ttsEnabled) speak(request.message)
+        if (!request.silent && settings.ttsEnabled) speak(request.message)
     }
 
     override fun onMedia(request: MediaRequest) {

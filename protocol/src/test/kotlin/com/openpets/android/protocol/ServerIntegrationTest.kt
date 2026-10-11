@@ -78,6 +78,11 @@ class IpcServerTest {
             assertTrue(say.get("ok").asBoolean)
             assertEquals("On it", sink.says.first().message)
             assertEquals("editing", sink.says.first().reaction)
+            assertEquals(false, sink.says.first().silent)
+
+            val silentSay = json(port, ipc("silent", "pet.say", """{"message":"x","silent":true}"""))
+            assertTrue(silentSay.get("ok").asBoolean)
+            assertEquals(true, sink.says.last().silent)
         } finally {
             server.stop()
         }

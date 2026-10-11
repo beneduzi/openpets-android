@@ -145,6 +145,7 @@ class IpcDispatcher(
                 submitUrl = obj?.stringOrNull("submitUrl")?.let { validateMediaUrl(it) },
                 bubbleId = validateBubbleId(obj?.stringOrNull("id")),
                 pinned = obj?.get("pinned")?.takeIf { it.isJsonPrimitive }?.asBoolean ?: false,
+                silent = obj?.get("silent")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isBoolean }?.asBoolean ?: false,
             )
             sink.onSay(say)
             okResponse(request.id, okOnly())

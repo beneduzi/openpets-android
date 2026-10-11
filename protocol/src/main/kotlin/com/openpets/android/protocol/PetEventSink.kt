@@ -44,6 +44,7 @@ data class SayRequest(
     val bubbleId: String? = null,
     /** Pinned bubbles do not auto-dismiss. */
     val pinned: Boolean = false,
+    val silent: Boolean = false,
 )
 
 /** A request to display an image/GIF on the pet (`pet.showMedia`). */
