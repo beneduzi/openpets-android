@@ -5,8 +5,8 @@ import org.junit.Test
 
 class CalendarFormatTest {
     @Test fun relativeTimeFormatsUpcomingAndStartedEvents() {
-        assertEquals("in 12 min", CalendarFormat.relativeTime(12 * 60_000L, 0L))
-        assertEquals("now", CalendarFormat.relativeTime(30_000L, 0L))
-        assertEquals("started", CalendarFormat.relativeTime(-61_000L, 0L))
+        assertEquals(RelativeTime.InMinutes(12), CalendarFormat.relativeTime(12 * 60_000L, 0L))
+        assertEquals(RelativeTime.Now, CalendarFormat.relativeTime(30_000L, 0L))
+        assertEquals(RelativeTime.Started, CalendarFormat.relativeTime(-61_000L, 0L))
     }
 }

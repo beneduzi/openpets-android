@@ -58,9 +58,9 @@ class BreathingController private constructor(context: Context, runtimeInstance:
         if (!current.active) return
         val key = "${current.patternId}:${current.phase}"
         val message = when (current.phase) {
-            BreathPhase.INHALE -> "In"
-            BreathPhase.HOLD_IN, BreathPhase.HOLD_OUT -> "Hold"
-            BreathPhase.EXHALE -> "Out"
+            BreathPhase.INHALE -> appContext.getString(com.openpets.android.R.string.settings_breathe_phase_in)
+            BreathPhase.HOLD_IN, BreathPhase.HOLD_OUT -> appContext.getString(com.openpets.android.R.string.settings_breathe_phase_hold)
+            BreathPhase.EXHALE -> appContext.getString(com.openpets.android.R.string.settings_breathe_phase_out)
             BreathPhase.DONE -> return
         }
         val pattern = BreathingPattern.byId(current.patternId.orEmpty())

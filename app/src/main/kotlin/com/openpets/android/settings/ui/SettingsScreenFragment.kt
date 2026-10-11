@@ -84,8 +84,9 @@ abstract class SettingsScreenFragment : Fragment() {
     open fun requestClose():Boolean = false
     fun setSearchTarget(key:String){pendingFocusKey=key;view?.post{performPendingFocus()}}
     private var pendingFocusListener:android.view.ViewTreeObserver.OnPreDrawListener?=null
-    private fun clearPendingFocusListener(){pendingFocusListener?.let{l->val rv=list;if(rv!=null&&rv.viewTreeObserver.isAlive)rv.viewTreeObserver.removeOnPreDrawListener(l)};pendingFocusListener=null}
-    private fun performPendingFocus(){val key=pendingFocusKey?:return;val rv=list?:return;val position=rows().indexOfFirst{row->when(row){is SettingRow.TextFieldRow->row.key==key;is SettingRow.SwitchRow->row.key==key;is SettingRow.SwitchDetailRow->row.key==key;is SettingRow.SecretRow->row.key==key;is SettingRow.InfoRow->row.key==key;is SettingRow.ActionRow->row.key==key;is SettingRow.SliderRow->row.key==key;is SettingRow.ChoiceRow->row.key==key;else->false}};if(position<0)return;rv.scrollToPosition(position);clearPendingFocusListener();var attempts=0;lateinit var listener:android.view.ViewTreeObserver.OnPreDrawListener;listener=android.view.ViewTreeObserver.OnPreDrawListener{if(!isAdded||rv!==list){clearPendingFocusListener();true}else{val holder=rv.findViewHolderForAdapterPosition(position);if(holder!=null){holder.itemView.requestFocus();pendingFocusKey=null;clearPendingFocusListener()}else if(++attempts<8){rv.scrollToPosition(position);rv.requestLayout()}else{clearPendingFocusListener()};true}};pendingFocusListener=listener;rv.viewTreeObserver.addOnPreDrawListener(listener)}
+    private var pendingFocusObserver:android.view.ViewTreeObserver?=null
+    private fun clearPendingFocusListener(){val l=pendingFocusListener;val o=pendingFocusObserver;if(l!=null&&o!=null&&o.isAlive)o.removeOnPreDrawListener(l);pendingFocusListener=null;pendingFocusObserver=null}
+    private fun performPendingFocus(){val key=pendingFocusKey?:return;val rv=list?:return;val position=rows().indexOfFirst{row->when(row){is SettingRow.TextFieldRow->row.key==key;is SettingRow.SwitchRow->row.key==key;is SettingRow.SwitchDetailRow->row.key==key;is SettingRow.SecretRow->row.key==key;is SettingRow.InfoRow->row.key==key;is SettingRow.ActionRow->row.key==key;is SettingRow.SliderRow->row.key==key;is SettingRow.ChoiceRow->row.key==key;else->false}};if(position<0)return;rv.scrollToPosition(position);clearPendingFocusListener();var attempts=0;lateinit var listener:android.view.ViewTreeObserver.OnPreDrawListener;listener=android.view.ViewTreeObserver.OnPreDrawListener{if(!isAdded||rv!==list){clearPendingFocusListener();true}else{val holder=rv.findViewHolderForAdapterPosition(position);if(holder!=null){holder.itemView.requestFocus();pendingFocusKey=null;clearPendingFocusListener()}else if(++attempts<8){rv.scrollToPosition(position);rv.requestLayout()}else{clearPendingFocusListener()};true}};val observer=rv.viewTreeObserver;pendingFocusListener=listener;pendingFocusObserver=observer;observer.addOnPreDrawListener(listener)}
     fun scrollToRow(key:String){setSearchTarget(key)}
     protected fun refreshRows() { (list?.adapter as? SettingsScreenAdapter)?.replaceRows(rows()) }
     protected fun forceRebindRows() { list?.findFocus()?.clearFocus(); (list?.adapter as? SettingsScreenAdapter)?.replaceRows(rows()); (list?.adapter as? SettingsScreenAdapter)?.rebindAllIgnoringFocus() }
@@ -94,7 +95,7 @@ abstract class SettingsScreenFragment : Fragment() {
     protected open fun onSwitchChanged(key:String,value:Boolean) {}
     protected open fun onSliderChanged(key:String,value:Float) {}
     protected open fun onChoiceChanged(key:String,value:String) {}
-    override fun onDestroyView() { list?.adapter=null;list=null;content=null;super.onDestroyView() }
+    override fun onDestroyView() { clearPendingFocusListener();list?.adapter=null;list=null;content=null;super.onDestroyView() }
     private fun dp(value:Int)=(value*resources.displayMetrics.density).toInt()
     private companion object{const val STATE_TARGET_KEY="settings_target_key"}
 }

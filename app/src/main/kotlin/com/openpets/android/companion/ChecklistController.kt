@@ -49,9 +49,9 @@ class ChecklistController private constructor(context: Context, runtimeInstance:
     }
 
     private fun defaultGreeting(): String = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
-        in 5..11 -> "Good morning!"
-        in 12..17 -> "Good afternoon!"
-        else -> "Good evening!"
+        in 5..11 -> appContext.getString(com.openpets.android.R.string.settings_checklist_morning)
+        in 12..17 -> appContext.getString(com.openpets.android.R.string.settings_checklist_afternoon)
+        else -> appContext.getString(com.openpets.android.R.string.settings_checklist_evening)
     }
 
     private fun persistAndNotify() { val current = engine.items(); store.save(current); listeners.forEach { it(current) } }

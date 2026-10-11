@@ -213,9 +213,9 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
                 settings.customSoundUri = uri.toString()
                 OpenPetsService.reload(this)
                 Toast.makeText(this, getString(R.string.ui_custom_sound_set), Toast.LENGTH_SHORT).show()
-                (supportFragmentManager.findFragmentById(SETTINGS_CONTAINER_ID) as? AppearanceFragment)?.refreshSoundRow()
+                (supportFragmentManager.findFragmentById(SETTINGS_CONTAINER_ID) as? AppearanceFragment)?.onSoundSelected()
             } catch (e: Exception) {
-                Toast.makeText(this, "Unable to use sound file: ${e.message ?: "file is not readable"}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.settings_sound_file_error, e.message ?: getString(R.string.settings_sound_not_readable)), Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -309,7 +309,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
 
     fun selectedPetName(): String = currentPetLabel()
     fun chooseCustomSound() { customSoundLauncher.launch(arrayOf("audio/*")) }
-    fun chooseDefaultSound() { settings.customSoundUri=null; OpenPetsService.reload(this);(supportFragmentManager.findFragmentById(SETTINGS_CONTAINER_ID) as? AppearanceFragment)?.refreshSoundRow() }
+    fun chooseDefaultSound() { settings.customSoundUri=null; OpenPetsService.reload(this);(supportFragmentManager.findFragmentById(SETTINGS_CONTAINER_ID) as? AppearanceFragment)?.onSoundSelected() }
     fun refreshWalkabout(mode:String,speed:Float){ stage.applyWalkabout(mode,speed) }
     fun refreshAnimationConfig(){ applyAnimationConfig() }
     fun availablePets():List<PetDescriptor> = repository.listPets().sortedWith(compareByDescending<PetDescriptor>{it.builtIn}.thenBy{it.displayName.lowercase(Locale.ROOT)})

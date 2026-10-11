@@ -36,7 +36,7 @@ class CalendarController private constructor(context: Context, runtime: Boolean)
     fun showOnPet() {
         delegate?.let { it.showOnPet(); return }
         val event = upcoming().firstOrNull() ?: return
-        val message = "Next: ${event.title} (${CalendarFormat.relativeTime(event.beginMs, System.currentTimeMillis())})"
+        val message = appContext.getString(com.openpets.android.R.string.settings_calendar_next_event, event.title, CalendarFormat.render(appContext, CalendarFormat.relativeTime(event.beginMs, System.currentTimeMillis())))
         PetBus.hud(FeatureHud("calendar", "calendar", message, hud = listOf(HudItem(event.title.take(36), 1f, 1f, "info", "calendar")), claim = false))
     }
     internal fun onAlarmFired(now: Long = System.currentTimeMillis()) {

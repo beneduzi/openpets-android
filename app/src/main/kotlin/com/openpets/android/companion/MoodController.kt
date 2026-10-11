@@ -38,7 +38,7 @@ class MoodController private constructor(context: Context, runtimeInstance: Bool
         delegate?.let { it.nudge(); return }
         PetBus.sink.onSay(
             SayRequest(
-                message = "How are you feeling? 1–5",
+                message = appContext.getString(com.openpets.android.R.string.settings_mood_prompt),
                 reaction = "thinking",
                 source = "mood",
                 bubbleId = "mood-checkin",
@@ -62,8 +62,8 @@ class MoodController private constructor(context: Context, runtimeInstance: Bool
                 bubbleId = "mood-checkin",
                 source = "mood",
                 message = levelText,
-                subtext = average?.let { "Recent average: %.1f".format(it) },
-                hud = listOf(HudItem("Mood", entry.value.toFloat(), 5f, "pink", null)),
+                subtext = average?.let { appContext.getString(com.openpets.android.R.string.settings_mood_recent_average, it) },
+                hud = listOf(HudItem(appContext.getString(com.openpets.android.R.string.settings_mood_hud_label), entry.value.toFloat(), 5f, "pink", null)),
                 claim = true,
             ),
         )

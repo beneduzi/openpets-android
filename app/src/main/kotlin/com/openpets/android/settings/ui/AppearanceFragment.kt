@@ -40,6 +40,8 @@ class AppearanceFragment:SettingsScreenFragment(){
     }
     override fun onResume(){super.onResume();refreshSoundRow()}
     fun refreshSoundRow(){if(view==null)return;(list!!.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),"soundFile")}
+    /** Called after a successful explicit sound selection (not on picker cancellation). */
+    fun onSoundSelected(){state.draft?.clearSound=false;refreshSoundRow()}
     override fun onSwitchChanged(key:String,value:Boolean){state.draft?.let{d->when(key){"soundEnabled"->d.sound=value;"hapticsEnabled"->d.haptics=value;"ttsEnabled"->d.tts=value;"notifyEnabled"->d.notify=value;"hostStatusEnabled"->d.hostStatus=value}};(list!!.adapter as? SettingsScreenAdapter)?.updateRowsByKey(rows(),key)}
     override fun onRowClicked(row:SettingRow){when(row.id){"soundFile".hashCode().toLong()->showSoundChoices();"testSound".hashCode().toLong()->AlertDialog.Builder(requireContext()).setTitle(com.openpets.android.R.string.ui_test_sound).setMessage(com.openpets.android.R.string.ui_test_sound_warning).setPositiveButton(com.openpets.android.R.string.ui_play) { _,_->SoundNotifier(requireContext()).playTest() }.setNegativeButton(com.openpets.android.R.string.ui_cancel,null).show()}}
     private fun showSoundChoices(){AlertDialog.Builder(requireContext()).setTitle(com.openpets.android.R.string.ui_sound_file).setItems(arrayOf(getString(com.openpets.android.R.string.ui_default_sound),getString(com.openpets.android.R.string.ui_choose_sound))){_,which->if(which==0)(requireActivity() as MainActivity).chooseDefaultSound() else (requireActivity() as MainActivity).chooseCustomSound()}.show()}

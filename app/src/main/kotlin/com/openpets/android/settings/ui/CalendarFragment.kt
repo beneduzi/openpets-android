@@ -24,8 +24,8 @@ class CalendarFragment:SettingsScreenFragment(),SettingsPermissionResultHandler{
         val c=controller
         val rows=mutableListOf<SettingRow>()
         if(c?.hasPermission()!=true){rows+=SettingRow.InfoRow("calendarPermission",getString(com.openpets.android.R.string.ui_calendar_permission),if(permissionDenied)getString(com.openpets.android.R.string.ui_calendar_retry) else getString(com.openpets.android.R.string.ui_calendar_required));rows+=SettingRow.ActionRow("requestCalendarPermission",getString(R.string.calendar_grant),null)}
-        else if(events.isEmpty())rows+=SettingRow.InfoRow("calendarEmpty","Upcoming events",getString(R.string.calendar_empty))
-        else events.forEachIndexed{index,event->rows+=SettingRow.InfoRow("event:$index",event.title,CalendarFormat.relativeTime(event.beginMs,System.currentTimeMillis()))}
+        else if(events.isEmpty())rows+=SettingRow.InfoRow("calendarEmpty",getString(R.string.settings_calendar_upcoming_events),getString(R.string.calendar_empty))
+        else events.forEachIndexed{index,event->rows+=SettingRow.InfoRow("event:$index",event.title,CalendarFormat.render(requireContext(),CalendarFormat.relativeTime(event.beginMs,System.currentTimeMillis())))}
         rows+=SettingRow.ActionRow("refreshCalendar",getString(R.string.calendar_refresh),null)
         rows+=SettingRow.ActionRow("showCalendar",getString(R.string.calendar_show),null)
         rows+=SettingRow.SwitchRow("calendarReminder",getString(R.string.calendar_remind),null,c?.enabled()?:false)

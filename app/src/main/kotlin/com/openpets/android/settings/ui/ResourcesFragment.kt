@@ -45,7 +45,7 @@ private fun resourceRows(r:DeviceResources,context:android.content.Context):List
         SettingRow.InfoRow("charging",get(com.openpets.android.R.string.resources_charging),r.charging?.let{if(it)get(com.openpets.android.R.string.resources_charging) else get(com.openpets.android.R.string.ui_not_charging)}?:unavailable),
         SettingRow.InfoRow("memory",get(com.openpets.android.R.string.resources_memory),"${SystemResourcesFormatter.megabytes(r.memoryUsedMb)} / ${SystemResourcesFormatter.megabytes(r.memoryTotalMb)}"),
         SettingRow.InfoRow("storage",get(com.openpets.android.R.string.resources_storage),"${SystemResourcesFormatter.megabytes(r.storageUsedMb)} / ${SystemResourcesFormatter.megabytes(r.storageTotalMb)}"),
-        SettingRow.InfoRow("network",get(com.openpets.android.R.string.resources_network),r.networkType?:unavailable),
+        SettingRow.InfoRow("network",get(com.openpets.android.R.string.resources_network),when(r.networkType){"WIFI"->get(com.openpets.android.R.string.settings_network_wifi);"CELLULAR"->get(com.openpets.android.R.string.settings_network_cellular);"ETHERNET"->get(com.openpets.android.R.string.settings_network_ethernet);else->get(com.openpets.android.R.string.settings_network_none)}),
     )
     rows+=SettingRow.InfoRow("temperature",get(com.openpets.android.R.string.ui_battery_temperature),r.batteryTempC?.let{java.text.NumberFormat.getNumberInstance(context.resources.configuration.locales[0]).format(it)+" °C"}?:unavailable)
     rows+=SettingRow.ActionRow("refreshResources",get(com.openpets.android.R.string.ui_refresh),null)

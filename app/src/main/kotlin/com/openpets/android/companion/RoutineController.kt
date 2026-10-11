@@ -78,8 +78,8 @@ class RoutineController private constructor(context: Context, runtimeInstance: B
         }
         current = current.copy(lastFiredAtMs = now)
         scheduleAndPersist(now)
-        val message = if (slot == RoutineSlot.MORNING) "Good morning — ready for the day?" else "Evening check-in — how did today go?"
-        NotificationHelper(appContext).notifyRoutine("Routine check-in", message)
+        val message = if (slot == RoutineSlot.MORNING) appContext.getString(com.openpets.android.R.string.settings_routine_morning_message) else appContext.getString(com.openpets.android.R.string.settings_routine_evening_message)
+        NotificationHelper(appContext).notifyRoutine(appContext.getString(com.openpets.android.R.string.settings_routine_checkin_title), message)
         PetBus.sink.onSay(
             SayRequest(
                 message = message,
