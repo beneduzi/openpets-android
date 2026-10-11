@@ -158,7 +158,6 @@ node tools/send-media.mjs    192.168.0.14 18420 <IPC_TOKEN> ./print.png "screens
 
 - **Parameters:** `data` (base64 image, pushed inline—preferred and needs no network) or `url` (http/https; the app downloads it); optional `message`, `reaction`, `durationMs` (1000–30000, default 8000), and `clickUrl`.
 - **Types and size:** png/jpg/jpeg/webp/gif; about 10 MB limit.
-- GIFs animate on Android 9+ (API 28+); on older Android versions they display as a static image.
 
 ## Reaction → animation map
 
@@ -175,7 +174,6 @@ node tools/send-media.mjs    192.168.0.14 18420 <IPC_TOKEN> ./print.png "screens
 ## IPC method reference
 
 Requests use `{ id, version:1, token, method, params }`. Success responses use `{ id, ok:true, result }`; errors use `{ id, ok:false, error:{code,message} }`.
-Raw IPC TCP requests are limited per peer to 600 requests per 60 seconds by default; excess requests return the `rate_limited` error code.
 
 **Accepted methods:** `hello`, `status`, `pets.list`, `pets.install`, `pets.install-local`, `lease.acquire`, `lease.heartbeat`, `lease.release`, `pet.react`, `pet.say`, `pet.showMedia`, `pet.bubbleDismiss`, `pet.move`, `pet.setScale`, `pet.hide`, `pet.show`, `notify`, `status.clear`, `status.publish`.
 

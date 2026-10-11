@@ -4,10 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.ImageDecoder
-import android.graphics.drawable.AnimatedImageDrawable
 import android.net.Uri
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -337,10 +334,6 @@ class PetStageView @JvmOverloads constructor(
 
     /** Download and display an image/GIF (pet.showMedia) above the pet. */
     fun showMedia(request: MediaRequest) {
-        mediaHide?.let { handler.removeCallbacks(it) }
-        stopAnimatedMedia()
-        mediaView.setImageDrawable(null)
-        mediaView.visibility = GONE
         hideForm()
         val reaction = request.reaction
         if (reaction != null) react(reaction)
@@ -367,24 +360,14 @@ class PetStageView @JvmOverloads constructor(
         val url = request.url
         Thread {
             try {
-                val bytes = dataBase64?.let { Base64.decode(it, Base64.DEFAULT) }
-                    ?: url?.let { MediaLoader.downloadBytes(it) }
-                    ?: throw IllegalStateException("no image")
-                val drawable = if (startsWithGif(bytes) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    ImageDecoder.decodeDrawable(ImageDecoder.createSource(java.nio.ByteBuffer.wrap(bytes)))
-                } else null
-                val bitmap = if (drawable == null) {
-                    (BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply {
-                        inPreferredConfig = Bitmap.Config.ARGB_8888
-                    }) ?: throw IllegalStateException("unsupported image")).apply {
-                        density = resources.displayMetrics.densityDpi
-                    }
-                } else null
+                val bitmap = when {
+                    dataBase64 != null -> decodeBase64(dataBase64)
+                    url != null -> MediaLoader.download(url)
+                    else -> null
+                } ?: throw IllegalStateException("no image")
+                bitmap.density = resources.displayMetrics.densityDpi
                 post {
-                    if (drawable != null) {
-                        mediaView.setImageDrawable(drawable)
-                        if (drawable is AnimatedImageDrawable) drawable.start()
-                    } else mediaView.setImageBitmap(bitmap)
+                    mediaView.setImageBitmap(bitmap)
                     mediaView.visibility = VISIBLE
                     val clickUrl = request.clickUrl
                     mediaView.setOnClickListener { if (clickUrl != null) openUrl(clickUrl) }
@@ -397,15 +380,10 @@ class PetStageView @JvmOverloads constructor(
         }.apply { isDaemon = true }.start()
     }
 
-    private fun startsWithGif(bytes: ByteArray): Boolean =
-        bytes.size >= 6 && (bytes.copyOfRange(0, 6).contentEquals("GIF87a".toByteArray(Charsets.US_ASCII)) ||
-            bytes.copyOfRange(0, 6).contentEquals("GIF89a".toByteArray(Charsets.US_ASCII)))
-
-    /** Stops an animated GIF drawable; no-op below API 28, where the class does not exist. */
-    private fun stopAnimatedMedia() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            (mediaView.drawable as? AnimatedImageDrawable)?.stop()
-        }
+    private fun decodeBase64(data: String): Bitmap {
+        val bytes = Base64.decode(data, Base64.DEFAULT)
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            ?: throw IllegalStateException("unsupported image")
     }
 
     private fun openUrl(url: String) {
@@ -422,7 +400,6 @@ class PetStageView @JvmOverloads constructor(
         val runnable = Runnable {
             mediaActive = false
             mediaView.visibility = GONE
-            stopAnimatedMedia()
             mediaView.setImageDrawable(null)
             requestLayout()
             if (roamEnabled && machine.currentReaction == "idle") scheduleRoam(nextRoamDelay())

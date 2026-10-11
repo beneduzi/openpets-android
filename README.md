@@ -46,7 +46,7 @@ It speaks the OpenPets protocol directly, so it works with the OpenCode plugin, 
 | --- | --- |
 | 🐾 **Animated pet** | Spritesheet pet (8×9 grid, 192×208 px frames) with per-reaction animations and idle wandering. Eleven reactions: `idle`, `thinking`, `working`, `editing`, `running`, `testing`, `waiting`, `waving`, `success`, `error`, `celebrating`. |
 | 💬 **Rich bubbles** | Markdown text, up to 4 HUD progress bars, up to 4 action buttons (`url` opens, `callbackUrl` POSTs), pinned bubbles with stable IDs, and forms (up to 4 inputs → POST to a `submitUrl`). |
-| 🖼️ **Media** | `pet.showMedia` pushes an image **inline as base64** (no network on the device) or via an HTTP(S) URL — png/jpg/jpeg/webp/gif (GIFs animate on Android 9+; static on older), ~10 MB, with caption, reaction, duration, and optional `clickUrl`. |
+| 🖼️ **Media** | `pet.showMedia` pushes an image **inline as base64** (no network on the device) or via an HTTP(S) URL — png/jpg/jpeg/webp/gif, ~10 MB, with caption, reaction, duration, and optional `clickUrl`. |
 | 🎨 **Per-project identity** | The agent's `source` gives each project its own accent color and label. |
 | 🔔 **Sound, haptics & voice** | Beep or a custom sound, vibration, text-to-speech, and system notifications — each independently toggleable. |
 | 🧩 **Pets** | Five built-in pets (Professor Hoot, Tux, Melon Capybara, Lazy Raccoon, Mellow Duck), import from `.zip`/folder, or browse the online catalog. Supports `pets.install` / `pets.install-local`. |
