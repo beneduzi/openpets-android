@@ -356,11 +356,11 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     override fun onHostMetrics(status: HostStatus?) { if (::stage.isInitialized) stage.onHostMetrics(status) }
 
     override fun onAction(event: PetActionEvent) {}
-    override fun onInputText(text: String) {}
+    override fun onInputText(text: String, captureId: String?) {}
     override fun onMove(request: MoveRequest) { if (::stage.isInitialized) stage.movePet(request) }
     override fun onScale(scale: Float) { if (::stage.isInitialized) stage.applyPetScale(scale) }
     override fun onVisibility(visible: Boolean) { if (::stage.isInitialized) stage.setPetVisible(visible) }
-    override fun onPointer(kind: String, x: Float, y: Float) {}
+    override fun onPointer(kind: String, phase: String, x: Float, y: Float) {}
     override fun onNotify(request: com.openpets.android.protocol.NotificationRequest) {}
     override fun onStatus(text: String, tone: String?) {}
     override fun onPower(plugged: Boolean, level: Int) {}
@@ -946,8 +946,9 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         val button = Button(this).apply { text = getString(R.string.voice_speak) }
         content.addView(button)
         val dialog = AlertDialog.Builder(this).setTitle(R.string.voice_title).setView(content).setNegativeButton(R.string.dialog_close, null).create()
+        var captureId = java.util.UUID.randomUUID().toString()
         val controller = sttController ?: SttController(this, { text ->
-            PetBus.inputText(text)
+            PetBus.inputText(text, captureId)
             runOnUiThread { Toast.makeText(this, R.string.voice_sent, Toast.LENGTH_SHORT).show() }
         }, { state -> runOnUiThread { status.text = when (state) {
             SttState.IDLE -> ""
@@ -958,7 +959,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         var listening = false
         button.setOnClickListener {
             if (listening) { listening = false; controller.stop() }
-            else { listening = true; controller.start() }
+            else { listening = true; captureId = java.util.UUID.randomUUID().toString(); controller.start() }
         }
         dialog.setOnDismissListener { controller.cancel() }
         dialog.show()

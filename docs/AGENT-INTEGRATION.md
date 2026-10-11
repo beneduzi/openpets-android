@@ -117,7 +117,9 @@ The OpenCode plugin does **not** support remote mode. Remote constraints: raw TC
 
 Experimental: a client sends `{ "id":"…", "method":"commands.register", "params":{"source":"plugin", "commands":[{"id":"refresh", "title":"Refresh", "description":"Optional description"}]}}`. The app lists registered commands in Settings → *Plugin commands*. Invoking one emits `{ "type":"event","event":"command","source":"plugin","commandId":"refresh" }` to connected clients.
 
-Voice input is experimental and microphone access is opt-in. When the user dictates, the app can send `{ "type":"event", "event":"input.text", "text": … }`; a host client may inject this as user input.
+Voice input is experimental and microphone access is opt-in. When the user dictates, the app can send `{ "type":"event", "event":"input.text", "text": …, "captureId": … }`; `captureId` is optional and identifies that listening capture. A host client may inject this as user input.
+
+Pointer events have `{ "type":"event", "event":"pointer", "kind": …, "phase": …, "x": …, "y": … }`. `kind` remains `tap` or `drag`; `phase` is `start`, `move`, `end`, or `tap` (tap events use `kind: "tap"` and `phase: "tap"`).
 
 An optional `ws://` endpoint (default port `18423`) that is **disabled by default** and marked **experimental**. Enable it in Settings → *WebSocket (experimental)*. It:
 

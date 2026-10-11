@@ -43,8 +43,9 @@ object WsMessages {
         event.bubbleId?.let { addProperty("bubbleId", it) }
         add("values", com.google.gson.Gson().toJsonTree(event.values))
     }.toString()
-    fun eventFromInputText(text: String): String = JsonObject().apply {
+    fun eventFromInputText(text: String, captureId: String? = null): String = JsonObject().apply {
         addProperty("type", "event"); addProperty("event", "input.text"); addProperty("text", text)
+        captureId?.let { addProperty("captureId", it) }
     }.toString()
     fun eventFromStatus(text: String, tone: String?): String = JsonObject().apply {
         addProperty("type", "event"); addProperty("event", "status"); addProperty("text", text); tone?.let { addProperty("tone", it) }
@@ -53,8 +54,8 @@ object WsMessages {
         addProperty("type", "event"); addProperty("event", "power"); addProperty("plugged", plugged); addProperty("level", level)
     }.toString()
 
-    fun eventPointer(kind: String, x: Float, y: Float): String = JsonObject().apply {
-        addProperty("type", "event"); addProperty("event", "pointer"); addProperty("kind", kind); addProperty("x", x); addProperty("y", y)
+    fun eventPointer(kind: String, phase: String, x: Float, y: Float): String = JsonObject().apply {
+        addProperty("type", "event"); addProperty("event", "pointer"); addProperty("kind", kind); addProperty("phase", phase); addProperty("x", x); addProperty("y", y)
     }.toString()
     fun eventMove(request: MoveRequest): String = JsonObject().apply {
         addProperty("type", "event"); addProperty("event", "move"); addProperty("x", request.x); request.y?.let { addProperty("y", it) }; addProperty("durationMs", request.durationMs)

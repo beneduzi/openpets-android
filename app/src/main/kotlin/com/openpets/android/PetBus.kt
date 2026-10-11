@@ -39,11 +39,11 @@ object PetBus {
         fun onHostMetrics(status: HostStatus?)
         fun onAction(event: PetActionEvent)
         fun onFormSubmit(event: FormSubmit)
-        fun onInputText(text: String)
+        fun onInputText(text: String, captureId: String?)
         fun onMove(request: MoveRequest)
         fun onScale(scale: Float)
         fun onVisibility(visible: Boolean)
-        fun onPointer(kind: String, x: Float, y: Float)
+        fun onPointer(kind: String, phase: String, x: Float, y: Float)
         fun onNotify(request: NotificationRequest)
         fun onCommandInvoked(event: CommandInvoked)
         fun onCommandsChanged()
@@ -94,14 +94,14 @@ object PetBus {
         main.post { listeners.forEach { it.onFormSubmit(event) } }
     }
 
-    fun inputText(text: String) {
-        main.post { listeners.forEach { it.onInputText(text) } }
+    fun inputText(text: String, captureId: String? = null) {
+        main.post { listeners.forEach { it.onInputText(text, captureId) } }
     }
 
     fun move(request: MoveRequest) { main.post { listeners.forEach { it.onMove(request) } } }
     fun scale(value: Float) { main.post { listeners.forEach { it.onScale(value) } } }
     fun visibility(value: Boolean) { main.post { listeners.forEach { it.onVisibility(value) } } }
-    fun pointer(kind: String, x: Float, y: Float) { main.post { listeners.forEach { it.onPointer(kind, x, y) } } }
+    fun pointer(kind: String, phase: String, x: Float, y: Float) { main.post { listeners.forEach { it.onPointer(kind, phase, x, y) } } }
     fun notify(request: NotificationRequest) { main.post { listeners.forEach { it.onNotify(request) } } }
     fun invokeCommand(source: String, commandId: String) { val event = CommandInvoked(source, commandId); main.post { listeners.forEach { it.onCommandInvoked(event) } } }
     fun commandsChanged() { main.post { listeners.forEach { it.onCommandsChanged() } } }

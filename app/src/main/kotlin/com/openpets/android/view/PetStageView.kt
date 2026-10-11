@@ -80,6 +80,7 @@ class PetStageView @JvmOverloads constructor(
     private var walkaboutMode: String = "roam"
     private var walkaboutSpeed: Float = 1f
     private var lastPointerX: Float = 0.5f
+    private var lastPointerY: Float = 0.5f
 
     /** Tap on the empty area (wave); long-press (settings). */
     var onTap: (() -> Unit)? = null
@@ -698,8 +699,11 @@ class PetStageView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 touchDownX = event.x
                 draggingPet = false
+                lastPointerX = (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f)
+                lastPointerY = (event.y / height.coerceAtLeast(1)).coerceIn(0f, 1f)
                 longPressFired = false
                 handler.postDelayed(longPressRunnable, 500L)
+                PetBus.pointer("drag", "start", (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f), (event.y / height.coerceAtLeast(1)).coerceIn(0f, 1f))
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
@@ -711,20 +715,22 @@ class PetStageView @JvmOverloads constructor(
                 }
                 if (draggingPet) {
                     lastPointerX = (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f)
+                    lastPointerY = (event.y / height.coerceAtLeast(1)).coerceIn(0f, 1f)
                     movePetToTouch(event.x)
-                    PetBus.pointer("drag", (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f), (event.y / height.coerceAtLeast(1)).coerceIn(0f, 1f))
+                    PetBus.pointer("drag", "move", (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f), (event.y / height.coerceAtLeast(1)).coerceIn(0f, 1f))
                 }
                 return true
             }
             MotionEvent.ACTION_UP -> {
                 handler.removeCallbacks(longPressRunnable)
                 if (draggingPet) {
+                    PetBus.pointer("drag", "end", (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f), (event.y / height.coerceAtLeast(1)).coerceIn(0f, 1f))
                     if (roamEnabled && !mediaActive && machine.currentReaction == "idle") {
                         scheduleRoam(nextRoamDelay())
                     }
                 } else if (!longPressFired) {
                     lastPointerX = (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f)
-                    PetBus.pointer("tap", (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f), (event.y / height.coerceAtLeast(1)).coerceIn(0f, 1f))
+                    PetBus.pointer("tap", "tap", (event.x / width.coerceAtLeast(1)).coerceIn(0f, 1f), (event.y / height.coerceAtLeast(1)).coerceIn(0f, 1f))
                     onTap?.invoke()
                 }
                 draggingPet = false
@@ -732,6 +738,7 @@ class PetStageView @JvmOverloads constructor(
             }
             MotionEvent.ACTION_CANCEL -> {
                 handler.removeCallbacks(longPressRunnable)
+                if (draggingPet) PetBus.pointer("drag", "end", lastPointerX, lastPointerY)
                 draggingPet = false
                 return true
             }

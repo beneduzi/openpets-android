@@ -100,11 +100,11 @@ class OpenPetsService : Service() {
             // No service-side action needed.
         }
 
-        override fun onInputText(text: String) { /* No service-side action needed. */ }
+        override fun onInputText(text: String, captureId: String?) { /* No service-side action needed. */ }
         override fun onMove(request: com.openpets.android.protocol.MoveRequest) {}
         override fun onScale(scale: Float) {}
         override fun onVisibility(visible: Boolean) {}
-        override fun onPointer(kind: String, x: Float, y: Float) {}
+        override fun onPointer(kind: String, phase: String, x: Float, y: Float) {}
         override fun onNotify(request: com.openpets.android.protocol.NotificationRequest) {
             notifier.notifyEvent(request.title, request.body ?: request.title)
         }

@@ -36,11 +36,11 @@ class WebSocketBridge(
         override fun onHostMetrics(status: com.openpets.android.companion.HostStatus?) {}
         override fun onAction(event: PetActionEvent) = broadcast(WsMessages.eventFromAction(event))
         override fun onFormSubmit(event: com.openpets.android.FormSubmit) = broadcast(WsMessages.eventFromSubmit(event))
-        override fun onInputText(text: String) = broadcast(WsMessages.eventFromInputText(text))
+        override fun onInputText(text: String, captureId: String?) = broadcast(WsMessages.eventFromInputText(text, captureId))
         override fun onMove(request: MoveRequest) = broadcast(WsMessages.eventMove(request))
         override fun onScale(scale: Float) = broadcast(WsMessages.eventScale(scale))
         override fun onVisibility(visible: Boolean) = broadcast(WsMessages.eventVisibility(visible))
-        override fun onPointer(kind: String, x: Float, y: Float) = broadcast(WsMessages.eventPointer(kind, x, y))
+        override fun onPointer(kind: String, phase: String, x: Float, y: Float) = broadcast(WsMessages.eventPointer(kind, phase, x, y))
         override fun onNotify(request: com.openpets.android.protocol.NotificationRequest) {}
         override fun onStatus(text: String, tone: String?) = broadcast(WsMessages.eventFromStatus(text, tone))
         override fun onPower(plugged: Boolean, level: Int) = broadcast(WsMessages.eventFromPower(plugged, level))

@@ -23,13 +23,17 @@ class WsMessagesTest {
         assertEquals("event", event.get("type").asString)
         assertEquals("input.text", event.get("event").asString)
         assertEquals("hello agent", event.get("text").asString)
+        val captured = JsonParser.parseString(WsMessages.eventFromInputText("hi", "cap-1")).asJsonObject
+        assertEquals("cap-1", captured.get("captureId").asString)
+        assertFalse(event.has("captureId"))
     }
     @Test fun buildsPointerEvent() {
-        val event = JsonParser.parseString(WsMessages.eventPointer("tap", 0.25f, 0.75f)).asJsonObject
+        val event = JsonParser.parseString(WsMessages.eventPointer("drag", "start", 0.5f, 0.5f)).asJsonObject
         assertEquals("pointer", event.get("event").asString)
-        assertEquals("tap", event.get("kind").asString)
-        assertEquals(0.25f, event.get("x").asFloat)
-        assertEquals(0.75f, event.get("y").asFloat)
+        assertEquals("drag", event.get("kind").asString)
+        assertEquals("start", event.get("phase").asString)
+        assertEquals(0.5f, event.get("x").asFloat)
+        assertEquals(0.5f, event.get("y").asFloat)
     }
     @Test fun buildsCommandEvent() {
         val event = JsonParser.parseString(WsMessages.eventFromCommand(com.openpets.android.CommandInvoked("plugin", "refresh"))).asJsonObject
