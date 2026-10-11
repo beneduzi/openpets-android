@@ -324,7 +324,38 @@ renewal/release (P3) once the contract is settled.
 
 ---
 
-## 8. Risks & YAGNI guardrails
+## 8. Known future work — Settings UI rework (tech debt)
+
+The in-app Settings are functional but **chaotic**: `MainActivity.showSettings()`
+builds one flat `AlertDialog` — ~20 companion-feature buttons stacked directly
+above the connection toggles, ports and tokens — with no hierarchy, no search,
+and a mix of `strings.xml` labels and hardcoded ones (e.g. `Vibrar junto`,
+`Notification sound`, `Test sound`). This is UX/tech debt, **not** a capability
+gap: it blocks no protocol work and changes no settings behaviour.
+
+Planned rework:
+
+1. **Group into a real settings screen** (`PreferenceFragmentCompat` or a small
+   tabbed/segmented layout) instead of a single scroll:
+   - **Connection** — bind address, IPC/Remote/WS ports, IPC/Remote tokens
+     (+ copy), enable toggles, LAN-IP/discovery hint.
+   - **Sound & presence** — pet picker, animations, sound/haptics/TTS/
+     notifications, custom sound, walkabout mode/speed.
+   - **Companion features** — the feature entry points, grouped and searchable.
+   - **Advanced** — host-status overlay, require-lease, diagnostics/about.
+2. **Localize everything** — move the remaining hardcoded labels into
+   `strings.xml` (several are currently mixed-language).
+3. **Safety rails** — a "Reset to defaults" action (global + per group) and
+   inline validation for ports/tokens; surface the effective LAN IP and the
+   discovery-file path.
+4. **Keep it simple** — do **not** build a schema-driven settings framework
+   (see the YAGNI guardrails in §9); hand-roll the sections.
+
+Deferred; pick this up once the always-on agent flows are stable.
+
+---
+
+## 9. Risks & YAGNI guardrails
 
 1. **Don't impose a global exclusive lease and call it compatibility.** Keep
    upstream concurrent-lease semantics; solve display contention with a
@@ -348,7 +379,7 @@ renewal/release (P3) once the contract is settled.
 
 ---
 
-## 9. Source references
+## 10. Source references
 
 - Android repo: `app/`, `protocol/`, `docs/`, `README.md` (local).
 - Upstream protocol: `docs/ipc.md`, `docs/lan-mode.md`, `docs/plugins.md`,

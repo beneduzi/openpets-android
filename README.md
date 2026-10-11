@@ -253,6 +253,12 @@ The release APK is signed with the debug key so it can be sideloaded. CI builds 
 | `docs/` | Installation and agent-integration guides. |
 | `integrations/` | Host-side integrations: the OpenCode plugin, a host-plugin client + template (`host-plugins/`), and the host-status sender. |
 
+## Roadmap
+
+See [`docs/CAPABILITY-ROADMAP.md`](docs/CAPABILITY-ROADMAP.md) for the full gap analysis and phased plan.
+
+Known future work includes a **Settings UI rework**: the current screen is a single flat dialog with ~20 companion-feature buttons stacked above the connection ports and tokens, with no grouping/search and some hardcoded (untranslated) labels. It should be reorganised into grouped, localized, searchable sections. Details in §8 of the roadmap; this is UX/tech debt and changes no settings behaviour.
+
 ## Contributing
 
 Issues and pull requests are welcome. Please keep changes focused, run `./gradlew :protocol:test` before opening a PR, and match the existing code style.
