@@ -69,21 +69,37 @@ plugin's effects out to it, mapping `ctx.*` to the phone protocol.
   outside it (panels, deliveries, sessions, assistant, bus, AI) stay local; the
   host can optionally surface a "not shown on phone" notice.
 - **Inbound (phone → host):** the host subscribes to the phone's WS and routes
-  `action`, `command`, `input.text`, `pointer`, `power` back to the producing
-  plugin (as if they were local events).
+  `action`, `command`, `input.text`, `pointer`, `power` back to the owning plugin.
+  Routing requires host-side ownership maps keyed by the wire IDs the host
+  generated — the phone's `source` label is display metadata, not ownership.
 - **Opt-in & per-target safety:** per plugin and per target; the phone already
   enforces private peers + token.
 - **Failure isolation:** an unreachable phone never blocks a plugin.
 
-**Clean mapping:** speak, react, media, bubbles/actions/HUD/forms, notify,
-move/scale/hide, status, commands, pointer, host metrics, voice.
+**Clean mapping:** speak, react, media, dismissible bubbles/actions, notify,
+move/scale/hide, status, commands, pointer, host metrics.
+
+**Needs host-side work (not "clean" today):**
+
+- **HUD** — the phone requires a message and defaults an omitted `max` to 1; send
+  `max:100` and labels ≤24 chars, and map or omit desktop icon glyphs.
+- **Forms** — the phone POSTs to `submitUrl` (and emits an experimental WS `submit`
+  event); desktop plugins register callbacks, so parity is not clean.
+- **Voice** — `input.text` carries an optional `captureId` but no recipient
+  selection; do not auto-inject transcripts into a session.
+- **Mutable / `bubble.update` synchronization** — requires the silent-update path
+  (the phone's `silent` HUD channel is internal) so syncing does not re-announce.
+- **Motion** — desktop `moveBy`/`moveTo`/`wander` are not a direct mapping to the
+  phone's `pet.move`; resolve work-area/pet-centre transforms first.
 
 **Degrade gracefully:** panels/deliveries/sessions → local only; assistant
 capabilities/AI → local only.
 
 **Deliverable:** an upstream RFC/issue proposing the phone target, the effect
-fan-out table above, inbound routing, and the opt-in semantics. The APK already
-exposes every effect and event this needs.
+fan-out table above, inbound routing, and the opt-in semantics. The app now
+exposes the effects and events this needs, plus optional `silent` `pet.say`,
+WS `submit`, pointer `phase`, and voice `captureId`; the host still owns mapping,
+ownership, and coalescing. See `docs/UPSTREAM-ISSUE.md`.
 
 ## Recommendation
 
