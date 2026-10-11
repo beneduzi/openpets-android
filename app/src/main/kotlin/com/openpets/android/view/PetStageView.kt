@@ -38,6 +38,7 @@ import com.openpets.android.protocol.configuredSpriteState
 import com.openpets.android.protocol.resolveReactionSpriteState
 import com.openpets.android.protocol.sanitizeSource
 import com.openpets.android.protocol.spriteStateFor
+import com.openpets.android.companion.HostStatus
 import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -56,6 +57,7 @@ class PetStageView @JvmOverloads constructor(
 
     private val petView = PetView(context)
     private val bubbleView = SpeechBubbleView(context)
+    private val hostMetricsView = HostMetricsOverlayView(context)
     private val mediaView = ImageView(context)
     private val formView = LinearLayout(context)
     private val formFields = ArrayList<Pair<BubbleInput, EditText>>()
@@ -132,6 +134,7 @@ class PetStageView @JvmOverloads constructor(
         addView(formView)
         addView(petView)
         addView(bubbleView)
+        addView(hostMetricsView)
         bubbleView.visibility = GONE
         bubbleView.onDismissed = {
             agentBubbleActive = false
@@ -229,6 +232,8 @@ class PetStageView @JvmOverloads constructor(
             if (hud.claim) suppressedFeatureSource = null
         }
     }
+
+    fun onHostMetrics(status: HostStatus?) { hostMetricsView.update(status) }
 
     private fun handleAction(action: PetAction, bubbleId: String?) {
         action.callbackUrl?.let { url -> postJson(url, mapOf("actionId" to action.id)) }
@@ -578,6 +583,10 @@ class PetStageView @JvmOverloads constructor(
             MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST),
             MeasureSpec.makeMeasureSpec(height, MeasureSpec.AT_MOST),
         )
+        hostMetricsView.measure(
+            MeasureSpec.makeMeasureSpec(dp(176f), MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(dp(120f), MeasureSpec.AT_MOST),
+        )
         if (mediaActive) {
             val leftAreaWidth = (width - petWidth).coerceAtLeast(width / 2)
             val drawable = mediaView.drawable
@@ -626,6 +635,10 @@ class PetStageView @JvmOverloads constructor(
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         val width = r - l
         val height = b - t
+
+        val overlayWidth = hostMetricsView.measuredWidth
+        val overlayHeight = hostMetricsView.measuredHeight
+        hostMetricsView.layout(width - dp(12f) - overlayWidth, dp(12f), width - dp(12f), dp(12f) + overlayHeight)
 
         val petWidth = petView.measuredWidth
         val petHeight = petView.measuredHeight

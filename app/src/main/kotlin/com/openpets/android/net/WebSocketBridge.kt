@@ -33,6 +33,7 @@ class WebSocketBridge(
         override fun onMedia(request: MediaRequest) = broadcast(WsMessages.eventFromMedia(JsonParser.parseString(gson.toJson(request))))
         override fun onDismissBubble(id: String?) = broadcast(WsMessages.eventFromDismiss(JsonParser.parseString(gson.toJson(mapOf("id" to id)))))
         override fun onHud(hud: FeatureHud) = broadcast(WsMessages.eventFromHud(JsonParser.parseString(gson.toJson(hud))))
+        override fun onHostMetrics(status: com.openpets.android.companion.HostStatus?) {}
         override fun onAction(event: PetActionEvent) = broadcast(WsMessages.eventFromAction(event))
         override fun onInputText(text: String) = broadcast(WsMessages.eventFromInputText(text))
         override fun onMove(request: MoveRequest) = broadcast(WsMessages.eventMove(request))

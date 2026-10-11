@@ -73,6 +73,7 @@ import com.openpets.android.companion.ChecklistController
 import com.openpets.android.companion.ChecklistItem
 import com.openpets.android.net.CommandRegistry
 import com.openpets.android.FeatureHud
+import com.openpets.android.companion.HostStatus
 import com.openpets.android.pet.CatalogClient
 import com.openpets.android.pet.CatalogPet
 import com.openpets.android.pet.PetPackageLoader
@@ -351,6 +352,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     override fun onHud(hud: FeatureHud) {
         if (::stage.isInitialized) stage.onHud(hud)
     }
+
+    override fun onHostMetrics(status: HostStatus?) { if (::stage.isInitialized) stage.onHostMetrics(status) }
 
     override fun onAction(event: PetActionEvent) {}
     override fun onInputText(text: String) {}

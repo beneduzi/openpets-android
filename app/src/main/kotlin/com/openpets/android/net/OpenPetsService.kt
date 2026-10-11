@@ -90,6 +90,8 @@ class OpenPetsService : Service() {
             // Feature HUD updates are intentionally silent.
         }
 
+        override fun onHostMetrics(status: com.openpets.android.companion.HostStatus?) {}
+
         override fun onAction(event: PetActionEvent) {
             // No service-side action needed.
         }

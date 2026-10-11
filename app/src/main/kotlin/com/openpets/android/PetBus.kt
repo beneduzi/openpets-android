@@ -8,6 +8,7 @@ import com.openpets.android.protocol.SayRequest
 import com.openpets.android.protocol.HudItem
 import com.openpets.android.protocol.MoveRequest
 import com.openpets.android.protocol.NotificationRequest
+import com.openpets.android.companion.HostStatus
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -34,6 +35,7 @@ object PetBus {
         fun onMedia(request: MediaRequest)
         fun onDismissBubble(id: String?)
         fun onHud(hud: FeatureHud)
+        fun onHostMetrics(status: HostStatus?)
         fun onAction(event: PetActionEvent)
         fun onInputText(text: String)
         fun onMove(request: MoveRequest)
@@ -76,6 +78,10 @@ object PetBus {
 
     fun hud(hud: FeatureHud) {
         main.post { listeners.forEach { it.onHud(hud) } }
+    }
+
+    fun hostMetrics(status: HostStatus?) {
+        main.post { listeners.forEach { it.onHostMetrics(status) } }
     }
 
     fun action(event: PetActionEvent) {
