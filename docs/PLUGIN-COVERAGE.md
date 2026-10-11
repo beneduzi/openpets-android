@@ -42,8 +42,6 @@ Separate repo (SDK v3 example, not in the 13):
 | Plugin | Status | Dependency | Android approach |
 | --- | --- | --- | --- |
 | Vocabulary Drag & Drop | ✅ | cloud (+ local Anki service) | share text -> dictionaryapi.dev + MyMemory; optional AnkiConnect |
-| Higgsfield Watch | ❌ blocked | cloud | public API has no list-jobs endpoint (poll-by-request-id only); a phone watcher cannot discover jobs |
-| Spotify Buddy | ⬜ | desktop-runtime | possible only as a redesign: native Spotify OAuth + playback state (the documented version needs a desktop bridge + tunnel) |
 | Walkabout | ✅ native roam/patrol | desktop-runtime | native roam/patrol mode + speed + pause-when-busy |
 | Usage Buddy | ✅ host feed | host-data | WS `status.host` carries `usagePct`/`usageLabel`; PC sender optional `OPENPETS_USAGE_URL` |
 
@@ -58,7 +56,7 @@ Separate repo (SDK v3 example, not in the 13):
    already have `status.host`; generalize it into a `host.data` feed
    (`integrations/host-status/` becomes one sender among several).
 4. **Desktop-runtime** — reinterpret natively where it makes sense (screen
-   roaming); otherwise skip (Spotify playback control).
+   roaming); otherwise skip.
 
 ## Remaining work
 
@@ -66,12 +64,10 @@ Built this session: **Deadline Buddy**, **Launch Buddy** checklist, **Walkabout*
 (roam/patrol), **Vocabulary Drag & Drop**, and the **host feed** (Usage Buddy
 usage metrics + host resources over WS).
 
-Still open:
+Out of scope (removed from the roadmap): **Anxiety Aid Tools audio**,
+**Higgsfield Watch**, **Spotify Buddy**.
 
-1. **Anxiety Aid Tools audio** (download + cache; needs a media source).
-2. **Higgsfield Watch** — blocked: no public list-jobs endpoint (poll-by-id only).
-3. **Spotify Buddy** — native redesign (OAuth), optional/large.
-4. Richer host resources (GPU) — best-effort only.
+Optional: richer host resources (GPU) — best-effort only.
 
 ## Explicitly excluded
 

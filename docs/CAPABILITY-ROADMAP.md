@@ -114,8 +114,7 @@ HUD/alerts/commands/schedules; they cannot inject UI into pet windows.
 | Deadline Buddy (manual deadlines) | device-local (GCal *not* included; Outlook out of scope) |
 
 **Community:** Vocabulary Drag & Drop (device-local), Walkabout (pet roaming,
-device-local), Spotify Buddy (direct-cloud + desktop playback control),
-Higgsfield Watch, Usage Buddy (**PC-dependent**: reads a PC-local usage monitor).
+device-local), Usage Buddy (**PC-dependent**: reads a PC-local usage monitor).
 
 **v4 assistant stack:** text composer, bounded conversation/tool execution,
 capability discovery/routing, independently selected text/STT/TTS providers,
@@ -184,8 +183,7 @@ equivalent, **EXT**=Android-extension, **DEF**=deferred.
 | C14 | System Resources (device battery/mem/storage/net; CPU/GPU restricted → "unavailable") | Absent | L | EQ | Med |
 | C15 | Walkabout (roaming/patrol) | Absent | L | EQ | Med |
 | C16 | Vocabulary Drag & Drop | Absent | L | EQ | Low |
-| C17 | Spotify Buddy (playback control) | Absent | P (playback) / C (metadata) | DEF | Deferred |
-| C18 | Usage Buddy | Absent | P | — | **Excluded** |
+| C17 | Usage Buddy | Absent | P | — | **Excluded** |
 
 ### 5.4 Presentation foundation
 
