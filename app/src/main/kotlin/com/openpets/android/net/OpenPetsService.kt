@@ -111,6 +111,7 @@ class OpenPetsService : Service() {
         override fun onStatus(text: String, tone: String?) { updateNotification(text) }
         override fun onPower(plugged: Boolean, level: Int) {}
         override fun onCommandInvoked(event: com.openpets.android.CommandInvoked) {}
+        override fun onFormSubmit(event: com.openpets.android.FormSubmit) {}
         override fun onCommandsChanged() {}
 
         override fun onMedia(request: MediaRequest) {

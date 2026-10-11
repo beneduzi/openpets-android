@@ -4,6 +4,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import com.google.gson.JsonObject
 import com.openpets.android.PetActionEvent
+import com.openpets.android.FormSubmit
 import com.openpets.android.companion.HostStatus
 import com.openpets.android.protocol.MoveRequest
 import com.openpets.android.CommandInvoked
@@ -36,6 +37,11 @@ object WsMessages {
         addProperty("type", "event"); addProperty("event", "action")
         actionEvent.bubbleId?.let { addProperty("bubbleId", it) }
         addProperty("actionId", actionEvent.actionId)
+    }.toString()
+    fun eventFromSubmit(event: FormSubmit): String = JsonObject().apply {
+        addProperty("type", "event"); addProperty("event", "submit")
+        event.bubbleId?.let { addProperty("bubbleId", it) }
+        add("values", com.google.gson.Gson().toJsonTree(event.values))
     }.toString()
     fun eventFromInputText(text: String): String = JsonObject().apply {
         addProperty("type", "event"); addProperty("event", "input.text"); addProperty("text", text)

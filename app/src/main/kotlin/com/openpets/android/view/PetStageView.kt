@@ -296,6 +296,7 @@ class PetStageView @JvmOverloads constructor(
         val values = LinkedHashMap<String, String>()
         formFields.forEach { (input, field) -> values[input.id] = field.text.toString() }
         formSubmitUrl?.let { url -> postJson(url, values) }
+        PetBus.formSubmit(com.openpets.android.FormSubmit(bubbleView.bubbleId, values))
         hideForm()
         bubbleView.dismiss()
     }

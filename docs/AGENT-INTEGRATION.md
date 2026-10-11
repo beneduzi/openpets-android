@@ -135,6 +135,8 @@ A client can send `{ "type":"status.host", "params":{ cpuPct, ramUsedMb, ramTota
 
 A client can send `pet.say` with `actions` (each `{ "id", "label" }`). When the user taps an action on the pet, connected clients receive `{ "type":"event", "event":"action", "bubbleId":…, "actionId":… }` and can react, for example by sending another command. This interaction is experimental.
 
+A client that shows an actionable bubble with `inputs` receives `{ "type":"event","event":"submit","bubbleId":…,"values":{…} }` when the user submits the form. This event is sent in addition to the configured `submitUrl` POST.
+
 ## Diagnose your setup
 
 ```bash

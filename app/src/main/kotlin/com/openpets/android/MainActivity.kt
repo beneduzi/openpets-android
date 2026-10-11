@@ -365,6 +365,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
     override fun onStatus(text: String, tone: String?) {}
     override fun onPower(plugged: Boolean, level: Int) {}
     override fun onCommandInvoked(event: CommandInvoked) {}
+    override fun onFormSubmit(event: com.openpets.android.FormSubmit) {}
     override fun onCommandsChanged() {}
 
     private fun speak(text: String) {

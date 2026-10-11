@@ -25,6 +25,7 @@ data class FeatureHud(
 )
 
 data class PetActionEvent(val bubbleId: String?, val actionId: String)
+data class FormSubmit(val bubbleId: String?, val values: Map<String, String>)
 data class CommandInvoked(val source: String, val commandId: String)
 
 object PetBus {
@@ -37,6 +38,7 @@ object PetBus {
         fun onHud(hud: FeatureHud)
         fun onHostMetrics(status: HostStatus?)
         fun onAction(event: PetActionEvent)
+        fun onFormSubmit(event: FormSubmit)
         fun onInputText(text: String)
         fun onMove(request: MoveRequest)
         fun onScale(scale: Float)
@@ -86,6 +88,10 @@ object PetBus {
 
     fun action(event: PetActionEvent) {
         main.post { listeners.forEach { it.onAction(event) } }
+    }
+
+    fun formSubmit(event: FormSubmit) {
+        main.post { listeners.forEach { it.onFormSubmit(event) } }
     }
 
     fun inputText(text: String) {

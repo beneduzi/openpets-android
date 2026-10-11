@@ -2,12 +2,22 @@ package com.openpets.android.net
 
 import com.google.gson.JsonParser
 import com.openpets.android.PetActionEvent
+import com.openpets.android.FormSubmit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WsMessagesTest {
+    @Test fun buildsSubmitEvent() {
+        val event = JsonParser.parseString(WsMessages.eventFromSubmit(FormSubmit("bubble-1", mapOf("name" to "Ada")))).asJsonObject
+        assertEquals("event", event.get("type").asString)
+        assertEquals("submit", event.get("event").asString)
+        assertEquals("bubble-1", event.get("bubbleId").asString)
+        assertEquals("Ada", event.getAsJsonObject("values").get("name").asString)
+        val withoutBubble = JsonParser.parseString(WsMessages.eventFromSubmit(FormSubmit(null, emptyMap()))).asJsonObject
+        assertFalse(withoutBubble.has("bubbleId"))
+    }
     @Test fun buildsInputTextEvent() {
         val event = JsonParser.parseString(WsMessages.eventFromInputText("hello agent")).asJsonObject
         assertEquals("event", event.get("type").asString)
