@@ -123,8 +123,8 @@ class SettingsScreenAdapter(
         }
     }
     fun updateRowsByKey(updated:List<SettingRow>,key:String) {
-        val position=rows.indexOfFirst { it.id==key.hashCode().toLong() }
-        if(position>=0 && position<updated.size){ rows=rows.toMutableList().also { it[position]=updated[position] }; notifyItemChanged(position) }
+        val position=rows.indexOfFirst { rowKey(it)==key }
+        if(position>=0){val replacement=updated.firstOrNull{rowKey(it)==key}?:return;rows=rows.toMutableList().also { it[position]=replacement };notifyItemChanged(position)}
     }
     fun updateChangedRows(updated:List<SettingRow>) {
         val working=rows.toMutableList()
@@ -138,10 +138,11 @@ class SettingsScreenAdapter(
         }
     }
     fun setFieldValue(key:String,value:String) {
-        rows=withTextFieldValue(rows,key,value)
+        val position=rows.indexOfFirst{rowKey(it)==key};if(position>=0)rows=rows.toMutableList().also{items->items[position]=when(val row=items[position]){is SettingRow.TextFieldRow->row.copy(value=value);is SettingRow.SecretRow->row.copy(value=value);else->row}}
     }
     fun setSliderValue(key:String,value:Float){ val p=rows.indexOfFirst{it.id==key.hashCode().toLong()};if(p>=0)rows=rows.toMutableList().also{it[p]=(it[p] as SettingRow.SliderRow).copy(value=value,valueLabel=formatWalkaboutSpeed(value))} }
     fun setChoiceValue(key:String,value:String){ val p=rows.indexOfFirst{it.id==key.hashCode().toLong()};if(p>=0)rows=rows.toMutableList().also{it[p]=(it[p] as SettingRow.ChoiceRow).copy(selectedKey=value)} }
+    private fun rowKey(row:SettingRow):String?=when(row){is SettingRow.TextFieldRow->row.key;is SettingRow.SecretRow->row.key;is SettingRow.InfoRow->row.key;is SettingRow.ActionRow->row.key;is SettingRow.SwitchRow->row.key;is SettingRow.SwitchDetailRow->row.key;is SettingRow.SliderRow->row.key;is SettingRow.ChoiceRow->row.key;else->null}
     override fun onViewRecycled(holder: Holder) { holder.itemView.setOnClickListener(null); holder.slider?.let{slider->holder.sliderListener?.let(slider::removeOnChangeListener)};holder.radioGroup?.setOnCheckedChangeListener(null);holder.slider=null;holder.sliderListener=null;holder.radioGroup=null;holder.watcher?.let { (holder.itemView as LinearLayout).getChildAt(1)?.let { child -> (child as? com.google.android.material.textfield.TextInputLayout)?.editText?.removeTextChangedListener(it) } }; holder.watcher=null; super.onViewRecycled(holder) }
     fun rebindAllIgnoringFocus(){notifyDataSetChanged()}
     private fun addSwitch(root: LinearLayout,title:String,summary:String?,checked:Boolean,onChange:(Boolean)->Unit) {

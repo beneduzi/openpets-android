@@ -23,6 +23,7 @@ abstract class SettingsScreenFragment : Fragment() {
     protected open fun onSave() {}
     protected open fun onDiscard() {}
     protected open fun onRowsBound() {}
+    protected fun updateRowsIncrementally() { (list?.adapter as? SettingsScreenAdapter)?.updateChangedRows(rows()) }
 
     override fun onCreateView(inflater: android.view.LayoutInflater, container: ViewGroup?, state: Bundle?): View {
         val ctx=requireContext()

@@ -16,7 +16,10 @@ interface SettingsHost {
     fun openSettingsDestination(destination: SettingsDestination)
     fun closeSettings()
     fun revealStage()
+    fun requestSettingsPermission(permission:String,requestCode:Int)
 }
+
+interface SettingsPermissionResultHandler { fun onSettingsPermissionResult(requestCode:Int,granted:Boolean) }
 
 class SettingsOverviewFragment : Fragment() {
     private var recycler:RecyclerView?=null

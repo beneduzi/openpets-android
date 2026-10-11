@@ -51,6 +51,7 @@ import com.openpets.android.companion.SttController
 import com.openpets.android.companion.SttState
 import com.openpets.android.companion.FocusSnapshot
 import com.openpets.android.companion.FocusState
+import com.openpets.android.companion.FocusPhase
 import com.openpets.android.companion.PetMood
 import com.openpets.android.companion.PetStats
 import com.openpets.android.companion.VirtualPetController
@@ -106,6 +107,18 @@ import com.openpets.android.settings.ui.CommandsFragment
 import com.openpets.android.settings.ui.VirtualPetFragment
 import com.openpets.android.settings.ui.FunFragment
 import com.openpets.android.settings.ui.MoodFragment
+import com.openpets.android.settings.ui.TimerFragment
+import com.openpets.android.settings.ui.FocusFragment
+import com.openpets.android.settings.ui.BreatheFragment
+import com.openpets.android.settings.ui.RemindersFragment
+import com.openpets.android.settings.ui.DeadlinesFragment
+import com.openpets.android.settings.ui.ChecklistFragment
+import com.openpets.android.settings.ui.WaterFragment
+import com.openpets.android.settings.ui.RoutineFragment
+import com.openpets.android.settings.ui.CalendarFragment
+import com.openpets.android.settings.ui.VoiceFragment
+import com.openpets.android.settings.ui.VocabularyFragment
+import com.openpets.android.settings.ui.SettingsPermissionResultHandler
 import com.openpets.android.vocab.VocabularyClient
 import com.openpets.android.vocab.VocabDefinition
 import com.openpets.android.view.PetStageView
@@ -165,6 +178,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
     private var breathingDialog: AlertDialog? = null
     private var breathingPhaseView: TextView? = null
     private var breathingDialogListener: ((BreathSnapshot) -> Unit)? = null
+    private var timerMaintenanceListener: ((TimerSnapshot) -> Unit)? = null
+    private var focusMaintenanceListener: ((FocusSnapshot) -> Unit)? = null
+    private var breathingMaintenanceListener: ((BreathSnapshot) -> Unit)? = null
+    private var maintenanceListenersRegistered = false
     private var breathingDialogRender: ((BreathSnapshot) -> Unit)? = null
     private var renderedBreathingKey: String? = null
     private var resourcesController: SystemResourcesController? = null
@@ -311,12 +328,17 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
         moodController = MoodController(this)
         routineController = RoutineController(this)
         breathingController = BreathingController(this)
+        timerMaintenanceListener = { timerController?.showOnPet() }
+        focusMaintenanceListener = { focusController?.showOnPet() }
+        breathingMaintenanceListener = { breathingController?.showOnPet() }
+        timerController?.addListener(timerMaintenanceListener!!)
+        focusController?.addListener(focusMaintenanceListener!!)
+        breathingController?.addListener(breathingMaintenanceListener!!)
         resourcesController = SystemResourcesController(this)
         calendarController = CalendarController(this)
         checklistController = ChecklistController(this)
         reloadPet()
         applyAnimationConfig()
-        sharedText()?.let { stage.post { showVocabDialog(it) } }
 
         OpenPetsService.start(this)
         requestNotificationPermission()
@@ -354,20 +376,20 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
                 .replace(SETTINGS_CONTAINER_ID, AnimationsFragment()).addToBackStack("animations").commit()
             SettingsDestination.WALKABOUT -> supportFragmentManager.beginTransaction()
                 .replace(SETTINGS_CONTAINER_ID, WalkaboutFragment()).addToBackStack("walkabout").commit()
-            SettingsDestination.TIMER -> showTimerDialog()
-            SettingsDestination.REMINDERS -> showRemindersDialog()
-            SettingsDestination.DEADLINES -> showDeadlineDialog()
-            SettingsDestination.FOCUS -> showFocusDialog()
-            SettingsDestination.CALENDAR -> showCalendarDialog()
-            SettingsDestination.CHECKLIST -> showChecklistDialog()
-            SettingsDestination.WATER -> showWaterDialog()
+            SettingsDestination.TIMER -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, TimerFragment()).addToBackStack("timer").commit()
+            SettingsDestination.REMINDERS -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, RemindersFragment()).addToBackStack("reminders").commit()
+            SettingsDestination.DEADLINES -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, DeadlinesFragment()).addToBackStack("deadlines").commit()
+            SettingsDestination.FOCUS -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, FocusFragment()).addToBackStack("focus").commit()
+            SettingsDestination.CALENDAR -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, CalendarFragment()).addToBackStack("calendar").commit()
+            SettingsDestination.CHECKLIST -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, ChecklistFragment()).addToBackStack("checklist").commit()
+            SettingsDestination.WATER -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, WaterFragment()).addToBackStack("water").commit()
             SettingsDestination.MOOD -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, MoodFragment()).addToBackStack("mood").commit()
-            SettingsDestination.ROUTINE -> showRoutineDialog()
-            SettingsDestination.BREATHE -> showBreathingDialog()
+            SettingsDestination.ROUTINE -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, RoutineFragment()).addToBackStack("routine").commit()
+            SettingsDestination.BREATHE -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, BreatheFragment()).addToBackStack("breathe").commit()
             SettingsDestination.VIRTUAL_PET -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, VirtualPetFragment()).addToBackStack("virtual-pet").commit()
             SettingsDestination.FUN -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, FunFragment()).addToBackStack("fun").commit()
-            SettingsDestination.VOCABULARY -> showVocabSettingsDialog()
-            SettingsDestination.VOICE -> showVoiceDialog()
+            SettingsDestination.VOCABULARY -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, VocabularyFragment()).addToBackStack("vocabulary").commit()
+            SettingsDestination.VOICE -> supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, VoiceFragment()).addToBackStack("voice").commit()
             SettingsDestination.RESOURCES -> supportFragmentManager.beginTransaction()
                 .replace(SETTINGS_CONTAINER_ID, ResourcesFragment()).addToBackStack("resources").commit()
             SettingsDestination.COMMANDS -> supportFragmentManager.beginTransaction()
@@ -412,11 +434,38 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
     }
 
     override fun revealStage() = closeSettings()
+    override fun requestSettingsPermission(permission:String,requestCode:Int){ActivityCompat.requestPermissions(this,arrayOf(permission),requestCode)}
 
     fun resourcesControllerForSettings(): SystemResourcesController? = resourcesController
     fun pluginCommandsForSettings() = CommandRegistry.list()
     fun virtualPetControllerForSettings(): VirtualPetController? = virtualPetController
     fun moodControllerForSettings(): MoodController? = moodController
+    fun timerControllerForSettings():TimerController?=timerController
+    fun focusControllerForSettings():FocusController?=focusController
+    fun breathingControllerForSettings():BreathingController?=breathingController
+    fun remindersControllerForSettings():ReminderController?=reminderController
+    fun deadlinesControllerForSettings():com.openpets.android.companion.DeadlineController=com.openpets.android.companion.CompanionRuntime.deadline
+    fun checklistControllerForSettings():ChecklistController?=checklistController
+    fun waterControllerForSettings():WaterController?=waterController
+    fun routineControllerForSettings():RoutineController?=routineController
+    fun checklistGreetingForSettings()=settings.launchGreeting
+    fun persistChecklistGreetingForSettings(value:String){settings.launchGreeting=value}
+    fun calendarControllerForSettings():CalendarController?=calendarController
+    fun vocabularySettingsForSettings()=if(::settings.isInitialized) settings.vocabTargetLang to settings.ankiHost else "en" to ""
+    fun saveVocabularySettingsForSettings(language:String,ankiHost:String){settings.vocabTargetLang=language;settings.ankiHost=ankiHost}
+    fun vocabularyClientForSettings()=vocabularyClient
+    fun ankiAvailableForSettings()=settings.ankiHost.isNotBlank()
+    fun breathingPhaseLabelForSettings(phase:BreathPhase):String {
+        val label=when(phase){BreathPhase.INHALE->R.string.breathe_in;BreathPhase.HOLD_IN,BreathPhase.HOLD_OUT->R.string.breathe_hold;BreathPhase.EXHALE->R.string.breathe_out;BreathPhase.DONE->R.string.breathe_done}
+        return getString(label)
+    }
+    fun focusStatusLabelForSettings(snapshot:FocusSnapshot):String=when(snapshot.state){
+        FocusState.FOCUS->getString(R.string.focus_cycles,snapshot.cyclesCompleted)
+        FocusState.BREAK->getString(R.string.focus_break_label)
+        FocusState.PAUSED->getString(if(snapshot.pausedPhase==FocusPhase.BREAK)R.string.focus_paused_break else R.string.focus_paused_focus)
+        FocusState.IDLE->""
+    }
+    fun focusSkipLabelForSettings(state:FocusState):String=getString(if(state==FocusState.FOCUS)R.string.focus_skip_break else R.string.focus_skip_focus)
     fun moodRatingLabelForSettings(value:Int):String = getString(when(value){1->R.string.mood_level_1;2->R.string.mood_level_2;3->R.string.mood_level_3;4->R.string.mood_level_4;else->R.string.mood_level_5})
     fun funGreetingForSettings() = greetingForNow()
     fun funFortuneForSettings() = resources.getStringArray(R.array.fortunes).random()
@@ -464,8 +513,15 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.action == android.content.Intent.ACTION_SEND) {
-            intent.getCharSequenceExtra(android.content.Intent.EXTRA_TEXT)?.toString()?.takeIf { it.isNotBlank() }?.let(::showVocabDialog)
+            intent.getCharSequenceExtra(android.content.Intent.EXTRA_TEXT)?.toString()?.takeIf { it.isNotBlank() }?.let{ text -> intent.removeExtra(android.content.Intent.EXTRA_TEXT);intent.action=null;openSharedVocabulary(text) }
         }
+    }
+
+    private fun openSharedVocabulary(text:String){
+        showSettings()
+        if(supportFragmentManager.isStateSaved){
+            window.decorView.post{if(!isFinishing&&!supportFragmentManager.isStateSaved)supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID,VocabularyFragment.newInstance(text)).addToBackStack("vocabulary").commit()}
+        }else supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID,VocabularyFragment.newInstance(text)).addToBackStack("vocabulary").commit()
     }
 
     private fun sharedText(): String? = if (intent?.action == android.content.Intent.ACTION_SEND) {
@@ -477,6 +533,12 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
         activityStarted = true
         AppState.foreground = true
         PetBus.register(this)
+        if(!maintenanceListenersRegistered){
+            timerMaintenanceListener?.let{timerController?.addListener(it)}
+            focusMaintenanceListener?.let{focusController?.addListener(it)}
+            breathingMaintenanceListener?.let{breathingController?.addListener(it)}
+            maintenanceListenersRegistered=true
+        }
         timerController?.refresh()
         startTimerTickIfRunning()
         timerDialogListener?.let { timerController?.addListener(it) }
@@ -502,6 +564,9 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
         calendarController?.refresh()
         startFocusTickIfRunning()
         startBreathingTickIfActive()
+        timerController?.showOnPet()
+        focusController?.showOnPet()
+        breathingController?.showOnPet()
         if (timerDialog?.isShowing == true) timerController?.snapshot()?.let { timerDialogRender?.invoke(it) }
         if (focusDialog?.isShowing == true) focusController?.snapshot()?.let { focusDialogRender?.invoke(it) }
         if (reminderDialog?.isShowing == true) reminderDialogRender?.invoke(reminderController?.snapshot().orEmpty())
@@ -529,6 +594,10 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
         moodDialogListener?.let { moodController?.removeListener(it) }
         routineDialogListener?.let { routineController?.removeListener(it) }
         breathingDialogListener?.let { breathingController?.removeListener(it) }
+        timerMaintenanceListener?.let{timerController?.removeListener(it)}
+        focusMaintenanceListener?.let{focusController?.removeListener(it)}
+        breathingMaintenanceListener?.let{breathingController?.removeListener(it)}
+        maintenanceListenersRegistered=false
         resourcesDialogListener?.let { resourcesController?.removeListener(it) }
         calendarDialogListener?.let { calendarController?.removeListener(it) }
         checklistDialogListener?.let { checklistController?.removeListener(it) }
@@ -583,12 +652,21 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
     }
 
     override fun onDestroy() {
+        timerMaintenanceListener?.let { timerController?.removeListener(it) }; timerMaintenanceListener=null
+        focusMaintenanceListener?.let { focusController?.removeListener(it) }; focusMaintenanceListener=null
+        breathingMaintenanceListener?.let { breathingController?.removeListener(it) }; breathingMaintenanceListener=null
         sttController?.destroy()
         try {
             tts?.shutdown()
         } catch (_: Exception) {
         }
         super.onDestroy()
+    }
+
+    override fun onPostResume(){
+        super.onPostResume()
+        if(!::settings.isInitialized)return
+        sharedText()?.let{ text -> intent?.removeExtra(android.content.Intent.EXTRA_TEXT); if(intent?.action==android.content.Intent.ACTION_SEND)intent?.action=null; openSharedVocabulary(text) }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -1139,11 +1217,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 1002 && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) showCalendarDialog()
-        if (requestCode == 1003) {
-            if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) showVoiceDialog()
-            else Toast.makeText(this, R.string.voice_permission, Toast.LENGTH_SHORT).show()
-        }
+        (supportFragmentManager.findFragmentById(SETTINGS_CONTAINER_ID) as? SettingsPermissionResultHandler)
+            ?.onSettingsPermissionResult(requestCode,grantResults.firstOrNull()==PackageManager.PERMISSION_GRANTED)
     }
 
     private fun showVoiceDialog() {
@@ -1175,6 +1250,9 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
         dialog.show()
     }
 
+    fun rearmSessionMaintenance() {
+        startTimerTickIfRunning(); startFocusTickIfRunning(); startBreathingTickIfActive()
+    }
     private fun startTimerTickIfRunning() {
         timerHandler.removeCallbacks(timerTick)
         if (timerController?.snapshot()?.state == TimerRunState.RUNNING && activityStarted && !isFinishing) {
