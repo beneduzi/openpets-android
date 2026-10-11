@@ -153,6 +153,6 @@ class SoundNotifier(private val context: Context) {
         private const val MIN_INTERVAL_MS = 1_200L
 
         /** Reactions that warrant a notification sound (attention/terminal states). */
-        val NOTIFY_REACTIONS: Set<String> = setOf("success", "error", "waiting", "waving")
+        val NOTIFY_REACTIONS: Set<String> = setOf("success", "error", "waving", "celebrating")
     }
 }
