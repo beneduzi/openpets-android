@@ -731,7 +731,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
                         status.text = getString(R.string.settings_catalog_page, page, totalPages) + " · " + resources.getQuantityString(R.plurals.settings_catalog_pets, result.total, result.total)
                         listContainer.removeAllViews()
                         if (result.pets.isEmpty()) {
-                            listContainer.addView(sectionLabel("No pets found."))
+                            listContainer.addView(sectionLabel(getString(R.string.settings_catalog_no_pets)))
                         }
                         result.pets.forEach { pet ->
                             listContainer.addView(actionButton("${pet.displayName}  ·  ${pet.author}") {
