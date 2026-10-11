@@ -67,6 +67,19 @@ class IpcServerTest {
     private fun ipc(id: String, method: String, params: String, token: String = IPC_TOKEN): String =
         """{"id":"$id","version":1,"token":"$token","method":"$method","params":$params}"""
 
+    @Test fun rateLimitAppliesPerPeer() {
+        val server = IpcServer(FakeSink(), IPC_TOKEN, "127.0.0.1", 0, rateLimitMax = 3)
+        val port = server.start()
+        try {
+            repeat(3) { index -> assertTrue(json(port, ipc("$index", "hello", "{}")).get("ok").asBoolean) }
+            val limited = json(port, ipc("fourth", "hello", "{}"))
+            assertEquals(false, limited.get("ok").asBoolean)
+            assertEquals("rate_limited", limited.getAsJsonObject("error").get("code").asString)
+        } finally {
+            server.stop()
+        }
+    }
+
     @Test fun reactAndSayReachSink() {
         val sink = FakeSink()
         val server = IpcServer(sink, IPC_TOKEN, "127.0.0.1", 0)

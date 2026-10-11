@@ -3,6 +3,7 @@ package com.openpets.android.protocol
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import java.net.InetAddress
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
@@ -22,10 +23,13 @@ class IpcServer(
     petCatalog: PetCatalogProvider = StaticPetCatalogProvider(),
     installer: PetInstaller? = null,
     enforceLease: Boolean = false,
-    clock: () -> Long = System::currentTimeMillis,
+    private val clock: () -> Long = System::currentTimeMillis,
     dispatcher: IpcDispatcher? = null,
+    private val rateLimitMax: Int = MAX_IPC_RATE_LIMIT,
+    private val rateLimitWindowMs: Long = IPC_RATE_LIMIT_WINDOW_MS,
 ) {
     val dispatcher: IpcDispatcher = dispatcher ?: IpcDispatcher(sink, appVersion, petCatalog, installer, enforceLease, clock)
+    private val windows = ConcurrentHashMap<String, ArrayDeque<Long>>()
     private val server = LineServer(
         port = port,
         bindAddress = bindAddress,
@@ -33,7 +37,7 @@ class IpcServer(
         socketTimeoutMs = IPC_RESPONSE_TIMEOUT_MS,
         maxConcurrent = 16,
         connectionDeadlineMs = IPC_CONNECTION_DEADLINE_MS,
-        handler = { raw, _ -> handle(raw) },
+        handler = { raw, peer -> handle(raw, peer) },
     )
 
     val isRunning: Boolean get() = server.isRunning
@@ -42,7 +46,10 @@ class IpcServer(
     fun start(): Int = server.start()
     fun stop() = server.stop()
 
-    private fun handle(raw: String): String {
+    private fun handle(raw: String, peer: InetAddress): String {
+        if (!allow(peer.hostAddress ?: "unknown")) {
+            return errorResponse(bestEffortId(raw), IpcProtocolError("rate_limited", "Too many requests.")).toString()
+        }
         val request = try {
             parseIpcRequest(raw, token)
         } catch (e: IpcProtocolError) {
@@ -56,6 +63,17 @@ class IpcServer(
             errorResponse(request.id, e)
         }
         return response.toString()
+    }
+
+    private fun allow(peer: String): Boolean {
+        val now = clock()
+        val window = windows.getOrPut(peer) { ArrayDeque() }
+        synchronized(window) {
+            while (window.isNotEmpty() && now - window.first() > rateLimitWindowMs) window.removeFirst()
+            if (window.size >= rateLimitMax) return false
+            window.addLast(now)
+            return true
+        }
     }
 }
 
