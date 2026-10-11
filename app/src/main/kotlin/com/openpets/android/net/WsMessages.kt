@@ -26,7 +26,7 @@ object WsMessages {
 
     fun hello(appVersion: String): String = JsonObject().apply { addProperty("type", "hello"); addProperty("appVersion", appVersion) }.toString()
     fun status(resultJson: JsonElement): String = JsonObject().apply { addProperty("type", "status"); add("result", resultJson) }.toString()
-    fun event(kind: String, payloadJson: JsonElement): String = JsonObject().apply { addProperty("type", "event"); addProperty("kind", kind); add("payload", payloadJson) }.toString()
+    fun event(kind: String, payloadJson: JsonElement): String = JsonObject().apply { addProperty("type", "event"); addProperty("event", kind); add("payload", payloadJson) }.toString()
     fun eventFromSay(payloadJson: JsonElement) = event("say", payloadJson)
     fun eventFromReact(payloadJson: JsonElement) = event("react", payloadJson)
     fun eventFromMedia(payloadJson: JsonElement) = event("media", payloadJson)

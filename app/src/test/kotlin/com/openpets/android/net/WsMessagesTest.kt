@@ -40,7 +40,7 @@ class WsMessagesTest {
         val value = JsonParser.parseString("{\"ok\":true,\"count\":2}")
         assertEquals(value.toString(), JsonParser.parseString(WsMessages.status(value)).asJsonObject.get("result").toString())
         val event = JsonParser.parseString(WsMessages.event("react", JsonParser.parseString("{\"reaction\":\"idle\"}"))).asJsonObject
-        assertEquals("event", event.get("type").asString); assertEquals("react", event.get("kind").asString)
+        assertEquals("event", event.get("type").asString); assertEquals("react", event.get("event").asString)
         assertEquals("idle", event.getAsJsonObject("payload").get("reaction").asString)
     }
 

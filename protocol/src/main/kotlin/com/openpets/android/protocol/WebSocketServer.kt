@@ -82,8 +82,8 @@ class WebSocketServer(
                     val frame = decodeClientFrame(input, maxPayloadBytes) ?: break
                     when (frame.opcode) {
                         0x1 -> listener.onMessage(conn, String(frame.payload, Charsets.UTF_8))
-                        0x9 -> conn.writeFrame(encodeServerControlFrame(0xA, frame.payload))
-                        0x8 -> { conn.writeFrame(encodeCloseFrame()); break }
+                        0x9 -> conn.pong(frame.payload)
+                        0x8 -> { conn.close(); break }
                         else -> { conn.close(1002); break }
                     }
                 }
@@ -103,11 +103,26 @@ class WebSocketServer(
 
     private inner class Connection(private val socket: Socket) : WebSocketConnection {
         private val open = AtomicBoolean(true)
+        // Writes happen off the caller's thread: `send` may be called from Android's main
+        // thread (event fan-out), where socket I/O is forbidden (NetworkOnMainThreadException).
+        private val writes = Executors.newSingleThreadExecutor { r -> Thread(r, "openpets-ws-write").apply { isDaemon = true } }
         override val peer: InetAddress get() = socket.inetAddress
         override val isOpen: Boolean get() = open.get()
-        @Synchronized override fun send(text: String) { if (isOpen) writeFrame(encodeServerTextFrame(text)) }
-        @Synchronized override fun close(code: Int) { if (open.compareAndSet(true, false)) { try { writeFrame(encodeCloseFrame(code)) } catch (_: Exception) {} } }
-        @Synchronized fun writeFrame(bytes: ByteArray) { if (isOpen) { socket.getOutputStream().write(bytes); socket.getOutputStream().flush() } }
-        fun markClosed() { open.set(false) }
+        override fun send(text: String) { if (open.get()) enqueue(encodeServerTextFrame(text)) }
+        override fun close(code: Int) { if (open.compareAndSet(true, false)) { enqueue(encodeCloseFrame(code)); writes.shutdown() } }
+        fun pong(payload: ByteArray) { if (open.get()) enqueue(encodeServerControlFrame(0xA, payload)) }
+        fun markClosed() { open.set(false); writes.shutdown() }
+        private fun enqueue(bytes: ByteArray) {
+            try {
+                writes.execute {
+                    try {
+                        socket.getOutputStream().write(bytes)
+                        socket.getOutputStream().flush()
+                    } catch (_: Exception) {
+                    }
+                }
+            } catch (_: Exception) {
+            }
+        }
     }
 }
