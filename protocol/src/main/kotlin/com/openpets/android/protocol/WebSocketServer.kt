@@ -6,9 +6,35 @@ import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.URLDecoder
+import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.Executors
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
+
+internal class BoundedWriteQueue(capacity: Int, threadName: String) {
+    private val droppedCount = AtomicLong()
+    private val executor = ThreadPoolExecutor(
+        1, 1, 0L, TimeUnit.MILLISECONDS, ArrayBlockingQueue(capacity),
+        { r -> Thread(r, threadName).apply { isDaemon = true } },
+        { _, _ -> droppedCount.incrementAndGet(); throw java.util.concurrent.RejectedExecutionException() }
+    )
+
+    val dropped: Long get() = droppedCount.get()
+
+    fun submit(task: Runnable): Boolean {
+        return try {
+            executor.execute(task)
+            true
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+            false
+        }
+    }
+
+    fun shutdown() = executor.shutdown()
+}
 
 interface WebSocketListener {
     fun onOpen(conn: WebSocketConnection)
@@ -105,7 +131,7 @@ class WebSocketServer(
         private val open = AtomicBoolean(true)
         // Writes happen off the caller's thread: `send` may be called from Android's main
         // thread (event fan-out), where socket I/O is forbidden (NetworkOnMainThreadException).
-        private val writes = Executors.newSingleThreadExecutor { r -> Thread(r, "openpets-ws-write").apply { isDaemon = true } }
+        private val writes = BoundedWriteQueue(WRITE_QUEUE_CAPACITY, "openpets-ws-write")
         override val peer: InetAddress get() = socket.inetAddress
         override val isOpen: Boolean get() = open.get()
         override fun send(text: String) { if (open.get()) enqueue(encodeServerTextFrame(text)) }
@@ -114,15 +140,19 @@ class WebSocketServer(
         fun markClosed() { open.set(false); writes.shutdown() }
         private fun enqueue(bytes: ByteArray) {
             try {
-                writes.execute {
+                writes.submit(Runnable {
                     try {
                         socket.getOutputStream().write(bytes)
                         socket.getOutputStream().flush()
                     } catch (_: Exception) {
                     }
-                }
+                })
             } catch (_: Exception) {
             }
         }
+    }
+
+    private companion object {
+        const val WRITE_QUEUE_CAPACITY = 256
     }
 }
