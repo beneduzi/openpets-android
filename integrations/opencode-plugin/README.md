@@ -122,4 +122,42 @@ coding agent receives it.
 cp openpets-voice.ts ~/.config/opencode/plugins/openpets-voice.ts
 ```
 
+## `openpets-interact.ts` — answer on the pet (experimental)
+
+Registers two OpenCode tools that make the pet a real **feedback path** from the
+phone back to the agent (the built-in `question` tool can't be answered from the
+pet; a plugin-registered tool can):
+
+- **`openpets_ask`** `{ question, options: string[] (≤4) }` → shows the options as
+  a pinned pet bubble; returns **the selected option** as the tool result.
+- **`openpets_confirm`** `{ message }` → shows Approve / Deny; returns
+  **approved/denied**.
+
+Requirements: the app's **experimental WebSocket** enabled (to receive the tap)
+and a discovery file. Awaits the tap with a timeout (default 60 s;
+`OPENPETS_ASK_TIMEOUT_MS`).
+
+```bash
+cp openpets-interact.ts ~/.config/opencode/plugins/openpets-interact.ts
+```
+
+## How the round-trip works (server side)
+
+```
+OpenCode (agent)                       OpenPets Android
+  MCP tools (status/say/react) ──IPC──▶ renders
+  plugin (openpets.ts) event-driven ──IPC──▶
+  plugin tool execute ──IPC pet.say (actions)──▶ bubble buttons
+                                          │ user taps
+  plugin WS client ◀── WS event:"action" ─┘
+       │
+       ├─ permission.asked → ctx.permission.reply (openpets-approvals)
+       ├─ input.text       → ctx.session.prompt   (openpets-voice)
+       └─ action on our bubble → resolve the tool result (openpets-interact)
+```
+
+Auth = the discovery file's **IPC token** (LAN, private peers). The app never
+calls OpenCode; a **host-side WS subscriber plugin** is what receives its events.
+
+
 
