@@ -695,7 +695,18 @@ class PetStageView @JvmOverloads constructor(
 
     private fun dpf(value: Float): Float = value * resources.displayMetrics.density
 
+    /** Ends any in-progress touch gesture when the stage is covered. */
+    fun cancelActiveGesture() {
+        handler.removeCallbacks(longPressRunnable)
+        draggingPet = false
+        longPressFired = false
+    }
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (!isEnabled) {
+            cancelActiveGesture()
+            return false
+        }
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 touchDownX = event.x
@@ -738,9 +749,9 @@ class PetStageView @JvmOverloads constructor(
                 return true
             }
             MotionEvent.ACTION_CANCEL -> {
-                handler.removeCallbacks(longPressRunnable)
+                // A cancelled gesture must still close out an active drag for listeners.
                 if (draggingPet) PetBus.pointer("drag", "end", lastPointerX, lastPointerY)
-                draggingPet = false
+                cancelActiveGesture()
                 return true
             }
         }

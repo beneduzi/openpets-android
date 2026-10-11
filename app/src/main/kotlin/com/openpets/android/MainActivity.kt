@@ -18,6 +18,9 @@ import android.speech.tts.TextToSpeech
 import android.text.InputType
 import android.text.format.DateFormat
 import android.view.View
+import android.view.ViewGroup
+import android.view.accessibility.AccessibilityEvent
+import android.view.inputmethod.InputMethodManager
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.CheckBox
@@ -27,6 +30,8 @@ import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.FrameLayout
+import androidx.activity.OnBackPressedCallback
 import android.widget.LinearLayout.LayoutParams
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -87,6 +92,9 @@ import com.openpets.android.protocol.SayRequest
 import com.openpets.android.protocol.MoveRequest
 import com.openpets.android.protocol.resolveReactionSpriteState
 import com.openpets.android.settings.AppSettings
+import com.openpets.android.settings.ui.SettingsDestination
+import com.openpets.android.settings.ui.SettingsHost
+import com.openpets.android.settings.ui.SettingsOverviewFragment
 import com.openpets.android.vocab.VocabularyClient
 import com.openpets.android.vocab.VocabDefinition
 import com.openpets.android.view.PetStageView
@@ -94,16 +102,21 @@ import java.io.File
 import java.util.Locale
 import java.util.Calendar
 
+private const val SETTINGS_CONTAINER_ID = 0x0a11ce
+private const val STATE_SETTINGS_VISIBLE = "settings_visible"
+
 /**
  * Always-on companion surface. Shows the pet full-screen, keeps the screen on,
  * and drives it from the IPC/remote servers via [PetBus].
  *
  * Tap the pet to wave; long-press to open settings (ports, tokens, pet picker).
  */
-class MainActivity : AppCompatActivity(), PetBus.Listener {
+class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
     private var sttController: SttController? = null
 
     private lateinit var stage: PetStageView
+    private lateinit var settingsContainer: FrameLayout
+    private var settingsVisible = false
     private lateinit var settings: AppSettings
     private lateinit var repository: PetRepository
     private val catalogClient = CatalogClient()
@@ -232,10 +245,42 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
 
         stage = PetStageView(this).apply {
             setBackgroundColor(Color.BLACK)
+            contentDescription = "Pet. Activate or long-press to open settings."
+            isFocusable = true
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
             onTap = { react("waving") }
             onLongPress = { showSettings() }
+            accessibilityDelegate = object : View.AccessibilityDelegate() {
+                override fun onInitializeAccessibilityNodeInfo(host: View, info: android.view.accessibility.AccessibilityNodeInfo) {
+                    super.onInitializeAccessibilityNodeInfo(host, info)
+                    info.addAction(android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK, "Open settings"))
+                }
+                override fun performAccessibilityAction(host: View, action: Int, args: Bundle?): Boolean {
+                    if (action == android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK) { showSettings(); return true }
+                    return super.performAccessibilityAction(host, action, args)
+                }
+            }
         }
-        setContentView(stage)
+        val root = FrameLayout(this)
+        root.addView(stage, FrameLayout.LayoutParams(-1, -1))
+        settingsContainer = FrameLayout(this).apply {
+            id = SETTINGS_CONTAINER_ID
+            visibility = View.GONE
+            isClickable = true
+            isFocusable = true
+            val value = android.util.TypedValue()
+            theme.resolveAttribute(com.google.android.material.R.attr.colorSurface, value, true)
+            setBackgroundColor(value.data)
+        }
+        root.addView(settingsContainer, FrameLayout.LayoutParams(-1, -1))
+        setContentView(root)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                if (supportFragmentManager.backStackEntryCount > 0) supportFragmentManager.popBackStack() else closeSettings()
+            }
+        }.also { backCallback = it })
+        settingsVisible = savedInstanceState?.getBoolean(STATE_SETTINGS_VISIBLE) ?: false
+        if (settingsVisible) restoreSettingsShell()
         timerController = TimerController(this)
         focusController = FocusController(this)
         reminderController = ReminderController(this)
@@ -253,6 +298,98 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
 
         OpenPetsService.start(this)
         requestNotificationPermission()
+    }
+    private lateinit var backCallback: OnBackPressedCallback
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean(STATE_SETTINGS_VISIBLE, settingsVisible)
+        super.onSaveInstanceState(outState)
+    }
+
+    fun selectedPetName(): String = currentPetLabel()
+
+    override fun openSettingsDestination(destination: SettingsDestination) {
+        when (destination) {
+            SettingsDestination.PETS -> showPetPicker()
+            SettingsDestination.ANIMATIONS -> showAnimationSettings()
+            SettingsDestination.WALKABOUT -> showWalkaboutDialog()
+            SettingsDestination.TIMER -> showTimerDialog()
+            SettingsDestination.REMINDERS -> showRemindersDialog()
+            SettingsDestination.DEADLINES -> showDeadlineDialog()
+            SettingsDestination.FOCUS -> showFocusDialog()
+            SettingsDestination.CALENDAR -> showCalendarDialog()
+            SettingsDestination.CHECKLIST -> showChecklistDialog()
+            SettingsDestination.WATER -> showWaterDialog()
+            SettingsDestination.MOOD -> showMoodDialog()
+            SettingsDestination.ROUTINE -> showRoutineDialog()
+            SettingsDestination.BREATHE -> showBreathingDialog()
+            SettingsDestination.VIRTUAL_PET -> showVirtualPetDialog()
+            SettingsDestination.FUN -> showFunDialog()
+            SettingsDestination.VOCABULARY -> showVocabSettingsDialog()
+            SettingsDestination.VOICE -> showVoiceDialog()
+            SettingsDestination.RESOURCES -> showResourcesDialog()
+            SettingsDestination.COMMANDS -> showCommandsDialog()
+            SettingsDestination.SOUND_OUTPUT, SettingsDestination.SERVER_SETTINGS,
+            SettingsDestination.START_ON_BOOT, SettingsDestination.HOST_STATUS_PENDING -> showLegacySettingsDialog()
+            SettingsDestination.ABOUT -> AlertDialog.Builder(this).setTitle("About OpenPets")
+                .setMessage(
+                    "Version ${BuildConfig.VERSION_NAME}\n\n" +
+                        "OpenPets upstream: https://github.com/OpenPetsHQ/openpets\n" +
+                        "This app: https://github.com/beneduzi/openpets-android",
+                )
+                .setPositiveButton("Open app repository") { _, _ ->
+                    startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse("https://github.com/beneduzi/openpets-android")))
+                }
+                .setNeutralButton("Open upstream") { _, _ ->
+                    startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse("https://github.com/OpenPetsHQ/openpets")))
+                }
+                .setNegativeButton(android.R.string.cancel, null).show()
+        }
+    }
+
+    override fun closeSettings() {
+        supportFragmentManager.popBackStackImmediate(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
+        settingsContainer.visibility = View.GONE
+        settingsVisible = false
+        backCallback.isEnabled = false
+        stage.isEnabled = true
+        stage.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+        stage.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+        stage.isFocusable = true
+        applyImmersive(true)
+        stage.requestFocus()
+        stage.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED)
+    }
+
+    private fun showSettings() {
+        currentFocus?.clearFocus()
+        (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)?.hideSoftInputFromWindow(window.decorView.windowToken, 0)
+        stage.cancelActiveGesture()
+        settingsVisible = true
+        applySettingsShellState()
+        if (supportFragmentManager.findFragmentById(SETTINGS_CONTAINER_ID) == null) {
+            supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, SettingsOverviewFragment()).commit()
+        }
+    }
+
+    private fun restoreSettingsShell() {
+        applySettingsShellState()
+        if (supportFragmentManager.findFragmentById(SETTINGS_CONTAINER_ID) == null) {
+            supportFragmentManager.beginTransaction().replace(SETTINGS_CONTAINER_ID, SettingsOverviewFragment()).commit()
+        }
+    }
+
+    private fun applySettingsShellState() {
+        settingsContainer.visibility = View.VISIBLE
+        settingsContainer.isClickable = true
+        settingsContainer.isFocusable = true
+        stage.isEnabled = false
+        stage.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        stage.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+        applyImmersive(false)
+        backCallback.isEnabled = true
+        currentFocus?.clearFocus()
+        (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)?.hideSoftInputFromWindow(window.decorView.windowToken, 0)
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
@@ -386,17 +523,19 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
         super.onDestroy()
     }
 
-    @Suppress("DEPRECATION")
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            window.decorView.systemUiVisibility = (
+        if (hasFocus) applyImmersive(!settingsVisible)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun applyImmersive(enabled: Boolean) {
+        if (enabled) window.decorView.systemUiVisibility = (
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                     or View.SYSTEM_UI_FLAG_FULLSCREEN
                     or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                     or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                )
-        }
+                ) else window.decorView.systemUiVisibility = 0
     }
 
     // ---- pet loading / selection ----
@@ -795,7 +934,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener {
             .setNegativeButton(R.string.dialog_close, null).show()
     }
 
-    private fun showSettings() {
+    private fun showLegacySettingsDialog() {
         val ipcEnabled = CheckBox(this).apply { text = getString(R.string.settings_ipc); isChecked = settings.ipcEnabled }
         val remoteEnabled = CheckBox(this).apply { text = getString(R.string.settings_remote); isChecked = settings.remoteEnabled }
         val wsEnabled = CheckBox(this).apply { text = getString(R.string.settings_ws); isChecked = settings.wsEnabled }
