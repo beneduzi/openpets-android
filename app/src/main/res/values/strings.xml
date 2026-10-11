@@ -338,6 +338,15 @@
     <string name="settings_deadline_days">%1$d day</string>
     <string name="settings_deadline_hours">%1$d h</string>
     <string name="settings_deadline_minutes">%1$d min</string>
+    <string name="settings_catalog_load_pet_failed">Failed to load pet: %1$s</string>
+    <string name="settings_catalog_pet">Pet: %1$s</string>
+    <string name="settings_catalog_pet_imported">Pet imported: %1$s</string>
+    <string name="settings_catalog_import_failed">Import failed: %1$s</string>
+    <string name="settings_catalog_page">Page %1$d/%2$d</string>
+    <string name="settings_catalog_load_failed">Failed to load: %1$s</string>
+    <string name="settings_catalog_title">Catalog · codex-pets.net</string>
+    <string name="settings_catalog_download_failed">Download failed: %1$s</string>
+    <plurals name="settings_catalog_pets"><item quantity="one">%d pet</item><item quantity="other">%d pets</item></plurals>
     <string name="ui_custom_sound_set">Custom sound set</string>
     <string name="settings_open_settings_action">Open settings</string>
     <string name="ui_imported_pet_removed">Imported pet removed</string>

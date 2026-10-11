@@ -648,7 +648,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
             } catch (_: Exception) {
                 // nothing else to do
             }
-            Toast.makeText(this, "Failed to load pet: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.settings_catalog_load_pet_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -659,7 +659,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
         settings.selectedPetId = pet.id
         reloadPet()
         OpenPetsService.reload(this)
-        Toast.makeText(this, "Pet: ${pet.displayName}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.settings_catalog_pet, pet.displayName), Toast.LENGTH_SHORT).show()
     }
 
     private fun importPet(block: () -> PetDescriptor, onComplete:()->Unit = {}) {
@@ -671,12 +671,12 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
                     settings.selectedPetId = descriptor.id
                     reloadPet()
                     OpenPetsService.reload(this)
-                    Toast.makeText(this, "Pet imported: ${descriptor.displayName}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.settings_catalog_pet_imported, descriptor.displayName), Toast.LENGTH_SHORT).show()
                     onComplete()
                 }
             } catch (e: Exception) {
                 runOnUiThread {
-                    Toast.makeText(this, "Import failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, getString(R.string.settings_catalog_import_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                     finishPetImport(false)
                 }
             }
@@ -728,7 +728,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
                     runOnUiThread {
                         page = result.page
                         totalPages = result.totalPages
-                        status.text = "Page $page/$totalPages · ${result.total} pets"
+                        status.text = getString(R.string.settings_catalog_page, page, totalPages) + " · " + resources.getQuantityString(R.plurals.settings_catalog_pets, result.total, result.total)
                         listContainer.removeAllViews()
                         if (result.pets.isEmpty()) {
                             listContainer.addView(sectionLabel("No pets found."))
@@ -740,7 +740,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
                         }
                     }
                 } catch (e: Exception) {
-                    runOnUiThread { status.text = "Failed to load: ${e.message}" }
+                    runOnUiThread { status.text = getString(R.string.settings_catalog_load_failed, e.message ?: "") }
                 }
             }.start()
         }
@@ -753,7 +753,7 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
         }
 
         val dialog = AlertDialog.Builder(this)
-            .setTitle("Catalog · codex-pets.net")
+            .setTitle(getString(R.string.settings_catalog_title))
             .setView(ScrollView(this).apply { addView(content) })
             .setNegativeButton(R.string.dialog_close, null)
             .create()
@@ -774,11 +774,11 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
                     settings.selectedPetId = descriptor.id
                     reloadPet()
                     OpenPetsService.reload(this)
-                    Toast.makeText(this, "Pet: ${descriptor.displayName}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.settings_catalog_pet, descriptor.displayName), Toast.LENGTH_SHORT).show()
                     onDone()
                 }
             } catch (e: Exception) {
-                runOnUiThread { Toast.makeText(this, "Download failed: ${e.message}", Toast.LENGTH_LONG).show() }
+                runOnUiThread { Toast.makeText(this, getString(R.string.settings_catalog_download_failed, e.message ?: ""), Toast.LENGTH_LONG).show() }
             }
         }.start()
     }
