@@ -110,10 +110,28 @@ export default {
   id: "openpets-interact",
   setup: (ctx: {
     tool?: { transform: (cb: (editor: { namespace: (n: { name: string; description: string }) => void; add: (t: unknown) => void }) => void) => Promise<unknown> };
+    session?: { hook: (name: "context", cb: (event: { system: { type: string; text: string }[] }) => void) => unknown };
   }) => {
     const disc = readDiscovery();
     if (!disc) return;
     ensureWs(disc);
+
+    // Automatic routing: steer the agent to use the pet tools for user input, so
+    // questions/confirmations land on the pet by default.
+    try {
+      ctx.session?.hook?.("context", (event) => {
+        try {
+          event.system.push({
+            type: "text",
+            text: "When you need input from the user and the OpenPets pet is reachable, prefer the `ask` tool (multiple-choice, answered by tapping the pet) and the `confirm` tool (yes/no approval) over a chat-only prompt, so the user can answer on their device. Fall back to a normal prompt only if those tools are unavailable or time out.",
+          });
+        } catch {
+          /* ignore */
+        }
+      });
+    } catch {
+      /* ignore */
+    }
 
     void ctx.tool?.transform((editor) => {
       editor.namespace({ name: "openpets", description: "Ask the user on the OpenPets pet" });
