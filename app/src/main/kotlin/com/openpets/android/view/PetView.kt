@@ -70,17 +70,13 @@ class PetView @JvmOverloads constructor(
         val elapsed = SystemClock.uptimeMillis() - animationStartMs
         val iterations = state.iterations
 
-        val frameIndex: Int
-        var finished = false
-        if (iterations == null) {
-            frameIndex = ((elapsed / perFrameMs).toInt()).floorMod(state.frames)
-        } else {
+        // Always loop the sprite frames so animations never freeze on the last frame.
+        val frameIndex = ((elapsed / perFrameMs).toInt()).floorMod(state.frames)
+        if (iterations != null && !animationDone) {
             val totalMs = (perFrameMs * state.frames * iterations).toLong()
             if (elapsed >= totalMs) {
-                frameIndex = state.frames - 1
-                finished = true
-            } else {
-                frameIndex = ((elapsed / perFrameMs).toInt()).floorMod(state.frames)
+                animationDone = true
+                onAnimationComplete?.let { cb -> post { cb() } }
             }
         }
 
@@ -101,13 +97,7 @@ class PetView @JvmOverloads constructor(
         dstRect.set(left, top, left + drawWidth, top + drawHeight)
         canvas.drawBitmap(bitmap, srcRect, dstRect, paint)
 
-        if (!finished) {
-            postInvalidateOnAnimation()
-        } else if (!animationDone) {
-            animationDone = true
-            val callback = onAnimationComplete
-            if (callback != null) post { callback() }
-        }
+        postInvalidateOnAnimation()
     }
 
     private fun rows(): Int = (spritesheet?.height ?: frameHeight) / frameHeight
