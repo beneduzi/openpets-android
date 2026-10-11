@@ -58,12 +58,12 @@ about the **effect surface**, not the plugin API.
 | `ui.bubble` (text, actions, inputs, sticky, duration) | `pet.say` with `hud`/`actions`/`inputs`/`submitUrl`/`id`/`pinned` | ✅ (subset: markdown subset, ≤4 actions/inputs/HUD, no priority) |
 | `bubble.update` / `dismiss` | re-`pet.say` same `id` / `pet.bubbleDismiss` | ✅ |
 | `bubble.onAction` | `callbackUrl` POST **or** WS `event:"action"` | 🟡 |
-| `ui.alert` / `ui.toast` | — (app toasts not exposed) | ❌ |
+| `ui.alert` / `ui.toast` | alerts ~ `notify`; ephemeral toasts not exposed | 🟡 |
 | `ui.panel` / `delivery` / `session` | — (no such surfaces) | ❌ |
 | `pet.move` / `setScale` / `hide` / `show` | IPC `pet.move` / `pet.setScale` / `pet.hide` / `pet.show`; WS `pointer` events | ✅ (follow/physics still ❌) |
 | `schedule.*` | host-side (plugin schedules itself) + native features | ✅ (host) |
 | `storage` / `config` | host-side persistence | ✅ (host) |
-| `events` (click, drag, drop, idle, power, display) | WS emits react/say/media/dismiss/hud/action/input.text **and `pointer` (tap/drag)**; drop/idle/power still not emitted | 🟡 |
+| `events` (click, drag, drop, idle, power, display) | WS emits react/say/media/dismiss/hud/action/input.text, `pointer` (tap/drag) and `power` (battery); drop/idle/display still not emitted | 🟡 |
 | `bus` | — | ❌ |
 | `audio.play` | app plays sound on notify/reaction (not addressable) | 🟡 |
 | `voice.speak` | app TTS on `pet.say` | ✅ |
@@ -73,7 +73,7 @@ about the **effect surface**, not the plugin API.
 | `secrets` / `auth` / `net` / `files` | host-side | ✅ |
 | `system.metrics` | device metrics native; **host** metrics via WS `status.host` | 🟡 |
 | `commands.register` (pet menu) | WS `commands.register`/`unregister` → Settings → *Plugin commands*; invoke → WS `event:"command"` | ✅ (list UI, not the pet menu) |
-| `status` | — | ❌ |
+| `status` | IPC/WS `status.publish` → phone foreground-notification line | ✅ (single line) |
 | `assistant.registerCapability` | app has no assistant | ❌ |
 
 ## How to make it seamless
@@ -100,8 +100,9 @@ about the **effect surface**, not the plugin API.
   *Plugin commands*; invoke → WS `event:"command"`.
 - ✅ Pet interaction `pointer` (tap/drag) events over WS.
 
-Still open: a `status` surface, richer events (drop/idle/power), `follow`/physics,
-and a common-effect "works on both" plugin guide.
+Still open: richer events (drop/idle), `follow`/physics (native Walkabout covers
+roaming). The "works on both" guide is in `docs/WORKS-ON-BOTH.md`; the upstream
+proposal is in `docs/UPSTREAM-PHONE-TARGET.md`.
 
 Surfaces with **no meaningful phone analogue**: panels, deliveries, sessions,
 bus, assistant capabilities, host AI.
