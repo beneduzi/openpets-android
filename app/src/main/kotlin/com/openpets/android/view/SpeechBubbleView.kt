@@ -61,7 +61,7 @@ class SpeechBubbleView @JvmOverloads constructor(
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
     private val buttonTextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-        textSize = 12f * scaledDensity
+        textSize = 14f * scaledDensity
         typeface = Typeface.DEFAULT
         isFakeBoldText = true
         textAlign = Paint.Align.CENTER
@@ -82,8 +82,8 @@ class SpeechBubbleView @JvmOverloads constructor(
     private val padding = dp(12f)
     private val tailHeight = dp(8f)
     private val maxBubbleWidth = dp(320f)
-    private val buttonHeight = dp(30f)
-    private val buttonGap = dp(6f)
+    private val buttonHeight = dp(48f)
+    private val buttonGap = dp(10f)
     private val hudRowHeight = dp(22f)
 
     private var message: CharSequence? = null
@@ -209,7 +209,7 @@ class SpeechBubbleView @JvmOverloads constructor(
         buttonWidth = 0f
         if (actionCount > 0) {
             val availableContent = maxContentWidth.toFloat()
-            val naturalWidths = actions.map { (buttonTextPaint.measureText(it.label) + dp(24f)).coerceAtMost(dp(160f)) }
+            val naturalWidths = actions.map { (buttonTextPaint.measureText(it.label) + dp(40f)).coerceAtMost(dp(180f)) }
             var rowWidth = 0f
             var rows = 1
             var maxRowWidth = 0f
@@ -334,7 +334,7 @@ class SpeechBubbleView @JvmOverloads constructor(
             var x = padding
             var rowCount = 0
             for (action in actions) {
-                val naturalWidth = (buttonTextPaint.measureText(action.label) + dp(24f)).coerceAtMost(dp(160f))
+                val naturalWidth = (buttonTextPaint.measureText(action.label) + dp(40f)).coerceAtMost(dp(180f))
                 val nextWidth = if (rowCount == 0) naturalWidth else x + naturalWidth - padding
                 if (rowCount > 0 && nextWidth > width - 2 * padding) {
                     rowTop += buttonHeight + buttonGap
