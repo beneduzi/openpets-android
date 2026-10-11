@@ -185,6 +185,12 @@ class OpenPetsService : Service() {
 
     private fun startServers() {
         stopServers()
+        ConnectionStatus.publish(ServersStatus(
+            ipc = if (settings.ipcEnabled) ServerState.Applying else ServerState.Disabled,
+            remote = if (settings.remoteEnabled) ServerState.Applying else ServerState.Disabled,
+            webSocket = if (settings.wsEnabled) ServerState.Applying else ServerState.Disabled,
+            configuredBindAddress = settings.bindAddress,
+        ))
         sound.setCustomUri(settings.customSoundUri)
         val repository = PetRepository(this)
         val catalog = object : PetCatalogProvider {
@@ -210,6 +216,9 @@ class OpenPetsService : Service() {
         }
         val appVersion = BuildConfig.VERSION_NAME
         val dispatcher = IpcDispatcher(PetBus.sink, appVersion, catalog, installer, settings.requireLease)
+        var ipcState: ServerState = if (settings.ipcEnabled) ServerState.Applying else ServerState.Disabled
+        var remoteState: ServerState = if (settings.remoteEnabled) ServerState.Applying else ServerState.Disabled
+        var wsState: ServerState = if (settings.wsEnabled) ServerState.Applying else ServerState.Disabled
         if (settings.ipcEnabled) {
             ipcServer = try {
                 IpcServer(
@@ -221,14 +230,16 @@ class OpenPetsService : Service() {
                     installer = installer,
                     enforceLease = settings.requireLease,
                     dispatcher = dispatcher,
-                ).also { it.start() }
-            } catch (_: Exception) {
+                ).also { ipcState = ServerState.Listening(it.start()) }
+            } catch (e: Exception) {
+                ipcState = ServerState.Failed(e.message ?: "Unable to start IPC server")
                 null
             }
         }
         if (settings.wsEnabled) {
             wsBridge = WebSocketBridge(this, { settings.ipcToken }, dispatcher, appVersion).also {
                 it.start(settings.wsPort, settings.bindAddress)
+                wsState = if (it.isRunning) ServerState.Listening(it.localPort) else ServerState.Failed("Unable to start WebSocket server")
             }
         }
         if (settings.remoteEnabled) {
@@ -238,11 +249,13 @@ class OpenPetsService : Service() {
                     token = settings.remoteToken,
                     bindAddress = settings.bindAddress,
                     port = settings.remotePort,
-                ).also { it.start() }
-            } catch (_: Exception) {
+                ).also { remoteState = ServerState.Listening(it.start()) }
+            } catch (e: Exception) {
+                remoteState = ServerState.Failed(e.message ?: "Unable to start Remote server")
                 null
             }
         }
+        ConnectionStatus.publish(ServersStatus(ipcState, remoteState, wsState, settings.bindAddress))
         updateNotification()
     }
 
@@ -257,6 +270,12 @@ class OpenPetsService : Service() {
         ipcServer = null
         remoteServer = null
         wsBridge = null
+        if (::settings.isInitialized) ConnectionStatus.publish(ServersStatus(
+            ipc = if (settings.ipcEnabled) ServerState.Stopped else ServerState.Disabled,
+            remote = if (settings.remoteEnabled) ServerState.Stopped else ServerState.Disabled,
+            webSocket = if (settings.wsEnabled) ServerState.Stopped else ServerState.Disabled,
+            configuredBindAddress = settings.bindAddress,
+        ))
     }
 
     private fun startInForeground() {

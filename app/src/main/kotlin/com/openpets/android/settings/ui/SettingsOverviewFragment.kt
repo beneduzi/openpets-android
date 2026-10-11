@@ -18,7 +18,14 @@ interface SettingsHost {
 }
 
 class SettingsOverviewFragment : Fragment() {
+    private var recyclerState: android.os.Parcelable? = null
+    override fun onSaveInstanceState(outState: Bundle) {
+        recyclerState = view?.findViewById<RecyclerView>(OVERVIEW_LIST_ID)?.layoutManager?.onSaveInstanceState()
+        recyclerState?.let { outState.putParcelable("overview_scroll", it) }
+        super.onSaveInstanceState(outState)
+    }
     override fun onCreateView(inflater: android.view.LayoutInflater, container: ViewGroup?, state: Bundle?): View {
+        recyclerState = state?.getParcelable("overview_scroll")
         val context = requireContext()
         val root = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -33,12 +40,14 @@ class SettingsOverviewFragment : Fragment() {
         bar.addView(close, LinearLayout.LayoutParams(dp(48), dp(48)))
         root.addView(bar)
         val recycler = RecyclerView(context).apply {
+            id = OVERVIEW_LIST_ID
             setPadding(dp(16), 0, dp(16), 0); clipToPadding = false
             layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context)
             adapter = SettingsAdapter(overviewRows((requireActivity() as MainActivity).selectedPetName(), AppSettings.findLanIpv4())) {
                 (requireActivity() as SettingsHost).openSettingsDestination(it)
             }
         }
+        recyclerState?.let { recycler.post { recycler.layoutManager?.onRestoreInstanceState(it) } }
         val centered = FrameLayout(context)
         centered.addView(recycler, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER))
         root.addView(centered, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -46,3 +55,5 @@ class SettingsOverviewFragment : Fragment() {
     }
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 }
+
+private const val OVERVIEW_LIST_ID = 0x0a11cf

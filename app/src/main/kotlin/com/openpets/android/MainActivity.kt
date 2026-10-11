@@ -95,6 +95,7 @@ import com.openpets.android.settings.AppSettings
 import com.openpets.android.settings.ui.SettingsDestination
 import com.openpets.android.settings.ui.SettingsHost
 import com.openpets.android.settings.ui.SettingsOverviewFragment
+import com.openpets.android.settings.ui.ConnectionsFragment
 import com.openpets.android.vocab.VocabularyClient
 import com.openpets.android.vocab.VocabDefinition
 import com.openpets.android.view.PetStageView
@@ -276,6 +277,8 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
         setContentView(root)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
+                val screen=supportFragmentManager.findFragmentById(SETTINGS_CONTAINER_ID) as? com.openpets.android.settings.ui.SettingsScreenFragment
+                if (screen?.requestClose()==true) return
                 if (supportFragmentManager.backStackEntryCount > 0) supportFragmentManager.popBackStack() else closeSettings()
             }
         }.also { backCallback = it })
@@ -329,7 +332,9 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
             SettingsDestination.VOICE -> showVoiceDialog()
             SettingsDestination.RESOURCES -> showResourcesDialog()
             SettingsDestination.COMMANDS -> showCommandsDialog()
-            SettingsDestination.SOUND_OUTPUT, SettingsDestination.SERVER_SETTINGS,
+            SettingsDestination.SERVER_SETTINGS -> supportFragmentManager.beginTransaction()
+                .replace(SETTINGS_CONTAINER_ID, ConnectionsFragment()).addToBackStack("connections").commit()
+            SettingsDestination.SOUND_OUTPUT,
             SettingsDestination.START_ON_BOOT, SettingsDestination.HOST_STATUS_PENDING -> showLegacySettingsDialog()
             SettingsDestination.ABOUT -> AlertDialog.Builder(this).setTitle("About OpenPets")
                 .setMessage(
@@ -349,6 +354,9 @@ class MainActivity : AppCompatActivity(), PetBus.Listener, SettingsHost {
 
     override fun closeSettings() {
         supportFragmentManager.popBackStackImmediate(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
+        supportFragmentManager.fragments.filter { it.id == SETTINGS_CONTAINER_ID }.forEach { fragment ->
+            supportFragmentManager.beginTransaction().remove(fragment).commitNow()
+        }
         settingsContainer.visibility = View.GONE
         settingsVisible = false
         backCallback.isEnabled = false
