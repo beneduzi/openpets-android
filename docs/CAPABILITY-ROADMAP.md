@@ -59,9 +59,12 @@
    `pet.bubbleDismiss` unreachable, lease heartbeat/release no-ops, static GIF,
    unrendered `hud.icon`, no IPC rate limit, Remote not enforcing private IPv4.
 
-   > *Status:* **fixed since** — `pet.bubbleDismiss` reachable, lease
-   > heartbeat/release, Remote private-IPv4 enforcement. **Still open** — static
-   > GIF (first frame only), unrendered `hud.icon`, no IPC rate limit.
+   > *Status:* **fixed** — `pet.bubbleDismiss` reachable, lease heartbeat/release,
+   > Remote private-IPv4 enforcement, `hud.icon` rendered, IPC per-peer rate limit.
+   > **Still open** — animated GIF: `AnimatedImageDrawable` aborts inside the
+   > platform decoder on Android 10 / 32-bit arm (`Failed to get JNIEnv for JavaVM`
+   > in `AnimatedImageThread` → `SkGifCodec`), so GIFs stay static; animating them
+   > safely would need a custom frame decoder, not `ImageDecoder`.
 5. **Catalog/asset format drift:** the app consumes `codex-pets.net` and a fixed
    8×9 / 192×208 sprite grid; upstream uses its own catalog (v2/v3) and a **V2
    8×11 atlas with version markers and neutral/gaze poses**.
