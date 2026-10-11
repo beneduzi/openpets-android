@@ -1,17 +1,15 @@
 package com.openpets.android.pet
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import com.openpets.android.protocol.MAX_MEDIA_BYTES
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** Downloads a media image/GIF over http(s) and decodes it to a [Bitmap]. */
+/** Downloads media image/GIF bytes over http(s). */
 object MediaLoader {
 
     @Throws(IOException::class)
-    fun download(url: String, maxBytes: Int = MAX_MEDIA_BYTES): Bitmap {
+    fun downloadBytes(url: String, maxBytes: Int = MAX_MEDIA_BYTES): ByteArray {
         val connection = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 10_000
             readTimeout = 15_000
@@ -23,9 +21,7 @@ object MediaLoader {
             if (code !in 200..299) throw IOException("HTTP $code")
             val bytes = connection.inputStream.use { it.readBytes() }
             if (bytes.size > maxBytes) throw IOException("Image is too large")
-            val options = BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }
-            return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
-                ?: throw IOException("Unsupported image format")
+            return bytes
         } finally {
             connection.disconnect()
         }
