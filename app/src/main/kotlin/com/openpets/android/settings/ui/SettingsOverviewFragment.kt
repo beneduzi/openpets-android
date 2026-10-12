@@ -11,6 +11,8 @@ import android.widget.EditText
 import android.text.TextWatcher
 import android.text.Editable
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.ViewModel
 import androidx.recyclerview.widget.RecyclerView
 import com.openpets.android.settings.AppSettings
 import com.openpets.android.MainActivity
@@ -28,6 +30,7 @@ interface SettingsPermissionResultHandler { fun onSettingsPermissionResult(reque
 interface SettingsSearchBackHandler { fun closeSearchOnBack():Boolean }
 
 class SettingsOverviewFragment : Fragment(),SettingsSearchBackHandler {
+    private val overviewState: OverviewState by viewModels()
     private var recycler:RecyclerView?=null
     private var searchField:EditText?=null
     private var searching=false
@@ -60,10 +63,16 @@ class SettingsOverviewFragment : Fragment(),SettingsSearchBackHandler {
             id = OVERVIEW_LIST_ID
             setPadding(dp(16), 0, dp(16), 0); clipToPadding = false
             layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context)
-            adapter = SettingsAdapter(overviewRows((requireActivity() as MainActivity).selectedPetName(), AppSettings.findLanIpv4())) { row ->
+            adapter = SettingsAdapter(visibleOverviewRows(), { row ->
                 lastRowPosition = recycler?.findViewHolderForItemId(row.id)?.absoluteAdapterPosition ?: -1
                 if(row.destination==SettingsDestination.RESET_PREFERENCES)(requireActivity() as SettingsHost).showPreferenceResetChooser()
                 else {val entry=searchEntries[row.id];if(searching&&entry!=null)(requireActivity() as SettingsHost).openSettingsSearchResult(entry.destination,entry.targetKey) else (requireActivity() as SettingsHost).openSettingsDestination(row.destination)}
+            }, overviewState.collapsed) { header ->
+                val collapsed = overviewState.collapsed.toMutableSet()
+                if (!collapsed.add(header.id)) collapsed.remove(header.id)
+                overviewState.collapsed = collapsed
+                (recycler?.adapter as? SettingsAdapter)?.setCollapsedSectionIds(collapsed)
+                refreshOverview()
             }
         }
         val restore=recyclerState
@@ -76,17 +85,32 @@ class SettingsOverviewFragment : Fragment(),SettingsSearchBackHandler {
         return root
     }
     private fun expandSearch(bar:LinearLayout){if(searchField!=null)return;searching=true;val context=requireContext();searchField=EditText(context).apply{hint=getString(com.openpets.android.R.string.settings_search_action);contentDescription=hint;setSingleLine(true);setText(query);addTextChangedListener(object:TextWatcher{override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){};override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int){query=s?.toString().orEmpty();showSearchResults()};override fun afterTextChanged(s:Editable?){}})};bar.addView(searchField,1,LinearLayout.LayoutParams(0,dp(48),1f));(bar.getChildAt(0) as? TextView)?.text=getString(com.openpets.android.R.string.settings_title);searchField?.requestFocus();showSearchResults()}
-    private fun showSearchResults(){val rv=recycler?:return;if(!searching){(rv.adapter as? SettingsAdapter)?.replaceRows(overviewRows((requireActivity() as MainActivity).selectedPetName(),AppSettings.findLanIpv4()));return};val entries=searchSettings(query,resolve={getString(it)});searchEntries=entries.associateBy{it.hashCode().toLong()};(rv.adapter as? SettingsAdapter)?.replaceRows(entries.map{Row.Navigation(it.titleRes,it.summaryRes,it.destination,it.hashCode().toLong(),it.breadcrumbRes)})}
+    private fun showSearchResults(){val rv=recycler?:return;if(!searching){(rv.adapter as? SettingsAdapter)?.replaceRows(visibleOverviewRows());return};val entries=searchSettings(query,resolve={getString(it)});searchEntries=entries.associateBy{it.hashCode().toLong()};(rv.adapter as? SettingsAdapter)?.replaceRows(entries.map{Row.Navigation(it.titleRes,it.summaryRes,it.destination,it.hashCode().toLong(),it.breadcrumbRes)})}
     override fun closeSearchOnBack():Boolean{if(!searching)return false;searching=false;query="";searchField?.let{(it.parent as? ViewGroup)?.removeView(it)};searchField=null;view?.findViewById<LinearLayout>(android.R.id.content)?.let{};showSearchResults();return true}
     private var lastRowPosition=-1
     private var focusListener:android.view.ViewTreeObserver.OnPreDrawListener?=null
     private var focusObserver:android.view.ViewTreeObserver?=null
     private fun clearFocusListener(){val l=focusListener;val o=focusObserver;if(l!=null&&o!=null&&o.isAlive)o.removeOnPreDrawListener(l);focusListener=null;focusObserver=null}
-    override fun onResume(){super.onResume();if(searching)showSearchResults()else{val rv=recycler?:return;(rv.adapter as? SettingsAdapter)?.replaceRows(overviewRows((requireActivity() as MainActivity).selectedPetName(),AppSettings.findLanIpv4()))};restoreRowFocus()}
+    override fun onResume(){super.onResume();if(searching)showSearchResults()else{val rv=recycler?:return;(rv.adapter as? SettingsAdapter)?.replaceRows(visibleOverviewRows())};restoreRowFocus()}
     private fun restoreRowFocus(){val rv=recycler?:return;rv.isFocusable=true;clearFocusListener();val pos=lastRowPosition;if(pos<0||pos>=(rv.adapter?.itemCount?:0)){rv.requestFocus();return};rv.scrollToPosition(pos);var attempts=0;lateinit var listener:android.view.ViewTreeObserver.OnPreDrawListener;listener=android.view.ViewTreeObserver.OnPreDrawListener{if(!isAdded||rv!==recycler){clearFocusListener();true}else{val h=rv.findViewHolderForAdapterPosition(pos);if(h!=null){h.itemView.isFocusable=true;h.itemView.requestFocus();clearFocusListener()}else if(++attempts<8){rv.scrollToPosition(pos);rv.requestLayout()}else{rv.requestFocus();clearFocusListener()};true}};val o=rv.viewTreeObserver;focusListener=listener;focusObserver=o;o.addOnPreDrawListener(listener)}
-    fun refreshOverview(){if(searching)showSearchResults()else{val rv=recycler?:return;(rv.adapter as? SettingsAdapter)?.replaceRows(overviewRows((requireActivity() as MainActivity).selectedPetName(),AppSettings.findLanIpv4()))}}
+    fun refreshOverview(){if(searching)showSearchResults()else{val rv=recycler?:return;(rv.adapter as? SettingsAdapter)?.replaceRows(visibleOverviewRows())}}
+    private fun visibleOverviewRows(): List<Row> {
+        val result = mutableListOf<Row>()
+        var sectionCollapsed = false
+        for (row in overviewRows((requireActivity() as MainActivity).selectedPetName(), AppSettings.findLanIpv4())) {
+            if (row is Row.SectionHeader) {
+                sectionCollapsed = row.id in overviewState.collapsed
+                result += row
+            } else if (!sectionCollapsed) result += row
+        }
+        return result
+    }
     override fun onDestroyView(){clearFocusListener();recycler=null;searchField=null;super.onDestroyView()}
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+}
+
+class OverviewState : ViewModel() {
+    var collapsed: Set<Long> = emptySet()
 }
 
 private const val OVERVIEW_LIST_ID = 0x0a11cf

@@ -14,8 +14,11 @@ import com.google.android.material.R as MaterialR
 class SettingsAdapter(
     private var rows: List<Row>,
     private val onSelect: (Row.Navigation) -> Unit,
+    private var collapsedSectionIds: Set<Long> = emptySet(),
+    private val onSectionClick: (Row.SectionHeader) -> Unit = {},
 ) : RecyclerView.Adapter<SettingsAdapter.Holder>() {
     fun replaceRows(newRows: List<Row>) { rows = newRows; notifyDataSetChanged() }
+    fun setCollapsedSectionIds(ids: Set<Long>) { collapsedSectionIds = ids; notifyDataSetChanged() }
 
     init { setHasStableIds(true) }
 
@@ -29,7 +32,7 @@ class SettingsAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, type: Int): Holder = Holder(
         when (type) {
-            0 -> TextView(parent.context)
+            0 -> LinearLayout(parent.context)
             else -> LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL }
         },
     )
@@ -38,7 +41,7 @@ class SettingsAdapter(
         val row = rows[position]
         val context = holder.itemView.context
         when (row) {
-            is Row.SectionHeader -> bindHeader(holder.itemView as TextView, row, context, position)
+            is Row.SectionHeader -> bindHeader(holder.itemView as LinearLayout, row, context, position)
             is Row.Navigation -> bindItem(holder.itemView as LinearLayout, context, row.titleRes,
                 (row.breadcrumbRes?.let(context::getString)?.let { "$it · " } ?: "") + context.getString(row.titleRes),
                 row.summaryRes?.let(context::getString) ?: row.summaryValue, true, position)
@@ -47,22 +50,38 @@ class SettingsAdapter(
         }
     }
 
-    private fun bindHeader(view: TextView, row: Row.SectionHeader, context: Context, position: Int) {
-        view.text = context.getString(row.titleRes)
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-        view.setTextColor(color(context, MaterialR.attr.colorPrimary, 0xff6750a4.toInt()))
-        view.setTypeface(view.typeface, android.graphics.Typeface.BOLD)
-        view.letterSpacing = 0.08f
+    private fun bindHeader(view: LinearLayout, row: Row.SectionHeader, context: Context, position: Int) {
+        view.removeAllViews()
+        view.orientation = LinearLayout.HORIZONTAL
+        view.gravity = Gravity.CENTER_VERTICAL
         view.setPadding(dp(context, 16), dp(context, 24), dp(context, 16), dp(context, 8))
         view.minimumHeight = dp(context, 50)
-        view.gravity = Gravity.CENTER_VERTICAL
-        view.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        val collapsed = row.id in collapsedSectionIds
+        val ripple = TypedValue()
+        if (context.theme.resolveAttribute(android.R.attr.selectableItemBackground, ripple, true) && ripple.resourceId != 0) view.setBackgroundResource(ripple.resourceId) else view.background = null
+        view.isClickable = true
+        view.isFocusable = true
+        view.setOnClickListener { onSectionClick(row) }
+        val title = TextView(context).apply {
+            text = context.getString(row.titleRes)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setTextColor(color(context, MaterialR.attr.colorPrimary, 0xff6750a4.toInt()))
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            letterSpacing = 0.08f
+            ViewCompat.setAccessibilityHeading(this, true)
+            val state = if (collapsed) "collapsed" else "expanded"
+            ViewCompat.setStateDescription(this, state)
+            contentDescription = "${text}, $state"
+        }
+        view.addView(title, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        view.addView(TextView(context).apply {
+            text = if (collapsed) "▸" else "▾"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+            setTextColor(color(context, MaterialR.attr.colorOnSurfaceVariant, 0xff49454f.toInt()))
+            gravity = Gravity.CENTER
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }, LinearLayout.LayoutParams(dp(context, 24), LinearLayout.LayoutParams.WRAP_CONTENT))
         ViewCompat.setAccessibilityHeading(view, true)
-        if (position > 0) view.background = null
-        view.contentDescription = view.text
-        view.setOnClickListener(null)
-        view.isClickable = false
-        view.isFocusable = false
     }
 
     private fun bindItem(container: LinearLayout, context: Context, @androidx.annotation.StringRes titleRes: Int,
