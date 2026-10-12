@@ -1,6 +1,7 @@
 package com.openpets.android.settings.ui
 
 import android.os.Bundle
+import android.content.res.Configuration
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -54,10 +55,23 @@ abstract class SettingsScreenFragment : Fragment() {
         frame.addView(wrapper,FrameLayout.LayoutParams(-1,-1))
         content!!.addView(frame,LinearLayout.LayoutParams(-1,0,1f))
         if(transactional) {
-            val footer=LinearLayout(ctx).apply { setPadding(dp(16),dp(8),dp(16),dp(8)) }
-            footer.orientation=LinearLayout.VERTICAL
-            footer.addView(com.google.android.material.button.MaterialButton(ctx).apply { text=getString(com.openpets.android.R.string.settings_discard); setOnClickListener { onDiscard() } },LinearLayout.LayoutParams(-1,dp(48)))
-            footer.addView(com.google.android.material.button.MaterialButton(ctx).apply { text=getString(com.openpets.android.R.string.settings_save); setOnClickListener { onSave() } },LinearLayout.LayoutParams(-1,dp(48)))
+            val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+            val footer=LinearLayout(ctx).apply {
+                orientation = if (landscape) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
+                setPadding(dp(16), dp(8), dp(16), dp(8))
+            }
+            val discard = com.google.android.material.button.MaterialButton(ctx).apply { text=getString(com.openpets.android.R.string.settings_discard); setOnClickListener { onDiscard() } }
+            val save = com.google.android.material.button.MaterialButton(ctx).apply { text=getString(com.openpets.android.R.string.settings_save); setOnClickListener { onSave() } }
+            if (landscape) {
+                footer.addView(discard, LinearLayout.LayoutParams(0, dp(48), 1f))
+                footer.addView(save, LinearLayout.LayoutParams(0, dp(48), 1f))
+            } else {
+                footer.addView(discard, LinearLayout.LayoutParams(-1, dp(48)))
+                footer.addView(save, LinearLayout.LayoutParams(-1, dp(48)))
+            }
+            val footerHeight = dp(if (landscape) 64 else 112)
+            list?.setPadding(dp(16), 0, dp(16), footerHeight)
+            list?.clipToPadding = false
             content!!.addView(footer)
         }
         bar.post { if(isAdded&&view===content) bar.getChildAt(1)?.sendAccessibilityEvent(android.view.accessibility.AccessibilityEvent.TYPE_VIEW_FOCUSED) }
