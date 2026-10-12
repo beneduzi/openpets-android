@@ -1,51 +1,137 @@
 package com.openpets.android.settings.ui
 
+import android.content.Context
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.R as MaterialR
 
 class SettingsAdapter(
     private var rows: List<Row>,
     private val onSelect: (Row.Navigation) -> Unit,
 ) : RecyclerView.Adapter<SettingsAdapter.Holder>() {
-    fun replaceRows(newRows:List<Row>){ rows=newRows; notifyDataSetChanged() }
+    fun replaceRows(newRows: List<Row>) { rows = newRows; notifyDataSetChanged() }
+
     init { setHasStableIds(true) }
+
     override fun getItemId(position: Int) = rows[position].id
+
     override fun getItemViewType(position: Int) = when (rows[position]) {
         is Row.SectionHeader -> 0
         is Row.Navigation -> 1
         is Row.Info -> 2
     }
-    override fun onCreateViewHolder(parent: ViewGroup, type: Int): Holder = Holder(TextView(parent.context))
+
+    override fun onCreateViewHolder(parent: ViewGroup, type: Int): Holder = Holder(
+        when (type) {
+            0 -> TextView(parent.context)
+            else -> LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL }
+        },
+    )
+
     override fun onBindViewHolder(holder: Holder, position: Int) {
-        val text = holder.itemView as TextView
         val row = rows[position]
-        val context = text.context
-        val surface = android.util.TypedValue()
-        context.theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, surface, true)
-        val variant = android.util.TypedValue()
-        context.theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurfaceVariant, variant, true)
-        text.setTextColor(if (row is Row.SectionHeader) variant.data else surface.data)
-        text.gravity = Gravity.CENTER_VERTICAL
-        text.setPadding(dp(context, 0), dp(context, if (row is Row.SectionHeader) 0 else 12), dp(context, 0), dp(context, 12))
+        val context = holder.itemView.context
         when (row) {
-            is Row.SectionHeader -> { text.text = context.getString(row.titleRes); text.textSize = 16f; text.contentDescription = text.text; androidx.core.view.ViewCompat.setAccessibilityHeading(text,true) }
-            is Row.Navigation -> {
-                text.text = buildString { row.breadcrumbRes?.let { append(context.getString(it)).append(" › ") };append(context.getString(row.titleRes)); (row.summaryRes?.let { context.getString(it) } ?: row.summaryValue)?.let { append("\n").append(it) }; append("     ›") }
-                text.textSize = 16f
-                row.summaryRes?.let { text.setLineSpacing(dp(context, 4).toFloat(), 1f) }
-                text.isClickable = true
-                text.setOnClickListener { onSelect(row) }
-            }
-            is Row.Info -> { text.text = "${context.getString(row.titleRes)}\n${row.value.ifEmpty { context.getString(com.openpets.android.R.string.ui_unavailable) }}"; text.textSize = 16f }
+            is Row.SectionHeader -> bindHeader(holder.itemView as TextView, row, context, position)
+            is Row.Navigation -> bindItem(holder.itemView as LinearLayout, context, row.titleRes,
+                (row.breadcrumbRes?.let(context::getString)?.let { "$it · " } ?: "") + context.getString(row.titleRes),
+                row.summaryRes?.let(context::getString) ?: row.summaryValue, true, position)
+            is Row.Info -> bindItem(holder.itemView as LinearLayout, context, row.titleRes,
+                context.getString(row.titleRes), row.value.ifEmpty { context.getString(com.openpets.android.R.string.ui_unavailable) }, false, position)
         }
-        text.minimumHeight = dp(context, if (row is Row.SectionHeader) 32 else 64)
-        text.isClickable = row is Row.Navigation
-        if (row !is Row.Navigation) text.setOnClickListener(null)
     }
+
+    private fun bindHeader(view: TextView, row: Row.SectionHeader, context: Context, position: Int) {
+        view.text = context.getString(row.titleRes)
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+        view.setTextColor(color(context, MaterialR.attr.colorPrimary, 0xff6750a4.toInt()))
+        view.setTypeface(view.typeface, android.graphics.Typeface.BOLD)
+        view.letterSpacing = 0.08f
+        view.setPadding(dp(context, 16), dp(context, 24), dp(context, 16), dp(context, 8))
+        view.minimumHeight = dp(context, 50)
+        view.gravity = Gravity.CENTER_VERTICAL
+        view.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        ViewCompat.setAccessibilityHeading(view, true)
+        if (position > 0) view.background = null
+        view.contentDescription = view.text
+        view.setOnClickListener(null)
+        view.isClickable = false
+        view.isFocusable = false
+    }
+
+    private fun bindItem(container: LinearLayout, context: Context, @androidx.annotation.StringRes titleRes: Int,
+                         title: String, summary: String?, clickable: Boolean, position: Int) {
+        container.removeAllViews()
+        container.orientation = LinearLayout.VERTICAL
+        container.setPadding(0, 0, 0, 0)
+        container.minimumHeight = dp(context, 0)
+        container.isClickable = clickable
+        container.isFocusable = clickable
+        container.background = null
+        val content = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = dp(context, 64)
+            setPadding(dp(context, 16), dp(context, 12), dp(context, 16), dp(context, 12))
+            if (clickable) {
+                val out = TypedValue()
+                if (context.theme.resolveAttribute(android.R.attr.selectableItemBackground, out, true)) setBackgroundResource(out.resourceId)
+            }
+            isClickable = clickable
+            isFocusable = clickable
+        }
+        val column = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL }
+        val titleView = TextView(context).apply {
+            text = title
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextColor(color(context, MaterialR.attr.colorOnSurface, 0xff1d1b20.toInt()))
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+        column.addView(titleView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        if (summary != null) {
+            val summaryView = TextView(context).apply {
+                text = summary
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                setTextColor(color(context, MaterialR.attr.colorOnSurfaceVariant, 0xff49454f.toInt()))
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setPadding(0, dp(context, 2), 0, 0)
+            }
+            column.addView(summaryView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        }
+        content.addView(column, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        if (clickable) {
+            content.addView(TextView(context).apply {
+                text = "›"
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+                setTextColor(color(context, MaterialR.attr.colorOnSurfaceVariant, 0xff49454f.toInt()))
+                gravity = Gravity.CENTER
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }, LinearLayout.LayoutParams(dp(context, 24), LinearLayout.LayoutParams.MATCH_PARENT))
+        }
+        if (clickable) {
+            content.setOnClickListener { (rows.getOrNull(position) as? Row.Navigation)?.let(onSelect) }
+        } else content.setOnClickListener(null)
+        container.addView(content, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        val divider = View(context).apply { setBackgroundColor(color(context, MaterialR.attr.colorOutlineVariant, 0x1f000000)) }
+        val nextIsHeader = rows.getOrNull(position + 1) is Row.SectionHeader
+        if (!nextIsHeader) container.addView(divider, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(context, 1)))
+    }
+
     override fun getItemCount() = rows.size
     class Holder(view: View) : RecyclerView.ViewHolder(view)
-    private fun dp(context: android.content.Context, value: Int) = (value * context.resources.displayMetrics.density).toInt()
+
+    private fun color(context: Context, attr: Int, fallback: Int): Int {
+        val value = TypedValue()
+        return if (context.theme.resolveAttribute(attr, value, true)) value.data else fallback
+    }
+
+    private fun dp(context: Context, value: Int) = (value * context.resources.displayMetrics.density).toInt()
 }
