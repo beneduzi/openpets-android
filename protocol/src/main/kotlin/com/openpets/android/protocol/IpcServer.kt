@@ -231,14 +231,14 @@ class IpcDispatcher(
         addProperty("appVersion", appVersion)
         addProperty("protocol", IPC_PROTOCOL)
         addProperty("protocolVersion", IPC_VERSION)
-        addProperty("platform", "linux")
+        addProperty("platform", IPC_PLATFORM)
     }
 
     private fun statusResult(): JsonObject = JsonObject().apply {
         addProperty("ok", true)
         addProperty("appRunning", true)
         addProperty("appVersion", appVersion)
-        addProperty("platform", "linux")
+        addProperty("platform", IPC_PLATFORM)
         addProperty("defaultPetId", petCatalog.selectedPetId)
         addProperty("leases", activeLeaseCount())
         add("pets", petsListResult().getAsJsonArray("pets"))

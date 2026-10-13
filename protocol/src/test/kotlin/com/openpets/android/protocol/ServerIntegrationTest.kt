@@ -80,6 +80,24 @@ class IpcServerTest {
         }
     }
 
+    @Test fun helloAndStatusReportAndroidPlatform() {
+        val server = IpcServer(FakeSink(), IPC_TOKEN, "127.0.0.1", 0)
+        val port = server.start()
+        try {
+            listOf("hello" to "hello-platform", "status" to "status-platform").forEach { (method, id) ->
+                val response = json(port, ipc(id, method, "{}"))
+                assertTrue("$method should succeed", response.get("ok").asBoolean)
+                assertEquals(
+                    "$method should advertise the Android device, not the host OS",
+                    "android",
+                    response.getAsJsonObject("result").get("platform").asString,
+                )
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
     @Test fun reactAndSayReachSink() {
         val sink = FakeSink()
         val server = IpcServer(sink, IPC_TOKEN, "127.0.0.1", 0)

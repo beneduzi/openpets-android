@@ -7,6 +7,14 @@ import com.google.gson.JsonParser
 /** Wire constants for the OpenPets local IPC protocol (`openpets-ipc`, v1). */
 const val IPC_PROTOCOL = "openpets-ipc"
 const val IPC_VERSION = 1
+
+/**
+ * Platform reported by this server in `hello`/`status`.
+ *
+ * Not the discovery-file platform (which describes the consuming agent and is
+ * restricted to `linux`/`darwin`/`win32`); this describes the pet device itself.
+ */
+const val IPC_PLATFORM = "android"
 const val MAX_IPC_MESSAGE_BYTES = 16 * 1024
 const val IPC_CONNECT_TIMEOUT_MS = 2_000
 const val IPC_RESPONSE_TIMEOUT_MS = 3_000
