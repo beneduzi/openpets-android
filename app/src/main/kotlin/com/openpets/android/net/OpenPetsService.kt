@@ -19,6 +19,7 @@ import com.openpets.android.BuildConfig
 import com.openpets.android.AppState
 import com.openpets.android.HapticsNotifier
 import com.openpets.android.companion.CompanionRuntime
+import com.openpets.android.companion.AndroidDeviceStatusProvider
 import com.openpets.android.companion.CompanionSources
 import com.openpets.android.companion.TimerController
 import com.openpets.android.companion.ReminderController
@@ -215,7 +216,7 @@ class OpenPetsService : Service() {
             }
         }
         val appVersion = BuildConfig.VERSION_NAME
-        val dispatcher = IpcDispatcher(PetBus.sink, appVersion, catalog, installer, settings.requireLease)
+        val dispatcher = IpcDispatcher(PetBus.sink, appVersion, catalog, installer, settings.requireLease, deviceStatusProvider = AndroidDeviceStatusProvider(this))
         var ipcState: ServerState = if (settings.ipcEnabled) ServerState.Applying else ServerState.Disabled
         var remoteState: ServerState = if (settings.remoteEnabled) ServerState.Applying else ServerState.Disabled
         var wsState: ServerState = if (settings.wsEnabled) ServerState.Applying else ServerState.Disabled

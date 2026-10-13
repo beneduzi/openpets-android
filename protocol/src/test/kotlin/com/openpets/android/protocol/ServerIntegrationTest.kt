@@ -67,6 +67,61 @@ class IpcServerTest {
     private fun ipc(id: String, method: String, params: String, token: String = IPC_TOKEN): String =
         """{"id":"$id","version":1,"token":"$token","method":"$method","params":$params}"""
 
+    @Test fun deviceStatusReportsProviderValues() {
+        val provider = object : DeviceStatusProvider {
+            override fun deviceStatus() = DeviceStatus("Microwear", "W699", "8.1.0", 27, 410, 502, 320, 84, true, 31.5f, 1200, 2048, 8000, 16000, "WIFI")
+        }
+        val server = IpcServer(FakeSink(), IPC_TOKEN, "127.0.0.1", 0, deviceStatusProvider = provider)
+        val port = server.start()
+        try {
+            val result = json(port, ipc("device", "device.status", "{}")).getAsJsonObject("result")
+            val identity = result.getAsJsonObject("identity")
+            val display = result.getAsJsonObject("display")
+            val resources = result.getAsJsonObject("resources")
+            assertEquals("Microwear", identity.get("manufacturer").asString)
+            assertEquals("W699", identity.get("model").asString)
+            assertEquals("8.1.0", identity.get("androidVersion").asString)
+            assertEquals(27, identity.get("sdkInt").asInt)
+            assertTrue(identity.get("sdkInt").isJsonPrimitive && identity.get("sdkInt").asJsonPrimitive.isNumber)
+            assertEquals(410, display.get("widthPx").asInt)
+            assertEquals(502, display.get("heightPx").asInt)
+            assertEquals(320, display.get("densityDpi").asInt)
+            assertEquals(84, resources.get("batteryPercent").asInt)
+            assertEquals(true, resources.get("charging").asBoolean)
+            assertEquals(31.5f, resources.get("batteryTempC").asFloat)
+            assertEquals(1200L, resources.get("memoryUsedMb").asLong)
+            assertEquals(2048L, resources.get("memoryTotalMb").asLong)
+            assertEquals(8000L, resources.get("storageUsedMb").asLong)
+            assertEquals(16000L, resources.get("storageTotalMb").asLong)
+            assertEquals("WIFI", resources.get("networkType").asString)
+        } finally { server.stop() }
+    }
+
+    @Test fun deviceStatusReportsNullsForUnknownFields() {
+        val server = IpcServer(FakeSink(), IPC_TOKEN, "127.0.0.1", 0, deviceStatusProvider = object : DeviceStatusProvider {
+            override fun deviceStatus() = DeviceStatus()
+        })
+        val port = server.start()
+        try {
+            val response = json(port, ipc("device-null", "device.status", "{}"))
+            assertTrue(response.get("ok").asBoolean)
+            val result = response.getAsJsonObject("result")
+            listOf("manufacturer", "model", "androidVersion", "sdkInt").forEach { assertTrue(result.getAsJsonObject("identity").get(it).isJsonNull) }
+            listOf("widthPx", "heightPx", "densityDpi").forEach { assertTrue(result.getAsJsonObject("display").get(it).isJsonNull) }
+            listOf("batteryPercent", "charging", "batteryTempC", "memoryUsedMb", "memoryTotalMb", "storageUsedMb", "storageTotalMb", "networkType").forEach { assertTrue(result.getAsJsonObject("resources").get(it).isJsonNull) }
+        } finally { server.stop() }
+    }
+
+    @Test fun deviceStatusUnsupportedWithoutProvider() {
+        val server = IpcServer(FakeSink(), IPC_TOKEN, "127.0.0.1", 0)
+        val port = server.start()
+        try {
+            val response = json(port, ipc("device-unsupported", "device.status", "{}"))
+            assertEquals(false, response.get("ok").asBoolean)
+            assertEquals("unsupported_method", response.getAsJsonObject("error").get("code").asString)
+        } finally { server.stop() }
+    }
+
     @Test fun rateLimitAppliesPerPeer() {
         val server = IpcServer(FakeSink(), IPC_TOKEN, "127.0.0.1", 0, rateLimitMax = 3)
         val port = server.start()

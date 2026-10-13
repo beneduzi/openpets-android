@@ -38,7 +38,7 @@ val REACTIONS: List<String> = listOf(
 )
 
 val IPC_METHODS: List<String> = listOf(
-    "hello", "status", "pets.list", "pets.install", "pets.install-local",
+    "hello", "status", "device.status", "pets.list", "pets.install", "pets.install-local",
     "lease.acquire", "lease.heartbeat", "lease.release",
     "pet.react", "pet.say", "pet.showMedia", "pet.bubbleDismiss", "pet.move", "pet.setScale", "pet.hide", "pet.show", "notify", "status.clear", "status.publish",
 )

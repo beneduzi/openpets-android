@@ -27,8 +27,9 @@ class IpcServer(
     dispatcher: IpcDispatcher? = null,
     private val rateLimitMax: Int = MAX_IPC_RATE_LIMIT,
     private val rateLimitWindowMs: Long = IPC_RATE_LIMIT_WINDOW_MS,
+    deviceStatusProvider: DeviceStatusProvider? = null,
 ) {
-    val dispatcher: IpcDispatcher = dispatcher ?: IpcDispatcher(sink, appVersion, petCatalog, installer, enforceLease, clock)
+    val dispatcher: IpcDispatcher = dispatcher ?: IpcDispatcher(sink, appVersion, petCatalog, installer, enforceLease, clock, deviceStatusProvider)
     private val windows = ConcurrentHashMap<String, ArrayDeque<Long>>()
     private val server = LineServer(
         port = port,
@@ -85,6 +86,7 @@ class IpcDispatcher(
     private val installer: PetInstaller? = null,
     private val enforceLease: Boolean = false,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val deviceStatusProvider: DeviceStatusProvider? = null,
 ) {
     private val leases = ConcurrentHashMap<String, Long>()
     private val leaseLock = Any()
@@ -94,6 +96,11 @@ class IpcDispatcher(
     fun dispatch(request: IpcRequest): JsonObject = when (request.method) {
         "hello" -> okResponse(request.id, helloResult())
         "status" -> okResponse(request.id, statusResult())
+        "device.status" -> {
+            val provider = deviceStatusProvider
+                ?: throw IpcProtocolError("unsupported_method", "Device status is not supported.")
+            okResponse(request.id, deviceStatusResult(provider.deviceStatus()))
+        }
         "pets.list" -> okResponse(request.id, petsListResult())
         "lease.acquire" -> leaseAcquire(request)
         "lease.heartbeat" -> {
@@ -242,6 +249,31 @@ class IpcDispatcher(
         addProperty("defaultPetId", petCatalog.selectedPetId)
         addProperty("leases", activeLeaseCount())
         add("pets", petsListResult().getAsJsonArray("pets"))
+    }
+
+    private fun deviceStatusResult(device: DeviceStatus): JsonObject = JsonObject().apply {
+        addProperty("ok", true)
+        add("identity", JsonObject().apply {
+            addProperty("manufacturer", device.manufacturer)
+            addProperty("model", device.model)
+            addProperty("androidVersion", device.androidVersion)
+            addProperty("sdkInt", device.sdkInt as Number?)
+        })
+        add("display", JsonObject().apply {
+            addProperty("widthPx", device.screenWidthPx as Number?)
+            addProperty("heightPx", device.screenHeightPx as Number?)
+            addProperty("densityDpi", device.densityDpi as Number?)
+        })
+        add("resources", JsonObject().apply {
+            addProperty("batteryPercent", device.batteryPercent as Number?)
+            addProperty("charging", device.charging)
+            addProperty("batteryTempC", device.batteryTempC as Number?)
+            addProperty("memoryUsedMb", device.memoryUsedMb as Number?)
+            addProperty("memoryTotalMb", device.memoryTotalMb as Number?)
+            addProperty("storageUsedMb", device.storageUsedMb as Number?)
+            addProperty("storageTotalMb", device.storageTotalMb as Number?)
+            addProperty("networkType", device.networkType)
+        })
     }
 
     private fun activeLeaseCount(): Int {

@@ -176,7 +176,11 @@ node tools/send-media.mjs    192.168.0.14 18420 <IPC_TOKEN> ./print.png "screens
 
 Requests use `{ id, version:1, token, method, params }`. Success responses use `{ id, ok:true, result }`; errors use `{ id, ok:false, error:{code,message} }`.
 
-**Accepted methods:** `hello`, `status`, `pets.list`, `pets.install`, `pets.install-local`, `lease.acquire`, `lease.heartbeat`, `lease.release`, `pet.react`, `pet.say`, `pet.showMedia`, `pet.bubbleDismiss`, `pet.move`, `pet.setScale`, `pet.hide`, `pet.show`, `notify`, `status.clear`, `status.publish`.
+**Accepted methods:** `hello`, `status`, `device.status`, `pets.list`, `pets.install`, `pets.install-local`, `lease.acquire`, `lease.heartbeat`, `lease.release`, `pet.react`, `pet.say`, `pet.showMedia`, `pet.bubbleDismiss`, `pet.move`, `pet.setScale`, `pet.hide`, `pet.show`, `notify`, `status.clear`, `status.publish`.
+
+### `device.status`
+
+Send a request with no params. The response groups device information into `identity` (`manufacturer`, `model`, `androidVersion`, `sdkInt`), `display` (`widthPx`, `heightPx`, `densityDpi`), and `resources` (`batteryPercent`, `charging`, `batteryTempC`, `memoryUsedMb`, `memoryTotalMb`, `storageUsedMb`, `storageTotalMb`, `networkType`). Unknown values are returned as `null`.
 
 `pet.say` accepts optional `silent: true` to suppress sound, haptics, TTS, and notification (for mirrored HUD/state updates). Optional `accent` accepts `#RRGGBB` or `#AARRGGBB`, and optional `label` overrides the bubble label.
 
