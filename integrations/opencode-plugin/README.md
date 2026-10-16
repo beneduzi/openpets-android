@@ -75,12 +75,20 @@ recommended path for agent-issued `say`/`react` tool calls.)
   experimental `ws://` endpoint (see the app README) is a separate, opt-in
   transport and is not required by this plugin.
 
-## `openpets-approvals.ts` — host-side approval flow (experimental)
+## `openpets-approvals.ts` — host-side approval flow (experimental, **off by default**)
 
-An **optional, experimental** second plugin that finishes the "interactive
-approvals on the pet" idea. It requires the app's experimental WebSocket
-endpoint to be enabled (Settings → *WebSocket (experimental)*, default
-`ws://<device>:18423`).
+An **optional, experimental** second plugin for the "interactive approvals on
+the pet" idea. It requires the app's experimental WebSocket endpoint to be
+enabled (Settings → *WebSocket (experimental)*, default `ws://<device>:18423`).
+
+**Disabled by default.** Permission requests are meant to be answered in the
+OpenCode terminal; the pet only notifies that attention is needed (that is
+`openpets.ts`, and it keeps working with this plugin disabled). The approval
+bubble shows no usable context, and `ctx.permission.reply(...)` can silently do
+nothing while the pet still shows success feedback — so a tap on
+Approve/Always/Deny often has no effect (see `docs/OPENCODE-RPC.md`).
+
+To opt back in, start the OpenCode service with `OPENPETS_APPROVALS=1`.
 
 - When a **permission** request is raised, it shows a pinned pet bubble with
   **Approve / Always / Deny** buttons.
@@ -99,7 +107,8 @@ Caveats:
 - If the WS endpoint is disabled/unreachable, it is a no-op and approvals are
   answered normally in the TUI.
 
-Install the same way as `openpets.ts`, then restart the OpenCode service:
+Install the same way as `openpets.ts`, then restart the OpenCode service (the
+plugin stays inert without `OPENPETS_APPROVALS=1`):
 
 ```bash
 cp openpets-approvals.ts ~/.config/opencode/plugins/openpets-approvals.ts

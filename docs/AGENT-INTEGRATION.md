@@ -94,7 +94,7 @@ There are two ways to drive the device from OpenCode:
    | `openpets.ts` | reactions/speech from OpenCode activity; input-needed notices |
    | `openpets-interact.ts` | `ask` / `confirm` tools — answered **on the pet** |
    | `openpets-media.ts` | `media` tool — show an image on the pet |
-   | `openpets-approvals.ts` | permission approvals on the pet |
+   | `openpets-approvals.ts` | permission approvals on the pet (opt-in; off by default) |
    | `openpets-voice.ts` | on-device speech → session text |
 
    Two-way features require the app's **WebSocket (experimental)** endpoint.

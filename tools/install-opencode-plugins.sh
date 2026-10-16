@@ -48,8 +48,10 @@ Next steps:
   1) Make sure a discovery file exists:
        tools/write-discovery.sh <DEVICE_IP> <IPC_TOKEN>
      (or set OPENPETS_DISCOVERY_FILE to your discovery file)
-  2) For the two-way features (ask / confirm / media / approvals / voice),
-     enable the app's Settings -> "WebSocket (experimental)".
+  2) For the two-way features (ask / confirm / media / voice) and the opt-in
+     approvals flow, enable the app's Settings -> "WebSocket (experimental)".
+     The approvals plugin is off by default; enable it with OPENPETS_APPROVALS=1
+     in the OpenCode service environment (approvals are answered in the terminal).
   3) Reload OpenCode so the plugins load:
        opencode service restart
 EOF

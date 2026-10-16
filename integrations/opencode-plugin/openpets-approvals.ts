@@ -2,6 +2,16 @@
  * openpets-approvals — EXPERIMENTAL host-side approval flow for the OpenPets
  * Android companion (the host half of "interactive approvals on the pet").
  *
+ * DISABLED BY DEFAULT (opt in with `OPENPETS_APPROVALS=1`).
+ *
+ * Answering a permission request from the pet turned out to be unreliable in
+ * practice: `ctx.permission.reply` can silently do nothing while the pet still
+ * shows success feedback (see docs/OPENCODE-RPC.md), and the pinned bubble
+ * carries no useful context, so the request cannot be read on a small screen.
+ * Approvals must therefore be answered in the OpenCode terminal/TUI; the pet
+ * only *notifies* that input is needed (that is the `openpets.ts` plugin's job,
+ * which keeps working with this plugin disabled).
+ *
  * Requires the app's EXPERIMENTAL WebSocket endpoint to be enabled
  * (Settings -> "WebSocket (experimental)"), default `ws://<device>:18423`.
  *
@@ -23,7 +33,8 @@
  *     no-op and approvals are answered normally in the TUI.
  *
  * Install: copy to `~/.config/opencode/plugins/openpets-approvals.ts` (or
- * `.opencode/plugins/`), then restart the OpenCode service.
+ * `.opencode/plugins/`), then restart the OpenCode service. Without
+ * `OPENPETS_APPROVALS=1` in the OpenCode service environment it stays a no-op.
  */
 import { readFileSync } from "node:fs";
 import { connect, type Socket } from "node:net";
@@ -67,6 +78,10 @@ function sendIpc(discovery: { host: string; port: number; token: string }, metho
 }
 
 const WS_PORT = Number(process.env.OPENPETS_WS_PORT || 18423);
+
+// Opt-in only. When unset, this plugin is a no-op: permissions are answered in
+// the OpenCode terminal and the pet only notifies (see the file header).
+const ENABLED = process.env.OPENPETS_APPROVALS === "1";
 const wireId = (prefix: string, raw: string) => `${prefix}_${raw.replace(/[^A-Za-z0-9_-]/g, "_")}`.slice(0, 64);
 
 // bubbleId -> pending approval
@@ -140,6 +155,10 @@ export default {
     permission?: { hook: (name: "evaluate", cb: (event: unknown) => unknown) => unknown; reply?: (input: unknown) => Promise<void> };
     event?: { subscribe: () => AsyncIterable<unknown> };
   }) => {
+    // Disabled by default: answer approvals in the terminal. The pet still gets
+    // the "input needed" notification from the openpets.ts plugin.
+    if (!ENABLED) return;
+
     // Expose the plugin context so async WS callbacks can resolve approvals.
     (globalThis as { __openpetsCtx?: unknown }).__openpetsCtx = ctx;
 

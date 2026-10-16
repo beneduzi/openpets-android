@@ -13,7 +13,8 @@
  * Key behavior: whenever the assistant is blocked waiting for the user — the
  * `question` tool (interactive input prompt) or a `permission.asked` event —
  * the pet is told to show "waiting" and speak an "input needed" bubble. This is
- * the companion's main job.
+ * the companion's main job. Permission requests are only *announced*: they are
+ * answered in the OpenCode terminal (the pet cannot resolve them reliably).
  *
  * Install: copy this file to `~/.config/opencode/plugins/openpets.ts`
  * (global) or `.opencode/plugins/openpets.ts` (project), then restart the
@@ -96,9 +97,9 @@ function say(category: string, message: string, reaction: string): void {
 }
 
 /** The pet's main job: tell the user the assistant is waiting on them. */
-function notifyInputNeeded(reason: string): void {
+function notifyInputNeeded(reason: string, message = "Your input is needed"): void {
   react("waiting");
-  say(reason, "Your input is needed", "waiting");
+  say(reason, message, "waiting");
 }
 
 function classifyTool(tool: string, args: unknown): string | undefined {
@@ -166,7 +167,8 @@ export default {
               const status = event?.properties?.status ?? event?.payload?.properties?.status;
               if (status?.type === "idle") react("success");
             } else if (type === "permission.asked") {
-              notifyInputNeeded("permission");
+              // Approval-only notice: the request is answered in the terminal.
+              notifyInputNeeded("permission", "Approval needed - answer in OpenCode");
             }
           }
         } catch {
